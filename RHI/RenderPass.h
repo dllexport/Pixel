@@ -2,7 +2,7 @@
 
 #include <FrameGraph/Graph.h>
 
-// as resource template
+// template only
 // doesn't hold actual resource
 class RenderPass
 {

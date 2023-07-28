@@ -131,4 +131,7 @@ public:
             renderPassInfoCI.pDependencies = nullptr;
         }
     }
+
+private:
+    std::unordered_map<std::string, VkRenderPass> renderPassMap; 
 };

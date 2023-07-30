@@ -14,4 +14,6 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
 
     using TopoResult = std::unordered_map<uint16_t, std::vector<GraphNode *>>;
     TopoResult Topo();
+
+    std::string name;
 };

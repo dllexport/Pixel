@@ -1,16 +1,16 @@
 #include "Graph.h"
 
 #include <string>
-#include <fstream>
 #include <unordered_set>
+
+#include <Core/ReadFile.h>
 
 #include <FrameGraph/GraphNodeJson.h>
 #include <FrameGraph/GraphNode.h>
 
 IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 {
-    std::ifstream t(path);
-    std::string jsonStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+    auto jsonStr = ReadStringFile(path);
     JS::ParseContext context(jsonStr);
     RenderPassJson json;
     auto error = context.parseTo(json);
@@ -171,6 +171,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     }
 
     auto graph = new Graph;
+    graph->name = json.name;
     graph->graphNodesMap = resolvedMap;
     return graph;
 }

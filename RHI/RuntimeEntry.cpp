@@ -11,6 +11,6 @@ IntrusivePtr<RHIRuntime> RuntimeEntry::Create()
         return new VulkanRuntime();
     }
     default:
-        break;
+        return nullptr;
     }
 }

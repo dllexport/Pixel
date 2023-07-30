@@ -4,7 +4,7 @@ VulkanBuffer::VulkanBuffer(IntrusivePtr<Context> context) : context(context)
 {
 }
 
-bool VulkanBuffer::Allocate(Buffer::TypeBits type, Buffer::MemoryPropertyBits memoryProperties, uint32_t size)
+bool VulkanBuffer::Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
     auto allocator = context->GetVmaAllocator();
     // Create the buffer handle

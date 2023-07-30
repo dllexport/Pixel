@@ -7,6 +7,7 @@
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/Pipeline.h>
 #include <RHI/VulkanRuntime/Buffer.h>
+#include <RHI/VulkanRuntime/Texture.h>
 
 VulkanRuntime::VulkanRuntime()
 {
@@ -38,9 +39,16 @@ IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderPass> re
     return new VulkanPipeline(context, renderPass, subPassName, pipelineStates);
 }
 
-IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, Buffer::MemoryPropertyBits memoryProperties, uint32_t size)
+IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
     auto buffer = new VulkanBuffer(context);
     buffer->Allocate(type, memoryProperties, size);
     return buffer;
+}
+
+IntrusivePtr<Texture> VulkanRuntime::CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config)
+{
+    auto texture = new VulkanTexture(context);
+    texture->Allocate(format, type, memoryProperties, extent, config);
+    return texture;
 }

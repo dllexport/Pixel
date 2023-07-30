@@ -9,13 +9,15 @@ class VulkanBuffer : public Buffer
 public:
     VulkanBuffer(IntrusivePtr<Context> context);
 
-    virtual bool Allocate(Buffer::TypeBits type, Buffer::MemoryPropertyBits memoryProperties, uint32_t size) override;
     virtual void *Map() override;
 
 private:
+    friend class VulkanRuntime;
     IntrusivePtr<Context> context;
 
     VkBuffer buffer;
     VmaAllocation bufferAllocation;
     VmaAllocationInfo bufferAllocationInfo;
+
+    virtual bool Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
 };

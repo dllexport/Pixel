@@ -10,8 +10,6 @@ class VulkanRenderPass : public RenderPass
 public:
     VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
 
-    VkFormat TranslateFormat(Format format, bool isDepthStencil);
-
     virtual void Build() override;
 
     struct SubPassAttachmentReferences

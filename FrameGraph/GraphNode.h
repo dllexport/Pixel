@@ -5,7 +5,7 @@
 
 #include <Core/IntrusivePtr.h>
 
-#include <RHI/Formats.h>
+#include <RHI/TextureFormat.h>
 
 struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
 {
@@ -44,7 +44,7 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
 struct AttachmentGraphNode : public GraphNode
 {
     AttachmentGraphNode(std::string name, Type type) : GraphNode(name, type) {}
-    Format format = Format::NONE;
+    TextureFormat format = TextureFormat::NONE;
     bool depthStencil = false;
 };
 

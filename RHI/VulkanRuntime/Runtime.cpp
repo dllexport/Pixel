@@ -6,6 +6,7 @@
 #include <RHI/VulkanRuntime/ContextBuilder.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/Buffer.h>
 
 VulkanRuntime::VulkanRuntime()
 {
@@ -35,4 +36,11 @@ IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderPass> re
         return nullptr;
     }
     return new VulkanPipeline(context, renderPass, subPassName, pipelineStates);
+}
+
+IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, Buffer::MemoryPropertyBits memoryProperties, uint32_t size)
+{
+    auto buffer = new VulkanBuffer(context);
+    buffer->Allocate(type, memoryProperties, size);
+    return buffer;
 }

@@ -200,7 +200,7 @@ VkPipelineDynamicStateCreateInfo TranslateDynamicState(std::vector<VkDynamicStat
     return pipelineDynamicStateCreateInfo;
 }
 
-VkShaderModule VulkanPipeline::loadShader(std::string path)
+VkShaderModule VulkanPipeline::loadShader(std::string path, VkShaderStageFlagBits stage)
 {
     auto shaderCode = ReadBinaryFile(path);
 
@@ -212,9 +212,9 @@ VkShaderModule VulkanPipeline::loadShader(std::string path)
         moduleCreateInfo.codeSize = (uint32_t)shaderCode.size();
         moduleCreateInfo.pCode = (uint32_t *)shaderCode.data();
 
-        this->pipelineLayout.ParseFromReflect(shaderCode);
-
         auto result = vkCreateShaderModule(context->GetVkDevice(), &moduleCreateInfo, NULL, &shaderModule);
+
+        this->shaderCode[stage] = shaderCode;
 
         return shaderModule;
     }
@@ -231,7 +231,7 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanPipeline::TranslateShaderStat
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        shaderStage.module = loadShader(state.vertexShaderPath);
+        shaderStage.module = loadShader(state.vertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
         shaderStage.pName = "main";
         assert(shaderStage.module != VK_NULL_HANDLE);
         shaderModules.push_back(shaderStage.module);
@@ -242,7 +242,7 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanPipeline::TranslateShaderStat
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        shaderStage.module = loadShader(state.fragmentShaderPath);
+        shaderStage.module = loadShader(state.fragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
         shaderStage.pName = "main";
         assert(shaderStage.module != VK_NULL_HANDLE);
         shaderModules.push_back(shaderStage.module);
@@ -252,52 +252,14 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanPipeline::TranslateShaderStat
     return result;
 }
 
-VkPipelineVertexInputStateCreateInfo TranslateVertexInputState(InputVertexState state, VkVertexInputBindingDescription &inputBinding, std::vector<VkVertexInputAttributeDescription> &vertexInputAttributes)
+VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::InputVertexState& state)
 {
-    uint32_t stride = 0;
-    auto translateSizeToFormat = [](uint32_t size)
-    {
-        if (size == sizeof(float))
-        {
-            return VK_FORMAT_R32_SFLOAT;
-        }
-        if (size == 2 * sizeof(float))
-        {
-            return VK_FORMAT_R32G32_SFLOAT;
-        }
-        if (size == 3 * sizeof(float))
-        {
-            return VK_FORMAT_R32G32B32_SFLOAT;
-        }
-        if (size == 4 * sizeof(float))
-        {
-            return VK_FORMAT_R32G32B32A32_SFLOAT;
-        }
-        return VK_FORMAT_UNDEFINED;
-    };
-
-    for (int i = 0; i < state.vertexComponents.size(); i++)
-    {
-        auto vertexComponent = state.vertexComponents[i];
-        vertexInputAttributes.push_back(
-            VkVertexInputAttributeDescription{.location = (uint32_t)i,
-                                              .binding = 0,
-                                              .format = translateSizeToFormat(vertexComponent.size),
-                                              .offset = stride});
-        stride += vertexComponent.size;
-    }
-
-    inputBinding.binding = 0;
-    inputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    inputBinding.stride = stride;
-
     VkPipelineVertexInputStateCreateInfo vertexInputStateCI = {};
     vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputStateCI.vertexBindingDescriptionCount = 1;
-    vertexInputStateCI.pVertexBindingDescriptions = &inputBinding;
-    vertexInputStateCI.vertexAttributeDescriptionCount = (uint32_t)vertexInputAttributes.size();
-    vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
+    vertexInputStateCI.vertexBindingDescriptionCount = (uint32_t)state.inputBindingDescriptions.size();
+    vertexInputStateCI.pVertexBindingDescriptions = state.inputBindingDescriptions.data();
+    vertexInputStateCI.vertexAttributeDescriptionCount = (uint32_t)state.inputAttributeDescriptions.size();
+    vertexInputStateCI.pVertexAttributeDescriptions = state.inputAttributeDescriptions.data();
     return vertexInputStateCI;
 }
 
@@ -307,8 +269,6 @@ VulkanPipeline::VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<Rende
 
 void VulkanPipeline::Build()
 {
-    auto fg = this->renderPass->GetGraph();
-
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = TranslateInputAssemblyState(pipelineStates.inputAssembleState);
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = TranslateRasterizationState(pipelineStates.rasterizationState);
 
@@ -325,16 +285,12 @@ void VulkanPipeline::Build()
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStateCI = TranslateShaderState(pipelineStates.shaderState);
 
-    VkVertexInputBindingDescription inputBinding = {};
-    std::vector<VkVertexInputAttributeDescription> vertexInputAttributes;
-    VkPipelineVertexInputStateCreateInfo vertexInputStateCI = TranslateVertexInputState(pipelineStates.inputVertexState, inputBinding, vertexInputAttributes);
-
     VkGraphicsPipelineCreateInfo pipelineCI = {};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.basePipelineIndex = -1;
     pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
     pipelineCI.renderPass = this->renderPass->GetRenderPass();
-    pipelineCI.pVertexInputState = &vertexInputStateCI;
+    // pipelineCI.pVertexInputState = &vertexInputStateCI;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pRasterizationState = &rasterizationStateCI;
     pipelineCI.pColorBlendState = &colorBlendStateCI;
@@ -346,9 +302,15 @@ void VulkanPipeline::Build()
     pipelineCI.pStages = shaderStateCI.data();
     pipelineCI.subpass = this->renderPass->GetSubPassIndex(this->subPassName);
 
-    this->pipelineLayout.Build();
+    IntrusivePtr<SPIVReflection> vertexReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_VERTEX_BIT]);
+    auto inputState = vertexReflection->ParseInputVertexState();
+    auto inputVertexStateCI = TranslateInputVertexState(inputState);
+    pipelineCI.pVertexInputState = &inputVertexStateCI;
+
+    IntrusivePtr<SPIVReflection> fragmentReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_FRAGMENT_BIT]);
+    this->pipelineLayout.Build({vertexReflection, fragmentReflection});
     pipelineCI.layout = this->pipelineLayout.GetLayout();
 
     VkPipeline pipeline;
-    vkCreateGraphicsPipelines(context->GetVkDevice(), nullptr, 1, &pipelineCI, nullptr, &pipeline);
+    auto result = vkCreateGraphicsPipelines(context->GetVkDevice(), nullptr, 1, &pipelineCI, nullptr, &pipeline);
 }

@@ -66,21 +66,9 @@ struct ShaderState
     std::string commputeShaderPath;
 };
 
-struct VertexComponent {
-    uint8_t binding;
-    uint8_t location;
-    uint8_t size;
-};
-
-struct InputVertexState
-{
-    std::vector<VertexComponent> vertexComponents;
-};
-
 // aggregate states
 struct PipelineStates
 {
-    InputVertexState inputVertexState;
     InputAssembleState inputAssembleState;
     RasterizationState rasterizationState;
     std::vector<ColorBlendAttachmentState> colorBlendAttachmentStates;

@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include <RHI/VulkanRuntime/Context.h>
+#include <RHI/VulkanRuntime/SPIVReflection.h>
 
 class VulkanPipelineLayout
 {
@@ -14,7 +15,7 @@ public:
     {
     }
 
-    void Build();
+    void Build(std::vector<IntrusivePtr<SPIVReflection>> reflections);
 
     void ParseFromReflect(std::vector<char> spirv_code);
 
@@ -25,7 +26,7 @@ public:
 
 private:
     IntrusivePtr<Context> context;
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+    std::vector<VkDescriptorSetLayout> desriptorSetLayouts;
     VkPipelineLayout pipelineLayout;
 
     std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSets;

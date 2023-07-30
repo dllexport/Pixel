@@ -4,6 +4,7 @@
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
+#include <RHI/VulkanRuntime/SPIVReflection.h>
 
 class VulkanPipeline : public Pipeline
 {
@@ -17,8 +18,9 @@ private:
     std::string subPassName;
 
     std::vector<VkShaderModule> shaderModules;
+    std::unordered_map<VkShaderStageFlagBits, std::vector<char>> shaderCode;
     std::vector<VkPipelineShaderStageCreateInfo> TranslateShaderState(ShaderState state);
-    VkShaderModule loadShader(std::string path);
+    VkShaderModule loadShader(std::string path, VkShaderStageFlagBits stage);
 
     VulkanPipelineLayout pipelineLayout;
 };

@@ -7,6 +7,7 @@ class VulkanTexture : public Texture
 {
 public:
     VulkanTexture(IntrusivePtr<Context> context);
+    virtual ~VulkanTexture() override;
 
 private:
     friend class VulkanRuntime;

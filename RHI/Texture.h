@@ -55,7 +55,8 @@ public:
         // VkImageLayout initialLayout;
     };
 
-    Texture(){};
+    Texture() = default;
+    virtual ~Texture() = default;
 
 protected:
     virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config) = 0;

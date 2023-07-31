@@ -17,6 +17,11 @@ VulkanTexture::VulkanTexture(IntrusivePtr<Context> context) : context(context)
 {
 }
 
+VulkanTexture::~VulkanTexture()
+{
+    vmaDestroyImage(context->GetVmaAllocator(), image, imageAllocation);
+}
+
 bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config)
 {
     VkImageCreateInfo imageCI = {};

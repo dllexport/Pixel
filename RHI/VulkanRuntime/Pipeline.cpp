@@ -252,7 +252,7 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanPipeline::TranslateShaderStat
     return result;
 }
 
-VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::InputVertexState& state)
+VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::InputVertexState &state)
 {
     VkPipelineVertexInputStateCreateInfo vertexInputStateCI = {};
     vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -265,6 +265,17 @@ VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::I
 
 VulkanPipeline::VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates) : Pipeline(pipelineStates), context(context), renderPass(static_cast<VulkanRenderPass *>(renderPass.get())), subPassName(subPassName), pipelineLayout(context)
 {
+}
+
+VulkanPipeline::~VulkanPipeline()
+{
+    auto device = context->GetVkDevice();
+    for (auto &shaderModule : shaderModules)
+    {
+        vkDestroyShaderModule(device, shaderModule, nullptr);
+    }
+
+    vkDestroyPipeline(device, pipeline, nullptr);
 }
 
 void VulkanPipeline::Build()
@@ -311,6 +322,5 @@ void VulkanPipeline::Build()
     this->pipelineLayout.Build({vertexReflection, fragmentReflection});
     pipelineCI.layout = this->pipelineLayout.GetLayout();
 
-    VkPipeline pipeline;
     auto result = vkCreateGraphicsPipelines(context->GetVkDevice(), nullptr, 1, &pipelineCI, nullptr, &pipeline);
 }

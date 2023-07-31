@@ -8,6 +8,7 @@ class Pipeline : public IntrusiveCounter<Pipeline>
 {
 public:
     Pipeline(PipelineStates pipelineStates);
+    virtual ~Pipeline() = default;
     virtual void Build() = 0;
 
 protected:

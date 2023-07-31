@@ -4,6 +4,13 @@ VulkanBuffer::VulkanBuffer(IntrusivePtr<Context> context) : context(context)
 {
 }
 
+VulkanBuffer::~VulkanBuffer()
+{
+    auto allocator = context->GetVmaAllocator();
+    vmaUnmapMemory(allocator, bufferAllocation);
+    vmaDestroyBuffer(allocator, buffer, bufferAllocation);
+}
+
 bool VulkanBuffer::Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
     auto allocator = context->GetVmaAllocator();

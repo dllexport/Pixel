@@ -6,6 +6,21 @@
 
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
+VulkanPipelineLayout::VulkanPipelineLayout(IntrusivePtr<Context> context) : context(context)
+{
+}
+
+VulkanPipelineLayout::~VulkanPipelineLayout()
+{
+    auto device = context->GetVkDevice();
+    for (auto &desriptorSetLayout : desriptorSetLayouts)
+    {
+        vkDestroyDescriptorSetLayout(device, desriptorSetLayout, nullptr);
+    }
+
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+}
+
 void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> reflections)
 {
     std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindingsInSets(8);
@@ -22,7 +37,8 @@ void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> refle
 
     for (auto bindingsInSet : bindingsInSets)
     {
-        if (bindingsInSet.empty()) {
+        if (bindingsInSet.empty())
+        {
             break;
         }
         VkDescriptorSetLayoutCreateInfo descriptorLayout = {};

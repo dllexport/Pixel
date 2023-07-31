@@ -10,6 +10,7 @@ class VulkanRuntime : public RHIRuntime
 {
 public:
     VulkanRuntime();
+    virtual ~VulkanRuntime() override;
 
     IntrusivePtr<Context> GetContext();
 

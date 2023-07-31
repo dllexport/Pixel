@@ -9,6 +9,7 @@ class VulkanRenderPass : public RenderPass
 {
 public:
     VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
+    virtual ~VulkanRenderPass() override;
 
     virtual void Build() override;
 

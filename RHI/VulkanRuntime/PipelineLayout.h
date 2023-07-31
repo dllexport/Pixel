@@ -11,9 +11,8 @@
 class VulkanPipelineLayout
 {
 public:
-    VulkanPipelineLayout(IntrusivePtr<Context> context) : context(context)
-    {
-    }
+    VulkanPipelineLayout(IntrusivePtr<Context> context);
+    ~VulkanPipelineLayout();
 
     void Build(std::vector<IntrusivePtr<SPIVReflection>> reflections);
 

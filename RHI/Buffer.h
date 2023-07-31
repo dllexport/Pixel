@@ -40,7 +40,8 @@ public:
 
     using TypeBits = uint32_t;
 
-    Buffer(){};
+    Buffer() = default;
+    virtual ~Buffer() = default;
 
     virtual void *Map() = 0;
 

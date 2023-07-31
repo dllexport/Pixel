@@ -12,6 +12,7 @@
 class RHIRuntime : public IntrusiveCounter<RHIRuntime>
 {
 public:
+    virtual ~RHIRuntime() = default;
     virtual IntrusivePtr<RenderPass> CreateRenderPass(IntrusivePtr<Graph> graph) = 0;
     virtual IntrusivePtr<Pipeline> CreatePipeline(IntrusivePtr<RenderPass>, std::string subPassName, PipelineStates pipelineStates) = 0;
     virtual IntrusivePtr<Buffer> CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;

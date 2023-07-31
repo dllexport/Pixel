@@ -19,6 +19,11 @@ VulkanRuntime::VulkanRuntime()
                   .Build();
 }
 
+VulkanRuntime::~VulkanRuntime()
+{
+    context.reset();
+}
+
 IntrusivePtr<Context> VulkanRuntime::GetContext()
 {
     return context;

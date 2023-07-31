@@ -10,6 +10,7 @@ class VulkanPipeline : public Pipeline
 {
 public:
     VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates);
+    virtual ~VulkanPipeline() override;
     virtual void Build() override;
 
 private:
@@ -23,4 +24,6 @@ private:
     VkShaderModule loadShader(std::string path, VkShaderStageFlagBits stage);
 
     VulkanPipelineLayout pipelineLayout;
+
+    VkPipeline pipeline;
 };

@@ -8,6 +8,7 @@ class VulkanBuffer : public Buffer
 {
 public:
     VulkanBuffer(IntrusivePtr<Context> context);
+    virtual ~VulkanBuffer() override;
 
     virtual void *Map() override;
 

@@ -10,6 +10,7 @@ class RenderPass : public IntrusiveCounter<RenderPass>
 {
 public:
     RenderPass(IntrusivePtr<Graph> graph);
+    virtual ~RenderPass() = default;
     virtual void Build() = 0;
 
     const IntrusivePtr<Graph> GetGraph()

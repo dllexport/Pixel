@@ -6,6 +6,11 @@ VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<G
 {
 }
 
+VulkanRenderPass::~VulkanRenderPass()
+{
+    vkDestroyRenderPass(context->GetVkDevice(), renderPass, nullptr);
+}
+
 VkFormat TranslateFormat(TextureFormat format, bool isDepthStencil)
 {
     if (isDepthStencil)

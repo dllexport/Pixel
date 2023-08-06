@@ -1,17 +1,5 @@
 #include <RHI/VulkanRuntime/Texture.h>
-
-VkFormat TranslateTextureFormat(TextureFormat format)
-{
-    switch (format)
-    {
-    case TextureFormat::FORMAT_B8G8R8A8_UNORM:
-        return VK_FORMAT_B8G8R8A8_UNORM;
-    case TextureFormat::FORMAT_D32_SFLOAT_S8_UINT:
-        return VK_FORMAT_D32_SFLOAT_S8_UINT;
-    default:
-        return VK_FORMAT_UNDEFINED;
-    }
-}
+#include <RHI/VulkanRuntime/TextureView.h>
 
 VulkanTexture::VulkanTexture(IntrusivePtr<Context> context) : context(context)
 {
@@ -20,6 +8,11 @@ VulkanTexture::VulkanTexture(IntrusivePtr<Context> context) : context(context)
 VulkanTexture::~VulkanTexture()
 {
     vmaDestroyImage(context->GetVmaAllocator(), image, imageAllocation);
+}
+
+VkImage VulkanTexture::GetImage()
+{
+    return image;
 }
 
 bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config)
@@ -45,4 +38,12 @@ bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropert
     auto result = vmaCreateImage(allocator, &imageCI, &allocInfo, &image, &imageAllocation, &imageAllocationInfo);
 
     return result == VK_SUCCESS;
+}
+
+IntrusivePtr<VulkanTextureView> VulkanTexture::CreateTextureView(VkImageViewCreateInfo ci)
+{
+
+    IntrusivePtr<VulkanTextureView> view = new VulkanTextureView(context);
+    view->Allocate(this, ci);
+    return view;
 }

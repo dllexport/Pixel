@@ -178,7 +178,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 
 Graph::TopoResult Graph::Topo()
 {
-    Graph::TopoResult result;
+    std::unordered_map<uint16_t, std::vector<GraphNode *>> result;
 
     std::queue<GraphNode *> topoQueue;
     for (auto &[k, v] : graphNodesMap)
@@ -248,5 +248,19 @@ Graph::TopoResult Graph::Topo()
         }
     }
 
-    return result;
+    std::unordered_map<uint16_t, std::vector<GraphNode *>> passOnly;
+    for (auto &[k, v] : result)
+    {
+        for (auto &n : v)
+        {
+            if (n->type == GraphNode::Type::GRAPHIC_PASS || n->type == GraphNode::Type::COMPUTE_PASS)
+            {
+                passOnly[k].push_back(n);
+            }
+        }
+    }
+
+    return TopoResult{
+        .levels = result,
+        .levelsRenderPassOnly = passOnly};
 }

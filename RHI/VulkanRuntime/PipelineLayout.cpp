@@ -23,7 +23,7 @@ VulkanPipelineLayout::~VulkanPipelineLayout()
 
 void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> reflections)
 {
-    std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindingsInSets(8);
+    bindingsInSets.resize(8);
     for (auto reflection : reflections)
     {
         auto descriptorState = reflection->ParseDescriptorLayoutState();

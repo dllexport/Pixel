@@ -1,6 +1,5 @@
 #include <RHI/VulkanRuntime/RenderPass.h>
-
-#include <RHI/VulkanRuntime/Runtime.h>
+#include <RHI/VulkanRuntime/Pipeline.h>
 
 VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : RenderPass(graph), context(context)
 {
@@ -15,14 +14,14 @@ VkFormat TranslateFormat(TextureFormat format, bool isDepthStencil)
 {
     if (isDepthStencil)
     {
-        return VK_FORMAT_D32_SFLOAT_S8_UINT;
+        return VK_FORMAT_D16_UNORM;
     }
     return VK_FORMAT_B8G8R8A8_UNORM;
 }
 
 void VulkanRenderPass::Build()
 {
-    this->graph->Topo();
+    std::vector<VkAttachmentDescription> attachments;
 
     // TODO, aggregate subpasses
     for (auto &[level, subPassNode] : this->graph->graphNodesMap)
@@ -44,7 +43,9 @@ void VulkanRenderPass::Build()
         {
             if (n->type == GraphNode::ATTACHMENT)
             {
-                typedNodes.attachmentNodes.push_back(static_cast<AttachmentGraphNode *>(n.get()));
+                auto agn = static_cast<AttachmentGraphNode *>(n.get());
+                agn->input = true;
+                typedNodes.attachmentNodes.push_back(agn);
             }
             else if (n->type == GraphNode::BUFFER)
             {
@@ -54,9 +55,13 @@ void VulkanRenderPass::Build()
 
         for (auto n : subPassNode->outputs)
         {
+            // depth field is filled during parsing
             if (n->type == GraphNode::ATTACHMENT)
             {
-                typedNodes.attachmentNodes.push_back(static_cast<AttachmentGraphNode *>(n.get()));
+                auto agn = static_cast<AttachmentGraphNode *>(n.get());
+                // color and depth is mutual exclusive
+                agn->color = true && !agn->depthStencil;
+                typedNodes.attachmentNodes.push_back(agn);
             }
             else if (n->type == GraphNode::BUFFER)
             {
@@ -65,6 +70,7 @@ void VulkanRenderPass::Build()
         }
 
         attachments.resize(typedNodes.attachmentNodes.size());
+        attachmentMiniDescriptions.resize(attachments.size());
         std::unordered_map<std::string, uint32_t> attachmentMap;
 
         // find all attachment
@@ -92,9 +98,22 @@ void VulkanRenderPass::Build()
                 attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                attachments[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             }
 
+            attachmentMiniDescriptions[i].format = attachments[i].format;
+            if (attachmentNode->depthStencil)
+            {
+                attachmentMiniDescriptions[i].usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+            if (attachmentNode->input)
+            {
+                attachmentMiniDescriptions[i].usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+            }
+            if (attachmentNode->color)
+            {
+                attachmentMiniDescriptions[i].usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            }
             attachmentMap[attachmentNode->name] = i;
         }
 
@@ -143,7 +162,11 @@ void VulkanRenderPass::Build()
 
         auto device = this->context->GetVkDevice();
         auto result = vkCreateRenderPass(device, &renderPassInfoCI, nullptr, &this->renderPass);
-
         break;
     }
+}
+
+void VulkanRenderPass::RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline)
+{
+    pipelineMap[name] = pipeline;
 }

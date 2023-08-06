@@ -3,9 +3,9 @@
 #include <RHI/Pipeline.h>
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
-#include <RHI/VulkanRuntime/PipelineLayout.h>
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
+class VulkanPipelineLayout;
 class VulkanPipeline : public Pipeline
 {
 public:
@@ -13,9 +13,20 @@ public:
     virtual ~VulkanPipeline() override;
     virtual void Build() override;
 
+    IntrusivePtr<VulkanPipelineLayout> &GetPipelineLayout();
+
+    std::string GetSubPassName()
+    {
+        return subPassName;
+    }
+
+    VkPipeline GetPipeline()
+    {
+        return pipeline;
+    }
+
 private:
     IntrusivePtr<Context> context;
-    IntrusivePtr<VulkanRenderPass> renderPass;
     std::string subPassName;
 
     std::vector<VkShaderModule> shaderModules;
@@ -23,7 +34,7 @@ private:
     std::vector<VkPipelineShaderStageCreateInfo> TranslateShaderState(ShaderState state);
     VkShaderModule loadShader(std::string path, VkShaderStageFlagBits stage);
 
-    VulkanPipelineLayout pipelineLayout;
+    IntrusivePtr<VulkanPipelineLayout> pipelineLayout;
 
     VkPipeline pipeline;
 };

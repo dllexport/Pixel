@@ -2,9 +2,10 @@
 
 #include <cstdint>
 #include <Core/IntrusivePtr.h>
+#include <RHI/ResourceHandle.h>
 #include <RHI/Memory.h>
 
-class Buffer : public IntrusiveCounter<Buffer>
+class Buffer : public ResourceHandle
 {
 public:
     enum Type
@@ -40,11 +41,11 @@ public:
 
     using TypeBits = uint32_t;
 
-    Buffer() = default;
-    virtual ~Buffer() = default;
-
     virtual void *Map() = 0;
 
 protected:
+    Buffer() = default;
+    virtual ~Buffer() = default;
+
     virtual bool Allocate(TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
 };

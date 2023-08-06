@@ -12,7 +12,11 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
 
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> graphNodesMap;
 
-    using TopoResult = std::unordered_map<uint16_t, std::vector<GraphNode *>>;
+    struct TopoResult
+    {
+        std::unordered_map<uint16_t, std::vector<GraphNode *>> levels;
+        std::unordered_map<uint16_t, std::vector<GraphNode *>> levelsRenderPassOnly;
+    };
     TopoResult Topo();
 
     std::string name;

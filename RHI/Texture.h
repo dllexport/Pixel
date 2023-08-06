@@ -1,10 +1,11 @@
 #pragma once
 
 #include <Core/IntrusivePtr.h>
+#include <RHI/ResourceHandle.h>
 #include <RHI/TextureFormat.h>
 #include <RHI/Memory.h>
 
-class Texture : public IntrusiveCounter<Texture>
+class Texture : public ResourceHandle
 {
 public:
     enum Usage

@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
+class VulkanPipeline;
 class VulkanRenderPass : public RenderPass
 {
 public:
@@ -37,12 +38,24 @@ public:
         return -1;
     }
 
+    void RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline);
+
 private:
     friend class VulkanPipeline;
+    friend class VulkanRenderPassExecutor;
     IntrusivePtr<Context> context;
     VkRenderPass renderPass;
     std::vector<IntrusivePtr<GraphicRenderPassGraphNode>> graphicRenderPasses;
-    std::vector<VkAttachmentDescription> attachments;
+
+    struct AttachmentMiniDescription
+    {
+        VkFormat format;
+        // VkImageUsageFlagBits
+        VkFlags usage;
+    };
+    std::vector<AttachmentMiniDescription> attachmentMiniDescriptions;
     // subpass name -> references
     std::unordered_map<std::string, SubPassAttachmentReferences> referencesMap;
+
+    std::unordered_map<std::string, IntrusivePtr<VulkanPipeline>> pipelineMap;
 };

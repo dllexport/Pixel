@@ -12,6 +12,11 @@ public:
 
     virtual void *Map() override;
 
+    VkBuffer& GetBuffer()
+    {
+        return buffer;
+    }
+
 private:
     friend class VulkanRuntime;
     IntrusivePtr<Context> context;

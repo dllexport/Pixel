@@ -8,7 +8,7 @@
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
-class VulkanPipelineLayout
+class VulkanPipelineLayout : public IntrusiveCounter<VulkanPipelineLayout>
 {
 public:
     VulkanPipelineLayout(IntrusivePtr<Context> context);
@@ -23,12 +23,22 @@ public:
         return pipelineLayout;
     }
 
+    auto &GetBindingsInSets()
+    {
+        return bindingsInSets;
+    }
+
+    auto &GetSetsLayouts()
+    {
+        return desriptorSetLayouts;
+    }
+
 private:
     IntrusivePtr<Context> context;
     std::vector<VkDescriptorSetLayout> desriptorSetLayouts;
     VkPipelineLayout pipelineLayout;
 
-    std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSets;
+    std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindingsInSets;
     std::unordered_map<std::string, VkDescriptorSetLayoutBinding> vertexShaderDescriptorBindingMap;
     std::unordered_map<std::string, VkDescriptorSetLayoutBinding> fragmentShaderDescriptorBindingMap;
 };

@@ -1,4 +1,5 @@
 #include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/PipelineLayout.h>
 
 #include <Core/ReadFile.h>
 
@@ -263,8 +264,9 @@ VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::I
     return vertexInputStateCI;
 }
 
-VulkanPipeline::VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates) : Pipeline(pipelineStates), context(context), renderPass(static_cast<VulkanRenderPass *>(renderPass.get())), subPassName(subPassName), pipelineLayout(context)
+VulkanPipeline::VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates) : Pipeline(pipelineStates), context(context), subPassName(subPassName)
 {
+    this->renderPass = renderPass;
 }
 
 VulkanPipeline::~VulkanPipeline()
@@ -278,13 +280,19 @@ VulkanPipeline::~VulkanPipeline()
     vkDestroyPipeline(device, pipeline, nullptr);
 }
 
+IntrusivePtr<VulkanPipelineLayout> &VulkanPipeline::GetPipelineLayout()
+{
+    return pipelineLayout;
+}
+
 void VulkanPipeline::Build()
 {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = TranslateInputAssemblyState(pipelineStates.inputAssembleState);
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = TranslateRasterizationState(pipelineStates.rasterizationState);
 
     // apply default blending state
-    auto colorRefsSize = this->renderPass->referencesMap[this->subPassName].colorRefs.size();
+    auto vulkanRenderPass = static_cast<VulkanRenderPass *>(renderPass.get());
+    auto colorRefsSize = vulkanRenderPass->referencesMap[this->subPassName].colorRefs.size();
     auto colorBlendAttachmentStates = TranslateColorBlendAttachmentState(pipelineStates.colorBlendAttachmentStates, colorRefsSize);
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = BuildColorBlendAttachmentState(colorBlendAttachmentStates);
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = TranslateDepthStencilState(pipelineStates.depthStencilState);
@@ -300,7 +308,7 @@ void VulkanPipeline::Build()
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.basePipelineIndex = -1;
     pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineCI.renderPass = this->renderPass->GetRenderPass();
+    pipelineCI.renderPass = vulkanRenderPass->GetRenderPass();
     // pipelineCI.pVertexInputState = &vertexInputStateCI;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -311,7 +319,7 @@ void VulkanPipeline::Build()
     pipelineCI.pDynamicState = &dynamicStateCI;
     pipelineCI.stageCount = static_cast<uint32_t>(shaderStateCI.size());
     pipelineCI.pStages = shaderStateCI.data();
-    pipelineCI.subpass = this->renderPass->GetSubPassIndex(this->subPassName);
+    pipelineCI.subpass = vulkanRenderPass->GetSubPassIndex(this->subPassName);
 
     IntrusivePtr<SPIVReflection> vertexReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_VERTEX_BIT]);
     auto inputState = vertexReflection->ParseInputVertexState();
@@ -319,8 +327,9 @@ void VulkanPipeline::Build()
     pipelineCI.pVertexInputState = &inputVertexStateCI;
 
     IntrusivePtr<SPIVReflection> fragmentReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_FRAGMENT_BIT]);
-    this->pipelineLayout.Build({vertexReflection, fragmentReflection});
-    pipelineCI.layout = this->pipelineLayout.GetLayout();
+    this->pipelineLayout = new VulkanPipelineLayout(context);
+    this->pipelineLayout->Build({vertexReflection, fragmentReflection});
+    pipelineCI.layout = this->pipelineLayout->GetLayout();
 
     auto result = vkCreateGraphicsPipelines(context->GetVkDevice(), nullptr, 1, &pipelineCI, nullptr, &pipeline);
 }

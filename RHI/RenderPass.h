@@ -18,6 +18,8 @@ public:
         return graph;
     }
 
+    std::string Name();
+
 protected:
     IntrusivePtr<Graph> graph;
 };

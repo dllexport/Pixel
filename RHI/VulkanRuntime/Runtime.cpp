@@ -5,9 +5,12 @@
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/ContextBuilder.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
+#include <RHI/VulkanRuntime/RenderPassExecutor.h>
 #include <RHI/VulkanRuntime/Pipeline.h>
 #include <RHI/VulkanRuntime/Buffer.h>
 #include <RHI/VulkanRuntime/Texture.h>
+#include <RHI/VulkanRuntime/TextureView.h>
+#include <RHI/VulkanRuntime/ResourceBindingState.h>
 
 VulkanRuntime::VulkanRuntime()
 {
@@ -56,4 +59,16 @@ IntrusivePtr<Texture> VulkanRuntime::CreateTexture(TextureFormat format, Texture
     auto texture = new VulkanTexture(context);
     texture->Allocate(format, type, memoryProperties, extent, config);
     return texture;
+}
+
+IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor(IntrusivePtr<RenderPass> renderPass)
+{
+    auto rpe = new VulkanRenderPassExecutor(context, renderPass);
+
+    return rpe;
+}
+
+IntrusivePtr<ResourceBindingState> VulkanRuntime::CreateResourceBindingState(IntrusivePtr<Pipeline> pipeline)
+{
+    return new VulkanResourceBindingState(context, pipeline);
 }

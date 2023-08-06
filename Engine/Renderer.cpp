@@ -6,10 +6,19 @@
 
 Renderer::Renderer(PixelEngine *engine) : engine(engine)
 {
+    InitWindow();
 }
 
 Renderer::~Renderer()
 {
+}
+
+void Renderer::InitWindow()
+{
+    this->window = new Window();
+    this->window->Build(1024, 768);
+
+    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle());
 }
 
 void Renderer::Frame()

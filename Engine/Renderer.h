@@ -4,9 +4,12 @@
 #include <unordered_set>
 
 #include <Core/IntrusivePtr.h>
-#include <Engine/Renderable.h>
+
+#include <Engine/Window.h>
+
 #include <RHI/RenderPass.h>
 #include <RHI/ResourceBindingState.h>
+#include <RHI/SwapChain.h>
 
 class PixelEngine;
 class Renderer : public IntrusiveCounter<Renderer>
@@ -26,5 +29,9 @@ public:
 
 private:
     PixelEngine *engine = nullptr;
+    IntrusivePtr<SwapChain> swapChain;
+    IntrusivePtr<Window> window;
     std::vector<IntrusivePtr<ResourceBindingState>> drawStates;
+
+    void InitWindow();
 };

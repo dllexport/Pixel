@@ -11,6 +11,8 @@
 #include <RHI/VulkanRuntime/Texture.h>
 #include <RHI/VulkanRuntime/TextureView.h>
 #include <RHI/VulkanRuntime/ResourceBindingState.h>
+#include <RHI/VulkanRuntime/SwapChain.h>
+#include <RHI/VulkanRuntime/SwapChainBuilder.h>
 
 VulkanRuntime::VulkanRuntime()
 {
@@ -71,4 +73,12 @@ IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor(Intrusi
 IntrusivePtr<ResourceBindingState> VulkanRuntime::CreateResourceBindingState(IntrusivePtr<Pipeline> pipeline)
 {
     return new VulkanResourceBindingState(context, pipeline);
+}
+
+IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle)
+{
+    return SwapChainBuilder(context)
+        .SetHandle(handle)
+        .SetPreferFormat({VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
+        .Build();
 }

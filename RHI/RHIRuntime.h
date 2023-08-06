@@ -10,6 +10,7 @@
 #include <RHI/Buffer.h>
 #include <RHI/Texture.h>
 #include <RHI/ResourceBindingState.h>
+#include <RHI/SwapChain.h>
 
 class RHIRuntime : public IntrusiveCounter<RHIRuntime>
 {
@@ -21,4 +22,5 @@ public:
     virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config) = 0;
     virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor(IntrusivePtr<RenderPass> renderPass) = 0;
     virtual IntrusivePtr<ResourceBindingState> CreateResourceBindingState(IntrusivePtr<Pipeline>) = 0;
+    virtual IntrusivePtr<SwapChain> CreateSwapChain(void* handle) = 0;
 };

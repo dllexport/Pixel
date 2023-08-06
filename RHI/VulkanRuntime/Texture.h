@@ -39,9 +39,16 @@ class VulkanTextureView;
 class VulkanTexture : public Texture
 {
 public:
+    VulkanTexture(IntrusivePtr<Context> context, VkImage image);
     VulkanTexture(IntrusivePtr<Context> context);
     virtual ~VulkanTexture() override;
     virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config) override;
+
+    void Assign(VkImage image, VkFormat format)
+    {
+        this->image = image;
+        this->format = format;
+    }
 
     VkImage GetImage();
 
@@ -53,4 +60,10 @@ private:
     VkImage image;
     VmaAllocation imageAllocation;
     VmaAllocationInfo imageAllocationInfo;
+    VkFormat format;
+
+    bool IsExternal()
+    {
+        return image && !imageAllocation;
+    }
 };

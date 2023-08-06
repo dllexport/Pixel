@@ -7,7 +7,10 @@ VulkanTexture::VulkanTexture(IntrusivePtr<Context> context) : context(context)
 
 VulkanTexture::~VulkanTexture()
 {
-    vmaDestroyImage(context->GetVmaAllocator(), image, imageAllocation);
+    if (!IsExternal())
+    {
+        vmaDestroyImage(context->GetVmaAllocator(), image, imageAllocation);
+    }
 }
 
 VkImage VulkanTexture::GetImage()
@@ -36,6 +39,8 @@ bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropert
     allocInfo.requiredFlags = memoryProperties;
 
     auto result = vmaCreateImage(allocator, &imageCI, &allocInfo, &image, &imageAllocation, &imageAllocationInfo);
+
+    this->format = imageCI.format;
 
     return result == VK_SUCCESS;
 }

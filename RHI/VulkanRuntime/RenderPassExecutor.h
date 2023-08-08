@@ -11,10 +11,9 @@
 class VulkanRenderPassExecutor : public RenderPassExecutor
 {
 public:
-    VulkanRenderPassExecutor(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass);
+    VulkanRenderPassExecutor(IntrusivePtr<Context> context);
     virtual ~VulkanRenderPassExecutor() override;
 
-    virtual void Import(IntrusivePtr<ResourceHandle> resource) override;
     virtual void Prepare() override;
     virtual void Execute() override;
 
@@ -22,14 +21,18 @@ private:
     IntrusivePtr<Context> context;
     VkCommandPool graphicCommandPool;
     VkCommandPool computeCommandPool;
-    std::vector<VkCommandBuffer> graphicCommandBuffers;
 
-    std::unordered_set<IntrusivePtr<ResourceHandle>> externalAttachments;
-    std::vector<IntrusivePtr<VulkanTexture>> attachmentTextures;
-    std::vector<IntrusivePtr<VulkanTextureView>> attachmentTextureViews;
-    VkFramebuffer frameBuffer;
+    std::vector<std::vector<IntrusivePtr<VulkanTexture>>> attachmentTextures;
+    std::vector<std::vector<IntrusivePtr<VulkanTextureView>>> attachmentTextureViews;
+
+    std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkFramebuffer>> frameBuffers;
+    std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkCommandBuffer>> graphicCommandBuffers;
+
+    std::unordered_map<std::string, std::vector<VulkanTextureViewPair>> sharedTextureViews;
 
     void prepareCommandPool();
     void prepareCommandBuffer();
-    void buildCommandBuffer();
+    void buildCommandBuffer(uint32_t imageIndex);
+
+    uint64_t currentFrame = 0;
 };

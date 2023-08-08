@@ -23,3 +23,9 @@ private:
     IntrusivePtr<VulkanTexture> parentTexture;
     VkImageView imageView = VK_NULL_HANDLE;
 };
+
+struct VulkanTextureViewPair
+{
+    IntrusivePtr<VulkanTexture> texture;
+    IntrusivePtr<VulkanTextureView> textureView;
+};

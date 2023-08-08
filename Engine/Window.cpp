@@ -6,10 +6,24 @@
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+
+    switch (uMsg)
+    {
+    case WM_CLOSE:
+    {
+        IntrusivePtr<Window> window = reinterpret_cast<Window *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        DestroyWindow(hwnd);
+        window->SetStopped();
+        break;
+    }
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        break;
+    }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-HWND CreateWin32Window()
+HWND CreateWin32Window(void *window)
 {
     LPCSTR CLASS_NAME = {"Sample Window Class"};
 
@@ -34,7 +48,7 @@ HWND CreateWin32Window()
                                NULL,         // Parent window
                                NULL,         // Menu
                                wc.hInstance, // Instance handle
-                               NULL          // Additional application data
+                               window        // Additional application data
     );
 
     if (!hwnd)
@@ -46,15 +60,31 @@ HWND CreateWin32Window()
         ShowWindow(hwnd, SW_NORMAL);
     }
 
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)window);
     return hwnd;
 }
 
 Window::~Window()
 {
-    CloseWindow((HWND)hwnd);
+    
 }
 
 void Window::Build(uint32_t width, uint32_t height)
 {
-    this->hwnd = CreateWin32Window();
+    this->hwnd = CreateWin32Window(this);
+}
+
+bool Window::Stopped()
+{
+    return stopped;
+}
+
+void Window::Update()
+{
+    MSG msg;
+    while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
 }

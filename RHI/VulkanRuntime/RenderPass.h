@@ -47,13 +47,7 @@ private:
     VkRenderPass renderPass;
     std::vector<IntrusivePtr<GraphicRenderPassGraphNode>> graphicRenderPasses;
 
-    struct AttachmentMiniDescription
-    {
-        VkFormat format;
-        // VkImageUsageFlagBits
-        VkFlags usage;
-    };
-    std::vector<AttachmentMiniDescription> attachmentMiniDescriptions;
+    std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentDescriptions;
     // subpass name -> references
     std::unordered_map<std::string, SubPassAttachmentReferences> referencesMap;
 

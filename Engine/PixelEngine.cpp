@@ -65,6 +65,11 @@ void PixelEngine::Frame()
 {
     for (auto &renderer : renderers)
     {
+        renderer->Build();
+    }
+
+    for (auto &renderer : renderers)
+    {
         renderer->Frame();
     }
 }

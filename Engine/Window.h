@@ -15,6 +15,16 @@ public:
         return hwnd;
     }
 
+    void Update();
+
+    bool Stopped();
+    
+    void SetStopped()
+    {
+        stopped = true;
+    }
+
 private:
+    bool stopped = false;
     void *hwnd;
 };

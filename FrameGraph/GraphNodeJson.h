@@ -13,8 +13,10 @@ struct RenderSubPassResourceJson
     // attachment resourcefield
     std::string format;
     bool depthStencil;
+    bool swapChain;
+    bool shared;
 
-    JS_OBJ(name, type, format, depthStencil);
+    JS_OBJ(name, type, format, depthStencil, swapChain, shared);
 };
 
 struct RenderSubPassJson

@@ -6,29 +6,27 @@
 #include <RHI/ResourceBindingState.h>
 #include <RHI/Texture.h>
 #include <RHI/Pipeline.h>
+#include <RHI/SwapChain.h>
 
 class RenderPassExecutor : public IntrusiveCounter<RenderPassExecutor>
 {
 public:
-    RenderPassExecutor(IntrusivePtr<RenderPass> renderPass)
+    RenderPassExecutor()
     {
-        this->renderPass = renderPass;
     }
 
     virtual ~RenderPassExecutor() = default;
 
     void AddBindingState(IntrusivePtr<ResourceBindingState> state)
     {
+        renderPasses.insert(state->GetPipeline()->GetRenderPass());
         resourceBindingStates[state->GetPipeline()].push_back(state);
     }
 
-    void SetSwapChainExtent(Texture::Extent swapChainExtent)
+    void SetSwapChain(IntrusivePtr<SwapChain> swapChain)
     {
-        this->swapChainExtent = swapChainExtent;
+        this->swapChain = swapChain;
     }
-
-    // import external attachment resource
-    virtual void Import(IntrusivePtr<ResourceHandle> resource) = 0;
 
     // allocate resource, attachments, framebuffer etc.
     virtual void Prepare() = 0;
@@ -37,7 +35,7 @@ public:
     virtual void Execute() = 0;
 
 protected:
-    IntrusivePtr<RenderPass> renderPass;
+    std::unordered_set<IntrusivePtr<RenderPass>> renderPasses;
     std::unordered_map<IntrusivePtr<Pipeline>, std::vector<IntrusivePtr<ResourceBindingState>>> resourceBindingStates;
-    Texture::Extent swapChainExtent;
+    IntrusivePtr<SwapChain> swapChain;
 };

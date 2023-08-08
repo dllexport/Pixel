@@ -9,6 +9,7 @@
 
 #include <RHI/RenderPass.h>
 #include <RHI/ResourceBindingState.h>
+#include <RHI/RenderPassExecutor.h>
 #include <RHI/SwapChain.h>
 
 class PixelEngine;
@@ -23,7 +24,7 @@ public:
         drawStates.push_back(state);
     }
 
-    void Update();
+    void Build();
 
     void Frame();
 
@@ -32,6 +33,8 @@ private:
     IntrusivePtr<SwapChain> swapChain;
     IntrusivePtr<Window> window;
     std::vector<IntrusivePtr<ResourceBindingState>> drawStates;
+
+    IntrusivePtr<RenderPassExecutor> renderPassExecutor;
 
     void InitWindow();
 };

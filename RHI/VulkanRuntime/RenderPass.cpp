@@ -1,5 +1,6 @@
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/Texture.h>
 
 VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : RenderPass(graph), context(context)
 {
@@ -8,15 +9,6 @@ VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<G
 VulkanRenderPass::~VulkanRenderPass()
 {
     vkDestroyRenderPass(context->GetVkDevice(), renderPass, nullptr);
-}
-
-VkFormat TranslateFormat(TextureFormat format, bool isDepthStencil)
-{
-    if (isDepthStencil)
-    {
-        return VK_FORMAT_D16_UNORM;
-    }
-    return VK_FORMAT_B8G8R8A8_UNORM;
 }
 
 void VulkanRenderPass::Build()
@@ -70,7 +62,7 @@ void VulkanRenderPass::Build()
         }
 
         attachments.resize(typedNodes.attachmentNodes.size());
-        attachmentMiniDescriptions.resize(attachments.size());
+        attachmentDescriptions.resize(attachments.size());
         std::unordered_map<std::string, uint32_t> attachmentMap;
 
         // find all attachment
@@ -80,7 +72,7 @@ void VulkanRenderPass::Build()
 
             if (attachmentNode->depthStencil)
             {
-                attachments[i].format = TranslateFormat(attachmentNode->format, true);
+                attachments[i].format = GeneralFormatToVkFormat(attachmentNode->format);
                 attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
                 attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -91,29 +83,18 @@ void VulkanRenderPass::Build()
             }
             else
             {
-                attachments[i].format = TranslateFormat(attachmentNode->format, false);
+                attachments[i].format = GeneralFormatToVkFormat(attachmentNode->format);
                 attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
                 attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
                 attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                attachments[i].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
             }
 
-            attachmentMiniDescriptions[i].format = attachments[i].format;
-            if (attachmentNode->depthStencil)
-            {
-                attachmentMiniDescriptions[i].usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-            }
-            if (attachmentNode->input)
-            {
-                attachmentMiniDescriptions[i].usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-            }
-            if (attachmentNode->color)
-            {
-                attachmentMiniDescriptions[i].usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-            }
+            attachmentDescriptions[i] = attachmentNode;
+
             attachmentMap[attachmentNode->name] = i;
         }
 

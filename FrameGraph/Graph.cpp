@@ -8,6 +8,29 @@
 #include <FrameGraph/GraphNodeJson.h>
 #include <FrameGraph/GraphNode.h>
 
+static TextureFormat TranslateFormat(std::string formatStr)
+{
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X) STRINGIFY2(X)
+
+#define DECL_FORMAT_CASE(FORMAT)        \
+    if (formatStr == STRINGIFY(FORMAT)) \
+    {                                   \
+        return TextureFormat::FORMAT;   \
+    }
+
+    DECL_FORMAT_CASE(FORMAT_B8G8R8A8_SRGB)
+    DECL_FORMAT_CASE(FORMAT_B8G8R8A8_UNORM)
+    DECL_FORMAT_CASE(FORMAT_R16G16B16A16_SFLOAT)
+    DECL_FORMAT_CASE(FORMAT_D16_UNORM)
+
+    return TextureFormat::FORMAT_NONE;
+
+#undef DECL_FORMAT_CASE
+#undef STRINGIFY2
+#undef STRINGIFY
+}
+
 IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 {
     auto jsonStr = ReadStringFile(path);
@@ -40,6 +63,9 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             {
                 auto attachent = new AttachmentGraphNode(input.name, GraphNode::ATTACHMENT);
                 attachent->depthStencil = input.depthStencil;
+                attachent->swapChain = input.swapChain;
+                attachent->shared = input.shared;
+                attachent->format = TranslateFormat(input.format);
                 inputNode = attachent;
             }
             else if (input.type == "buffer")
@@ -68,6 +94,9 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             {
                 auto attachent = new AttachmentGraphNode(output.name, GraphNode::ATTACHMENT);
                 attachent->depthStencil = output.depthStencil;
+                attachent->swapChain = output.swapChain;
+                attachent->shared = output.shared;
+                attachent->format = TranslateFormat(output.format);
                 outputNode = attachent;
             }
             else if (output.type == "buffer")

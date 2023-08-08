@@ -21,27 +21,24 @@ void Renderer::InitWindow()
     this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle());
 }
 
-void Renderer::Frame()
+void Renderer::Build()
 {
-    auto drawableBinder = engine->GetDrawableBinder();
-
-    std::unordered_map<IntrusivePtr<RenderPass>, IntrusivePtr<RenderPassExecutor>> renderPassExecutors;
-
+    renderPassExecutor = engine->GetRHIRuntime()->CreateRenderPassExecutor();
     for (auto &drawState : drawStates)
     {
-        auto renderPass = drawState->GetPipeline()->GetRenderPass();
-        if (!renderPassExecutors.count(renderPass))
-        {
-            renderPassExecutors[renderPass] = engine->GetRHIRuntime()->CreateRenderPassExecutor(renderPass);
-        }
-
-        renderPassExecutors[renderPass]->AddBindingState(drawState);
+        renderPassExecutor->AddBindingState(drawState);
     }
 
-    for (auto &[renderPass, executor] : renderPassExecutors)
+    renderPassExecutor->SetSwapChain(swapChain);
+    renderPassExecutor->Prepare();
+}
+
+void Renderer::Frame()
+{
+    while (!window->Stopped())
     {
-        executor->SetSwapChainExtent({1024, 768, 1});
-        executor->Prepare();
-        executor->Execute();
+        window->Update();
+        renderPassExecutor->Execute();
+        
     }
 }

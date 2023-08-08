@@ -63,10 +63,9 @@ IntrusivePtr<Texture> VulkanRuntime::CreateTexture(TextureFormat format, Texture
     return texture;
 }
 
-IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor(IntrusivePtr<RenderPass> renderPass)
+IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor()
 {
-    auto rpe = new VulkanRenderPassExecutor(context, renderPass);
-
+    auto rpe = new VulkanRenderPassExecutor(context);
     return rpe;
 }
 

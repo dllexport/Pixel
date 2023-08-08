@@ -5,10 +5,12 @@
 #include <RHI/Texture.h>
 #include <RHI/VulkanRuntime/Context.h>
 
-inline TextureFormat VkFormatToGeneral(VkFormat format)
+inline TextureFormat VkFormatToGeneralFormat(VkFormat format)
 {
     switch (format)
     {
+    case VK_FORMAT_B8G8R8A8_SRGB:
+        return TextureFormat::FORMAT_B8G8R8A8_SRGB;
     case VK_FORMAT_D16_UNORM:
         return TextureFormat::FORMAT_D16_UNORM;
     case VK_FORMAT_R16G16B16A16_SFLOAT:
@@ -16,14 +18,16 @@ inline TextureFormat VkFormatToGeneral(VkFormat format)
     case VK_FORMAT_B8G8R8A8_UNORM:
         return TextureFormat::FORMAT_B8G8R8A8_UNORM;
     default:
-        return TextureFormat::NONE;
+        return TextureFormat::FORMAT_NONE;
     }
 }
 
-inline VkFormat TranslateTextureFormat(TextureFormat format)
+inline VkFormat GeneralFormatToVkFormat(TextureFormat format)
 {
     switch (format)
     {
+    case TextureFormat::FORMAT_B8G8R8A8_SRGB:
+        return VK_FORMAT_B8G8R8A8_SRGB;
     case TextureFormat::FORMAT_D16_UNORM:
         return VK_FORMAT_D16_UNORM;
     case TextureFormat::FORMAT_B8G8R8A8_UNORM:
@@ -58,7 +62,7 @@ private:
     friend class VulkanRuntime;
     IntrusivePtr<Context> context;
     VkImage image;
-    VmaAllocation imageAllocation;
+    VmaAllocation imageAllocation = VK_NULL_HANDLE;
     VmaAllocationInfo imageAllocationInfo;
     VkFormat format;
 

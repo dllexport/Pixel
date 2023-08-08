@@ -23,7 +23,7 @@ bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropert
     VkImageCreateInfo imageCI = {};
     imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCI.imageType = VK_IMAGE_TYPE_2D;
-    imageCI.format = TranslateTextureFormat(format);
+    imageCI.format = GeneralFormatToVkFormat(format);
     imageCI.extent.width = extent.width;
     imageCI.extent.height = extent.height;
     imageCI.extent.depth = extent.depth;

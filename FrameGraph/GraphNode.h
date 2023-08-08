@@ -44,8 +44,10 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
 struct AttachmentGraphNode : public GraphNode
 {
     AttachmentGraphNode(std::string name, Type type) : GraphNode(name, type) {}
-    TextureFormat format = TextureFormat::NONE;
+    TextureFormat format = TextureFormat::FORMAT_NONE;
     bool depthStencil = false;
+    bool swapChain = false;
+    bool shared = false;
     bool input = false;
     bool color = false;
 };

@@ -20,7 +20,7 @@ public:
     virtual IntrusivePtr<Pipeline> CreatePipeline(IntrusivePtr<RenderPass>, std::string subPassName, PipelineStates pipelineStates) = 0;
     virtual IntrusivePtr<Buffer> CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
     virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config) = 0;
-    virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor(IntrusivePtr<RenderPass> renderPass) = 0;
+    virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor() = 0;
     virtual IntrusivePtr<ResourceBindingState> CreateResourceBindingState(IntrusivePtr<Pipeline>) = 0;
     virtual IntrusivePtr<SwapChain> CreateSwapChain(void* handle) = 0;
 };

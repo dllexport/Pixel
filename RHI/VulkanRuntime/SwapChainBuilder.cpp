@@ -125,6 +125,10 @@ void SwapChainBuilder::BuildSwapChain()
     sci.presentMode = newSwapChain->presentMode;
     sci.clipped = VK_TRUE;
     sci.oldSwapchain = VK_NULL_HANDLE;
+
+    // save latest extent
+    this->newSwapChain->extent = sci.imageExtent;
+
     // oldSwapChain must keep alive until creation
     if (oldSwapChain)
     {
@@ -206,5 +210,6 @@ IntrusivePtr<VulkanSwapChain> SwapChainBuilder::Build()
     BuildSwapChain();
     ResolveDepthStencilFormat();
     newSwapChain->surface = this->surface;
+    newSwapChain->InitSync();
     return this->newSwapChain;
 }

@@ -12,7 +12,6 @@
 
 VulkanRenderPassExecutor::VulkanRenderPassExecutor(IntrusivePtr<Context> context) : context(context)
 {
-    prepareCommandPool();
 }
 
 VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
@@ -26,6 +25,26 @@ VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
         {
             vkDestroyFramebuffer(context->GetVkDevice(), fb, nullptr);
         }
+    }
+
+    for (auto &fence : queueCompleteFences)
+    {
+        vkDestroyFence(context->GetVkDevice(), fence, nullptr);
+    }
+}
+
+void VulkanRenderPassExecutor::prepareFences()
+{
+    auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
+
+    VkFenceCreateInfo fenceCreateInfo = {};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    // Create in signaled state so we don't wait on first render of each command buffer
+    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    queueCompleteFences.resize(vulkanSC->GetTextures().size());
+    for (auto &fence : queueCompleteFences)
+    {
+        vkCreateFence(context->GetVkDevice(), &fenceCreateInfo, nullptr, &fence);
     }
 }
 
@@ -172,8 +191,10 @@ void VulkanRenderPassExecutor::Prepare()
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
     auto swapChainImageSize = vulkanSC->GetTextures().size();
 
-    attachmentTextures.resize(swapChainImageSize);
-    attachmentTextureViews.resize(swapChainImageSize);
+    prepareFences();
+    prepareCommandPool();
+
+    attachmentImages.resize(swapChainImageSize);
 
     for (int i = 0; i < swapChainImageSize; i++)
     {
@@ -187,13 +208,15 @@ void VulkanRenderPassExecutor::Prepare()
             {
                 if (attachment->swapChain)
                 {
-                    sharedTextureViews[attachment->name].emplace_back(vulkanSC->GetTextures()[i], vulkanSC->GetTextureViews()[i]);
+                    sharedImages[attachment->name].emplace_back(vulkanSC->GetTextures()[i], vulkanSC->GetTextureViews()[i]);
                     attachmentViews.push_back(vulkanSC->GetTextureViews()[i]->GetImageView());
                     continue;
                 }
 
-                if (attachment->shared && sharedTextureViews.count(attachment->name))
+                // if shared attachment is already created, take it's view cache
+                if (attachment->shared && sharedImages.count(attachment->name))
                 {
+                    attachmentViews.push_back(sharedImages[attachment->name][0].textureView->GetImageView());
                     continue;
                 }
 
@@ -212,8 +235,6 @@ void VulkanRenderPassExecutor::Prepare()
                 auto textureUsage = DeferAttachmentUsage(attachment);
 
                 texture->Allocate(attachment->format, textureUsage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureExtent, textureConfig);
-
-                attachmentTextures[i].push_back(texture);
 
                 VkImageAspectFlags imageAspect = {};
 
@@ -238,11 +259,12 @@ void VulkanRenderPassExecutor::Prepare()
                 imageView.image = texture->GetImage();
 
                 auto textureView = texture->CreateTextureView(imageView);
-                attachmentTextureViews[i].push_back(textureView);
 
-                if (attachment->shared && sharedTextureViews.count(attachment->name))
+                attachmentImages.emplace_back(texture, textureView);
+
+                if (attachment->shared && !sharedImages.count(attachment->name))
                 {
-                    sharedTextureViews[attachment->name].emplace_back(texture, textureView);
+                    sharedImages[attachment->name].emplace_back(texture, textureView);
                 }
 
                 attachmentViews.push_back(textureView->GetImageView());
@@ -270,17 +292,19 @@ void VulkanRenderPassExecutor::Prepare()
 
 void VulkanRenderPassExecutor::Execute()
 {
+
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
+
+    vkWaitForFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame]);
+
     auto imageIndex = vulkanSC->Acquire(currentFrame);
 
     std::vector<VkCommandBuffer> commandBuffers;
     // aggregate command buffers
     for (auto [_, cbs] : graphicCommandBuffers)
     {
-        for (auto &cb : cbs)
-        {
-            commandBuffers.push_back(cb);
-        }
+        commandBuffers.push_back(cbs[currentFrame]);
     }
 
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -301,14 +325,14 @@ void VulkanRenderPassExecutor::Execute()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(context->GetQueue(VK_QUEUE_GRAPHICS_BIT).queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+    if (vkQueueSubmit(context->GetQueue(VK_QUEUE_GRAPHICS_BIT).queue, 1, &submitInfo, queueCompleteFences[currentFrame]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
     swapChain->Present(imageIndex, currentFrame);
 
-    vkQueueWaitIdle(context->GetQueue(VK_QUEUE_GRAPHICS_BIT).queue);
+    // vkQueueWaitIdle(context->GetQueue(VK_QUEUE_GRAPHICS_BIT).queue);
 
     currentFrame = (currentFrame + 1) % vulkanSC->GetTextures().size();
 }

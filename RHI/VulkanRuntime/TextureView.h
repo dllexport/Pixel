@@ -24,7 +24,8 @@ private:
     VkImageView imageView = VK_NULL_HANDLE;
 };
 
-struct VulkanTextureViewPair
+// image is a pair of texture and textureView
+struct VulkanImage
 {
     IntrusivePtr<VulkanTexture> texture;
     IntrusivePtr<VulkanTextureView> textureView;

@@ -22,14 +22,14 @@ private:
     VkCommandPool graphicCommandPool;
     VkCommandPool computeCommandPool;
 
-    std::vector<std::vector<IntrusivePtr<VulkanTexture>>> attachmentTextures;
-    std::vector<std::vector<IntrusivePtr<VulkanTextureView>>> attachmentTextureViews;
+    std::vector<VulkanImage> attachmentImages;
+    std::unordered_map<std::string, std::vector<VulkanImage>> sharedImages;
 
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkFramebuffer>> frameBuffers;
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkCommandBuffer>> graphicCommandBuffers;
+	std::vector<VkFence> queueCompleteFences;
 
-    std::unordered_map<std::string, std::vector<VulkanTextureViewPair>> sharedTextureViews;
-
+    void prepareFences();
     void prepareCommandPool();
     void prepareCommandBuffer();
     void buildCommandBuffer(uint32_t imageIndex);

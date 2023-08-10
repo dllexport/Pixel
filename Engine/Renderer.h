@@ -28,6 +28,14 @@ public:
 
     void Frame();
 
+    void Update();
+
+    template <class FN>
+    void RegisterUpdateCallback(FN fn)
+    {
+        updateCallbacks.push_back(fn);
+    }
+
 private:
     PixelEngine *engine = nullptr;
     IntrusivePtr<SwapChain> swapChain;
@@ -35,6 +43,8 @@ private:
     std::vector<IntrusivePtr<ResourceBindingState>> drawStates;
 
     IntrusivePtr<RenderPassExecutor> renderPassExecutor;
+
+    std::vector<std::function<void()>> updateCallbacks;
 
     void InitWindow();
 };

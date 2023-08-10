@@ -97,8 +97,8 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
         std::vector<VkClearValue> clearValues(vulkanRP->attachmentDescriptions.size());
-        clearValues[0].depthStencil = {1.0f, 0};
-        clearValues[1].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+        clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
+        clearValues[1].depthStencil = {1.0f, 0};
 
         VkRenderPassBeginInfo renderPassBeginInfo = {};
         renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -157,6 +157,8 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                     const VkDeviceSize offsets[1] = {0};
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanRBS->GetVertexBuffer()->GetBuffer(), offsets);
                     vkCmdBindIndexBuffer(commandBuffer, vulkanRBS->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 0, 1);
                 }
             }
         }
@@ -331,8 +333,6 @@ void VulkanRenderPassExecutor::Execute()
     }
 
     swapChain->Present(imageIndex, currentFrame);
-
-    // vkQueueWaitIdle(context->GetQueue(VK_QUEUE_GRAPHICS_BIT).queue);
 
     currentFrame = (currentFrame + 1) % vulkanSC->GetTextures().size();
 }

@@ -33,12 +33,21 @@ void Renderer::Build()
     renderPassExecutor->Prepare();
 }
 
+void Renderer::Update()
+{
+    for (auto &cb : updateCallbacks)
+    {
+        cb();
+    }
+}
+
 void Renderer::Frame()
 {
-    while (!window->Stopped())
+    if (window->Stopped())
     {
-        window->Update();
-        renderPassExecutor->Execute();
-        
+        return;
     }
+
+    window->Update();
+    renderPassExecutor->Execute();
 }

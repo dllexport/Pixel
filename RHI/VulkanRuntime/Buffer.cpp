@@ -30,8 +30,11 @@ bool VulkanBuffer::Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProp
 
 void *VulkanBuffer::Map()
 {
+    if (mappedData) {
+        return mappedData;
+    }
+
     auto allocator = context->GetVmaAllocator();
-    void *mappedData;
     auto result = vmaMapMemory(allocator, this->bufferAllocation, &mappedData);
     if (result != VK_SUCCESS)
     {

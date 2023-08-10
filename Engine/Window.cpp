@@ -23,7 +23,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-HWND CreateWin32Window(void *window)
+HWND CreateWin32Window(void *window, uint32_t width, uint32_t height)
 {
     LPCSTR CLASS_NAME = {"Sample Window Class"};
 
@@ -42,8 +42,8 @@ HWND CreateWin32Window(void *window)
                                // Size and position
                                CW_USEDEFAULT,
                                CW_USEDEFAULT,
-                               CW_USEDEFAULT,
-                               CW_USEDEFAULT,
+                               width,
+                               height,
 
                                NULL,         // Parent window
                                NULL,         // Menu
@@ -66,12 +66,11 @@ HWND CreateWin32Window(void *window)
 
 Window::~Window()
 {
-    
 }
 
 void Window::Build(uint32_t width, uint32_t height)
 {
-    this->hwnd = CreateWin32Window(this);
+    this->hwnd = CreateWin32Window(this, width, height);
 }
 
 bool Window::Stopped()

@@ -24,6 +24,7 @@ private:
     VkBuffer buffer;
     VmaAllocation bufferAllocation;
     VmaAllocationInfo bufferAllocationInfo;
+    void *mappedData = nullptr;
 
     virtual bool Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
 };

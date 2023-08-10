@@ -74,7 +74,7 @@ void VulkanRenderPass::Build()
             {
                 attachments[i].format = GeneralFormatToVkFormat(attachmentNode->format);
                 attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
-                attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+                attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -85,7 +85,7 @@ void VulkanRenderPass::Build()
             {
                 attachments[i].format = GeneralFormatToVkFormat(attachmentNode->format);
                 attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
-                attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+                attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
                 attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

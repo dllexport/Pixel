@@ -68,8 +68,12 @@ void PixelEngine::Frame()
         renderer->Build();
     }
 
-    for (auto &renderer : renderers)
+    while (1)
     {
-        renderer->Frame();
+        for (auto &renderer : renderers)
+        {
+            renderer->Update();
+            renderer->Frame();
+        }
     }
 }

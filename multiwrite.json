@@ -1,0 +1,28 @@
+{
+    "name": "multiwrite",
+    "subpasses": [
+        {
+            "name": "computePass",
+            "type": "compute",
+            "outputs": [
+                {
+                    "name": "ssbo",
+                    "type": "buffer"
+                }
+            ]
+        },
+        {
+            "name": "deferredPass",
+            "type": "compute",
+            "subpass_dependency": [
+                "computePass"
+            ],
+            "outputs": [
+                {
+                    "name": "ssbo",
+                    "type": "reference"
+                }
+            ]
+        }
+    ]
+}

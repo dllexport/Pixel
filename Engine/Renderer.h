@@ -30,6 +30,8 @@ public:
 
     void Update();
 
+    bool Stopped();
+
     template <class FN>
     void RegisterUpdateCallback(FN fn)
     {

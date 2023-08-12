@@ -35,10 +35,17 @@ void Renderer::Build()
 
 void Renderer::Update()
 {
+    window->Update();
+
     for (auto &cb : updateCallbacks)
     {
         cb();
     }
+}
+
+bool Renderer::Stopped()
+{
+    return window->Stopped();
 }
 
 void Renderer::Frame()
@@ -48,6 +55,5 @@ void Renderer::Frame()
         return;
     }
 
-    window->Update();
     renderPassExecutor->Execute();
 }

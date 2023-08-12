@@ -68,12 +68,19 @@ void PixelEngine::Frame()
         renderer->Build();
     }
 
-    while (1)
+    while (!renderers.empty())
     {
-        for (auto &renderer : renderers)
+        for (auto it = renderers.begin(); it != renderers.end();)
         {
+            auto renderer = *it;
+            if (renderer->Stopped())
+            {
+                it = renderers.erase(it);
+                continue;
+            }
             renderer->Update();
             renderer->Frame();
+            it++;
         }
     }
 }

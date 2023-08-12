@@ -1,0 +1,30 @@
+{
+    "name": "singlePass",
+    "subpasses": [
+        {
+            "name": "single",
+            "type": "graphic",
+            "inputs": [
+                {
+                    "name": "ubo",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "color",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_SRGB",
+                    "swapChain": true
+                },
+                {
+                    "name": "depth",
+                    "type": "attachment",
+                    "format": "FORMAT_D16_UNORM",
+                    "depthStencil": true,
+                    "shared": true
+                }
+            ]
+        }
+    ]
+}

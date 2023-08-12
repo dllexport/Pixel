@@ -11,10 +11,12 @@ public:
     VulkanResourceBindingState(IntrusivePtr<Context> context, IntrusivePtr<Pipeline> pipeline);
     virtual ~VulkanResourceBindingState() override;
     virtual void Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource) override;
+    virtual void Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources) override;
 
     // pipeline's desc layout may contains multiple sets
     void AllocateDescriptorSets();
     void WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
+    void WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
 
     IntrusivePtr<VulkanBuffer> GetVertexBuffer()
     {

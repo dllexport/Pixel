@@ -302,8 +302,16 @@ void VulkanPipeline::Build()
     std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicStateCI = TranslateDynamicState(dynamicStateEnables);
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStateCI = TranslateShaderState(pipelineStates.shaderState);
+    auto subPassIndex = vulkanRenderPass->GetSubPassIndex(this->subPassName);
 
+    if (pipelineStates.shaderState.Empty())
+    {
+        auto grp = vulkanRenderPass->graphicRenderPasses[subPassIndex];
+        pipelineStates.shaderState.vertexShaderPath = grp->vertexShader;
+        pipelineStates.shaderState.fragmentShaderPath = grp->framgmentShader;
+    }
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStateCI = TranslateShaderState(pipelineStates.shaderState);
+   
     VkGraphicsPipelineCreateInfo pipelineCI = {};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.basePipelineIndex = -1;
@@ -319,7 +327,7 @@ void VulkanPipeline::Build()
     pipelineCI.pDynamicState = &dynamicStateCI;
     pipelineCI.stageCount = static_cast<uint32_t>(shaderStateCI.size());
     pipelineCI.pStages = shaderStateCI.data();
-    pipelineCI.subpass = vulkanRenderPass->GetSubPassIndex(this->subPassName);
+    pipelineCI.subpass = subPassIndex;
 
     IntrusivePtr<SPIVReflection> vertexReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_VERTEX_BIT]);
     auto inputState = vertexReflection->ParseInputVertexState();

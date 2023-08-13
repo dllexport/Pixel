@@ -7,15 +7,10 @@ set(VULKAN_SDK "C:/VulkanSDK/1.3.239.0")
 set(BOOST_ROOT "C:/Users/Mario/Documents/boost_1_81_0/stage")
 set(GLSL_VALIDATOR "${VULKAN_SDK}/Bin/glslangValidator")
 
-if (UNIX)
-    set(GLFW_BUILD_X11 OFF)
-    set(GLFW_USE_WAYLAND ON)
-endif (UNIX)
-
-add_definitions(-DWINDOW_GLFW)
+set(WINDOW_USE_GLFW ON)
 
 if(MSVC)
-  add_definitions(/MP)
+    add_definitions(/MP)
 endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
@@ -29,7 +24,19 @@ add_subdirectory(3rd/SPIRV-Reflect)
 
 add_subdirectory(3rd/json_struct)
 add_subdirectory(3rd/spdlog)
-add_subdirectory(3rd/glfw)
+
+if (WINDOW_USE_GLFW)
+    add_definitions(-DWINDOW_USE_GLFW)
+    set(GLFW_BUILD_EXAMPLES OFF)
+    set(GLFW_BUILD_TESTS OFF)
+    set(GLFW_BUILD_DOCS OFF)
+    set(GLFW_INSTALL OFF)
+    add_subdirectory(3rd/glfw)
+    if (UNIX)
+        set(GLFW_BUILD_X11 OFF)
+        set(GLFW_USE_WAYLAND ON)
+    endif (UNIX)
+endif()
 
 file(GLOB PIXEL_SOURCE_FILES
     "Core/*.*"

@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#ifdef WINDOW_GLFW
+#ifdef WINDOW_USE_GLFW
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -22,7 +22,7 @@ Surface::~Surface()
 
 void Surface::Build()
 {
-#ifdef WINDOW_GLFW
+#ifdef WINDOW_USE_GLFW
     VkResult err = glfwCreateWindowSurface(context->GetVkInstance(), (GLFWwindow *)handle, nullptr, &surface);
     if (err)
     {

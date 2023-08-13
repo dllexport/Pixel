@@ -19,6 +19,13 @@ struct RenderSubPassResourceJson
     JS_OBJ(name, type, format, depthStencil, swapChain, shared);
 };
 
+struct ShaderPaths
+{
+    std::string fragment;
+    std::string vertex;
+    JS_OBJ(fragment, vertex);
+};
+
 struct RenderSubPassJson
 {
     std::string name;
@@ -26,8 +33,8 @@ struct RenderSubPassJson
     std::vector<std::string> subpass_dependency;
     std::vector<RenderSubPassResourceJson> inputs;
     std::vector<RenderSubPassResourceJson> outputs;
-
-    JS_OBJ(name, type, subpass_dependency, inputs, outputs);
+    ShaderPaths shaders;
+    JS_OBJ(name, type, subpass_dependency, inputs, outputs, shaders);
 };
 
 struct RenderPassJson

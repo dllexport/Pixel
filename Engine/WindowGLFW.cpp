@@ -1,4 +1,4 @@
-#ifdef WINDOW_GLFW
+#ifdef WINDOW_USE_GLFW
 
 #include <Engine/Window.h>
 

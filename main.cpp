@@ -41,10 +41,7 @@ int main()
             .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
             .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
             .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true},
-            .shaderState = {
-                .vertexShaderPath = "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/triangle/triangle.vert.spv",
-                .fragmentShaderPath = "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/triangle/triangle.frag.spv",
-            }};
+        };
 
         IntrusivePtr<PixelEngine> engine = new PixelEngine;
         auto drawableBinder = engine->GetDrawableBinder();
@@ -95,6 +92,6 @@ int main()
 
         int di = 0;
     }
-    
+
     return 0;
 }

@@ -4,6 +4,10 @@
         {
             "name": "single",
             "type": "graphic",
+            "shaders": {
+                "vertex": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/triangle/triangle.vert.spv",
+                "fragment": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/triangle/triangle.frag.spv"
+            },
             "inputs": [
                 {
                     "name": "ubo",

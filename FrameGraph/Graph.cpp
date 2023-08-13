@@ -46,7 +46,10 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         IntrusivePtr<GraphNode> node;
         if (subpass.type == "graphic")
         {
-            node = new GraphicRenderPassGraphNode(subpass.name, GraphNode::GRAPHIC_PASS);
+            auto grp = new GraphicRenderPassGraphNode(subpass.name, GraphNode::GRAPHIC_PASS);
+            grp->vertexShader = subpass.shaders.vertex;
+            grp->framgmentShader = subpass.shaders.fragment;
+            node = grp;
         }
         else if (subpass.type == "compute")
         {

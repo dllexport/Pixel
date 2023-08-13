@@ -9,7 +9,8 @@
 
 struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
 {
-    enum Type {
+    enum Type
+    {
         REFERENCE,
 
         GRAPHIC_PASS,
@@ -60,6 +61,8 @@ struct DescriptorGraphNode : public GraphNode
 struct GraphicRenderPassGraphNode : public GraphNode
 {
     GraphicRenderPassGraphNode(std::string name, Type type) : GraphNode(name, type) {}
+    std::string vertexShader;
+    std::string framgmentShader;
 };
 
 struct ComputeRenderPassGraphNode : public GraphNode

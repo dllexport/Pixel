@@ -64,6 +64,11 @@ struct ShaderState
     std::string vertexShaderPath;
     std::string fragmentShaderPath;
     std::string commputeShaderPath;
+
+    bool Empty()
+    {
+        return vertexShaderPath.empty() || fragmentShaderPath.empty();
+    }
 };
 
 // aggregate states

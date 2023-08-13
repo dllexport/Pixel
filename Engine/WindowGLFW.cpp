@@ -12,7 +12,6 @@
 void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow *glfwWindow = glfwCreateWindow(width, height, "Window Title", NULL, NULL);
     return glfwWindow;
 }

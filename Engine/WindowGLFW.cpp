@@ -19,12 +19,6 @@ void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
 Window::Window()
 {
     glfwInit();
-    uint32_t count;
-    const char **extensions = glfwGetRequiredInstanceExtensions(&count);
-    for (int i = 0; i < count; i++)
-    {
-        spdlog::info("{}", extensions[i]);
-    }
 
     if (!glfwVulkanSupported())
     {

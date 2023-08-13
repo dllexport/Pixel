@@ -16,11 +16,17 @@
 
 VulkanRuntime::VulkanRuntime()
 {
-    std::vector<const char *> instanceExts = {VK_KHR_SURFACE_EXTENSION_NAME};
+    std::vector<const char *> instanceExts;
 #ifdef _WIN32
+    instanceExts.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
     instanceExts.push_back("VK_KHR_win32_surface");
 #elif __linux__
-    instanceExts.push_back("VK_KHR_wayland_surface");
+    uint32_t count;
+    const char **extensions = glfwGetRequiredInstanceExtensions(&count);
+    for (int i = 0; i < count; i++)
+    {
+        instanceExts.push_back(extensions[i]);
+    }
 #endif
 
     context = ContextBuilder()

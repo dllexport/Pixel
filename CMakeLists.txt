@@ -23,10 +23,11 @@ include_directories(3rd/VulkanMemoryAllocator/include)
 
 find_package(Boost COMPONENTS date_time filesystem system)
 
-add_subdirectory(3rd/json_struct)
 set(SPIRV_REFLECT_STATIC_LIB ON)
 set(SPIRV_REFLECT_EXAMPLES OFF)
 add_subdirectory(3rd/SPIRV-Reflect)
+
+add_subdirectory(3rd/json_struct)
 add_subdirectory(3rd/spdlog)
 add_subdirectory(3rd/glfw)
 

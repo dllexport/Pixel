@@ -8,6 +8,13 @@ VulkanSwapChain::VulkanSwapChain(IntrusivePtr<Context> context) : context(contex
 
 VulkanSwapChain::~VulkanSwapChain()
 {
+    for (int i = 0; i < imageAvailableSemaphores.size(); i++)
+    {
+        vkDestroySemaphore(context->GetVkDevice(), imageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(context->GetVkDevice(), renderFinishedSemaphores[i], nullptr);
+    }
+
+    vkDestroySwapchainKHR(context->GetVkDevice(), swapChain, nullptr);
 }
 
 uint32_t VulkanSwapChain::Acquire(uint32_t currentFrame)

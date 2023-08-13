@@ -39,7 +39,7 @@ public:
     }
 
 private:
-    PixelEngine *engine = nullptr;
+    IntrusivePtr<PixelEngine> engine;
     IntrusivePtr<SwapChain> swapChain;
     IntrusivePtr<Window> window;
     std::vector<IntrusivePtr<ResourceBindingState>> drawStates;

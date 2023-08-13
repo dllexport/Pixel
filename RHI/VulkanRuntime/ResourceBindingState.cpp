@@ -17,12 +17,17 @@ VulkanResourceBindingState::~VulkanResourceBindingState()
 
 void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
 {
+    resourceHandlesMap[set][binding].insert(resource);
     WriteDescriptor(set, binding, resource);
 }
 
-void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resource)
+void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources)
 {
-    WriteDescriptor(set, binding, resource);
+    for (auto &resource : resources)
+    {
+        resourceHandlesMap[set][binding].insert(resource);
+    }
+    WriteDescriptor(set, binding, resources);
 }
 
 void VulkanResourceBindingState::AllocateDescriptorPool(IntrusivePtr<Pipeline> pipeline)

@@ -16,6 +16,8 @@ VulkanRenderPassExecutor::VulkanRenderPassExecutor(IntrusivePtr<Context> context
 
 VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
 {
+    vkDeviceWaitIdle(context->GetVkDevice());
+
     vkDestroyCommandPool(context->GetVkDevice(), graphicCommandPool, nullptr);
     vkDestroyCommandPool(context->GetVkDevice(), computeCommandPool, nullptr);
 

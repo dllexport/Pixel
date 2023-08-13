@@ -15,6 +15,11 @@ Surface::Surface(IntrusivePtr<Context> context, void *handle) : context(context)
 {
 }
 
+Surface::~Surface()
+{
+    vkDestroySurfaceKHR(context->GetVkInstance(), surface, nullptr);
+}
+
 void Surface::Build()
 {
 #ifdef WINDOW_GLFW

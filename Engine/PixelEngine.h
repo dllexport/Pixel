@@ -13,10 +13,11 @@
 class RenderPass;
 class Pipeline;
 class Renderer;
-class PixelEngine
+class PixelEngine : public IntrusiveCounter<PixelEngine>
 {
 public:
     PixelEngine();
+    ~PixelEngine();
     IntrusivePtr<RenderPass> RegisterRenderPass(IntrusivePtr<Graph> graph);
     IntrusivePtr<Pipeline> RegisterPipeline(std::string renderPassName, std::string subPassName, PipelineStates pipelineStates);
 

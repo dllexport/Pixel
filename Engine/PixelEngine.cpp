@@ -12,6 +12,10 @@ PixelEngine::PixelEngine()
     drawableBinder = new DrawableBinder;
 }
 
+PixelEngine::~PixelEngine()
+{
+}
+
 IntrusivePtr<RenderPass> PixelEngine::RegisterRenderPass(IntrusivePtr<Graph> graph)
 {
     if (renderPassTemplates.count(graph->name))

@@ -10,7 +10,8 @@ class Surface : public IntrusiveCounter<Surface>
 {
 public:
     Surface(IntrusivePtr<Context> context, void *handle);
-
+    ~Surface();
+    
     void Build();
 
     VkSurfaceKHR GetSurface();

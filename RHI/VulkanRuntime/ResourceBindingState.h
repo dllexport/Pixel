@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include <RHI/ResourceBindingState.h>
 
 #include <RHI/VulkanRuntime/Context.h>
@@ -12,11 +15,6 @@ public:
     virtual ~VulkanResourceBindingState() override;
     virtual void Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource) override;
     virtual void Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources) override;
-
-    // pipeline's desc layout may contains multiple sets
-    void AllocateDescriptorSets();
-    void WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
-    void WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
 
     IntrusivePtr<VulkanBuffer> GetVertexBuffer()
     {
@@ -39,5 +37,13 @@ private:
     std::vector<VkDescriptorSet> descriptorSets;
     VkDescriptorPool descriptorPool;
 
+    // sets -> bindings -> resource handles
+    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_set<IntrusivePtr<ResourceHandle>>>> resourceHandlesMap;
+
     void AllocateDescriptorPool(IntrusivePtr<Pipeline> pipeline);
+
+    // pipeline's desc layout may contains multiple sets
+    void AllocateDescriptorSets();
+    void WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
+    void WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
 };

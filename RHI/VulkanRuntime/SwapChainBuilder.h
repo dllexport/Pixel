@@ -10,6 +10,7 @@ class SwapChainBuilder
 public:
     SwapChainBuilder(IntrusivePtr<Context> &context);
     SwapChainBuilder &SetHandle(void *windowHandle);
+    SwapChainBuilder &SetExtent(uint32_t width, uint32_t height);
     SwapChainBuilder &SetPreferFormat(VkSurfaceFormatKHR format);
     SwapChainBuilder &SetPreferDepthStencilFormat(VkFormat format);
     SwapChainBuilder &SetPreferPresentMode(VkPresentModeKHR mode);
@@ -18,6 +19,8 @@ public:
     IntrusivePtr<VulkanSwapChain> Build();
 
 private:
+    VkSurfaceCapabilitiesKHR capabilities;
+    VkExtent2D windowExtent;
     IntrusivePtr<VulkanSwapChain> newSwapChain;
     IntrusivePtr<VulkanSwapChain> oldSwapChain;
     IntrusivePtr<Context> context;

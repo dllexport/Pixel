@@ -43,9 +43,16 @@ public:
 
     virtual void *Map() = 0;
 
+    void Dirty()
+    {
+        dirty = true;
+    }
+
 protected:
     Buffer() = default;
     virtual ~Buffer() = default;
 
     virtual bool Allocate(TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
+
+    bool dirty = false;
 };

@@ -57,5 +57,5 @@ private:
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
 
-    void InitSync();
+    void InitSync(uint32_t imageSize);
 };

@@ -20,6 +20,7 @@ public:
     }
 
     virtual void Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource) = 0;
+    virtual void Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources) = 0;
 
     void BindVertexBuffer(IntrusivePtr<Buffer> buffer)
     {

@@ -182,9 +182,10 @@ int ContextBuilder::DefaultPhysicalDeviceSelector(std::vector<VkPhysicalDevice> 
         VkPhysicalDeviceFeatures deviceFeatures;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        spdlog::info("found device {}", deviceProperties.deviceName);
         if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            return i;
+            return 0;
         }
     }
 

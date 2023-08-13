@@ -16,6 +16,7 @@ public:
 
     virtual void Prepare() override;
     virtual void Execute() override;
+    virtual void Update() override;
 
 private:
     IntrusivePtr<Context> context;
@@ -28,6 +29,8 @@ private:
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkFramebuffer>> frameBuffers;
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkCommandBuffer>> graphicCommandBuffers;
 	std::vector<VkFence> queueCompleteFences;
+
+    std::vector<VkCommandBuffer> updateCommandBuffers;
 
     void prepareFences();
     void prepareCommandPool();

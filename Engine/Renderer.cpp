@@ -17,8 +17,7 @@ void Renderer::InitWindow()
 {
     this->window = new Window();
     this->window->Build(1024, 768);
-
-    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle());
+    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle(), 1024, 768);
 }
 
 void Renderer::Build()

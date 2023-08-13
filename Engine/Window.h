@@ -5,7 +5,7 @@
 class Window : public IntrusiveCounter<Window>
 {
 public:
-    Window() = default;
+    Window();
     ~Window();
 
     void Build(uint32_t width, uint32_t height);

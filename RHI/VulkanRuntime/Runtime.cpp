@@ -16,10 +16,17 @@
 
 VulkanRuntime::VulkanRuntime()
 {
+    std::vector<const char *> instanceExts = {VK_KHR_SURFACE_EXTENSION_NAME};
+#ifdef _WIN32
+    instanceExts.push_back("VK_KHR_win32_surface");
+#elif __linux__
+    instanceExts.push_back("VK_KHR_wayland_surface");
+#endif
+
     context = ContextBuilder()
-                  .SetInstanceExtensions({VK_KHR_SURFACE_EXTENSION_NAME, "VK_KHR_win32_surface"})
+                  .SetInstanceExtensions(std::move(instanceExts))
                   .EnableValidationLayer()
-                  .SetInstanceLayers({"VK_LAYER_KHRONOS_validation"})
+                  .SetInstanceLayers({"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"})
                   .SetDeviceExtensions({VK_KHR_SWAPCHAIN_EXTENSION_NAME})
                   .Build();
 }
@@ -74,10 +81,12 @@ IntrusivePtr<ResourceBindingState> VulkanRuntime::CreateResourceBindingState(Int
     return new VulkanResourceBindingState(context, pipeline);
 }
 
-IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle)
+IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle, uint32_t width, uint32_t height)
 {
     return SwapChainBuilder(context)
+        .SetExtent(width, height)
         .SetHandle(handle)
+        .SetPreferPresentMode(VK_PRESENT_MODE_IMMEDIATE_KHR)
         .SetPreferFormat({VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
         .Build();
 }

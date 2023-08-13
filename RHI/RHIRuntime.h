@@ -22,5 +22,5 @@ public:
     virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config) = 0;
     virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor() = 0;
     virtual IntrusivePtr<ResourceBindingState> CreateResourceBindingState(IntrusivePtr<Pipeline>) = 0;
-    virtual IntrusivePtr<SwapChain> CreateSwapChain(void* handle) = 0;
+    virtual IntrusivePtr<SwapChain> CreateSwapChain(void* handle, uint32_t width, uint32_t height) = 0;
 };

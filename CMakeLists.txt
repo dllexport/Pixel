@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.20)
 project(Pixel)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -6,7 +6,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(VULKAN_SDK "C:/VulkanSDK/1.3.239.0")
 set(BOOST_ROOT "C:/Users/Mario/Documents/boost_1_81_0/stage")
 set(GLSL_VALIDATOR "${VULKAN_SDK}/Bin/glslangValidator")
- 
+
+if (UNIX)
+    set(GLFW_BUILD_X11 OFF)
+    set(GLFW_USE_WAYLAND ON)
+endif (UNIX)
+
+add_definitions(-DWINDOW_GLFW)
+
 if(MSVC)
   add_definitions(/MP)
 endif()
@@ -21,6 +28,7 @@ set(SPIRV_REFLECT_STATIC_LIB ON)
 set(SPIRV_REFLECT_EXAMPLES OFF)
 add_subdirectory(3rd/SPIRV-Reflect)
 add_subdirectory(3rd/spdlog)
+add_subdirectory(3rd/glfw)
 
 file(GLOB PIXEL_SOURCE_FILES
     "Core/*.*"
@@ -33,15 +41,16 @@ file(GLOB PIXEL_SOURCE_FILES
 add_executable(Pixel main.cpp ${PIXEL_SOURCE_FILES})
    
 target_include_directories(Pixel PRIVATE
-    ${VULKAN_SDK}/Include
+    ${VULKAN_SDK}/include
 )
 
 target_link_libraries(Pixel PRIVATE
     ${Boost_LIBRARIES}
-    ${VULKAN_SDK}/Lib/vulkan-1.lib
+    ${VULKAN_SDK}/lib/vulkan-1.lib
     json_struct
     spdlog
     spirv-reflect-static
+    glfw
 )
 
 # add_subdirectory(3rd/googletest)

@@ -2,8 +2,6 @@
 
 #include <stdexcept>
 
-static int MAX_FRAMES_IN_FLIGHT = 2;
-
 VulkanSwapChain::VulkanSwapChain(IntrusivePtr<Context> context) : context(context)
 {
 }
@@ -53,17 +51,19 @@ bool VulkanSwapChain::Present(uint32_t index, uint32_t currentFrame)
     {
         throw std::runtime_error("failed to present swap chain image!");
     }
+
+    return true;
 }
 
-void VulkanSwapChain::InitSync()
+void VulkanSwapChain::InitSync(uint32_t imageSize)
 {
-    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    imageAvailableSemaphores.resize(imageSize);
+    renderFinishedSemaphores.resize(imageSize);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < imageSize; i++)
     {
         if (vkCreateSemaphore(context->GetVkDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(context->GetVkDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS)

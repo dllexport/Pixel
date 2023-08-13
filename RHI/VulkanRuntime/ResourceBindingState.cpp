@@ -2,6 +2,7 @@
 #include <RHI/VulkanRuntime/Pipeline.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
 #include <RHI/VulkanRuntime/Buffer.h>
+#include <RHI/VulkanRuntime/Texture.h>
 
 VulkanResourceBindingState::VulkanResourceBindingState(IntrusivePtr<Context> context, IntrusivePtr<Pipeline> pipeline) : ResourceBindingState(pipeline), context(context)
 {
@@ -15,6 +16,11 @@ VulkanResourceBindingState::~VulkanResourceBindingState()
 }
 
 void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
+{
+    WriteDescriptor(set, binding, resource);
+}
+
+void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resource)
 {
     WriteDescriptor(set, binding, resource);
 }
@@ -65,27 +71,67 @@ void VulkanResourceBindingState::AllocateDescriptorSets()
     auto result = vkAllocateDescriptorSets(context->GetVkDevice(), &descriptorSetAllocateInfo, descriptorSets.data());
 }
 
-void VulkanResourceBindingState::WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
+// resources should have same type
+static void WriteDescriptorValidate(std::vector<IntrusivePtr<ResourceHandle>> &resources)
 {
+#ifndef NDEBUG
+    bool bufferType = false;
+    bool textureType = false;
+    for (auto resource : resources)
+    {
+        if (boost::dynamic_pointer_cast<VulkanBuffer>(resource))
+        {
+            bufferType = true;
+        }
+        if (boost::dynamic_pointer_cast<VulkanTexture>(resource))
+        {
+            textureType = true;
+        }
+    }
+
+    uint8_t typeCounter = 0;
+    if (bufferType)
+        typeCounter += 1;
+    if (textureType)
+        typeCounter += 1;
+
+    assert(typeCounter == 1);
+#endif
+}
+
+void VulkanResourceBindingState::WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources)
+{
+    WriteDescriptorValidate(resources);
+
     // TODO, support different types of resource
     std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-    auto buffer = dynamic_cast<VulkanBuffer *>(resource.get());
+    std::vector<VkDescriptorBufferInfo> bufferInfos(resources.size());
 
-    VkDescriptorBufferInfo bufferInfo = {
-        .buffer = buffer->GetBuffer(),
-        .offset = 0,
-        .range = VK_WHOLE_SIZE};
+    for (int i = 0; i < resources.size(); i++)
+    {
+        auto buffer = dynamic_cast<VulkanBuffer *>(resources[i].get());
+        VkDescriptorBufferInfo bufferInfo = {
+            .buffer = buffer->GetBuffer(),
+            .offset = 0,
+            .range = VK_WHOLE_SIZE};
+        bufferInfos[i] = bufferInfo;
+    }
 
     VkWriteDescriptorSet writeDescriptorSet = {};
     writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeDescriptorSet.dstSet = descriptorSets[set];
     writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     writeDescriptorSet.dstBinding = binding;
-    writeDescriptorSet.pBufferInfo = &bufferInfo;
-    writeDescriptorSet.descriptorCount = 1;
+    writeDescriptorSet.pBufferInfo = bufferInfos.data();
+    writeDescriptorSet.descriptorCount = (uint32_t)bufferInfos.size();
 
     writeDescriptorSets.push_back(writeDescriptorSet);
 
     vkUpdateDescriptorSets(context->GetVkDevice(), (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+}
+
+void VulkanResourceBindingState::WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
+{
+    WriteDescriptor(set, binding, std::vector<IntrusivePtr<ResourceHandle>>{resource});
 }

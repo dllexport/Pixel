@@ -1,3 +1,5 @@
+#ifndef WINDOW_GLFW
+
 #include <Engine/Window.h>
 
 #include <stdexcept>
@@ -6,7 +8,6 @@
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
     switch (uMsg)
     {
     case WM_CLOSE:
@@ -64,6 +65,10 @@ HWND CreateWin32Window(void *window, uint32_t width, uint32_t height)
     return hwnd;
 }
 
+Window::Window()
+{
+}
+
 Window::~Window()
 {
 }
@@ -87,3 +92,5 @@ void Window::Update()
         DispatchMessage(&msg);
     }
 }
+
+#endif

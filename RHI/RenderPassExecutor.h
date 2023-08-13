@@ -34,6 +34,9 @@ public:
     // build command buffer
     virtual void Execute() = 0;
 
+    // update command buffer if any
+    virtual void Update() = 0;
+
 protected:
     std::unordered_set<IntrusivePtr<RenderPass>> renderPasses;
     std::unordered_map<IntrusivePtr<Pipeline>, std::vector<IntrusivePtr<ResourceBindingState>>> resourceBindingStates;

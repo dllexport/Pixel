@@ -294,7 +294,6 @@ void VulkanRenderPassExecutor::Prepare()
 
 void VulkanRenderPassExecutor::Execute()
 {
-
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
 
     vkWaitForFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -303,6 +302,11 @@ void VulkanRenderPassExecutor::Execute()
     auto imageIndex = vulkanSC->Acquire(currentFrame);
 
     std::vector<VkCommandBuffer> commandBuffers;
+    for (auto cb : updateCommandBuffers)
+    {
+        commandBuffers.push_back(cb);
+    }
+
     // aggregate command buffers
     for (auto [_, cbs] : graphicCommandBuffers)
     {
@@ -335,4 +339,8 @@ void VulkanRenderPassExecutor::Execute()
     swapChain->Present(imageIndex, currentFrame);
 
     currentFrame = (currentFrame + 1) % vulkanSC->GetTextures().size();
+}
+
+void VulkanRenderPassExecutor::Update() {
+
 }

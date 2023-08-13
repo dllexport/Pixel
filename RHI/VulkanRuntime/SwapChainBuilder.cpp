@@ -2,9 +2,16 @@
 
 #include <stdexcept>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan.hpp>
 
 SwapChainBuilder::SwapChainBuilder(IntrusivePtr<Context> &context) : context(context)
 {
+}
+
+SwapChainBuilder &SwapChainBuilder::SetExtent(uint32_t width, uint32_t height)
+{
+    this->windowExtent = {width, height};
+    return *this;
 }
 
 SwapChainBuilder &SwapChainBuilder::SetHandle(void *windowHandle)
@@ -51,7 +58,6 @@ void SwapChainBuilder::BuildSurface()
 
 void SwapChainBuilder::BuildSwapChainProperties()
 {
-    VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->GetVkPhysicalDevice(), surface->GetSurface(), &capabilities);
 
     std::vector<VkSurfaceFormatKHR> formats;
@@ -89,22 +95,22 @@ void SwapChainBuilder::BuildSwapChainProperties()
         newSwapChain->presentMode = preferPresentMode;
     }
 
-    // #ifndef NDEBUG
-    //     static std::once_flag flag = {};
-    //     std::call_once(flag, [&]()
-    //                    {
-    // 		spdlog::debug("available swapchain format:");
-    // 		for (auto& format : formats)
-    // 		{
-    // 			spdlog::debug("{}:{}", vk::to_string(vk::Format(format.format)), vk::to_string(vk::ColorSpaceKHR(format.colorSpace)));
-    // 		}
+#ifndef NDEBUG
+    static std::once_flag flag = {};
+    std::call_once(flag, [&]()
+                   {
+    		spdlog::debug("available swapchain format:");
+    		for (auto& format : formats)
+    		{
+    			spdlog::debug("{}:{}", vk::to_string(vk::Format(format.format)), vk::to_string(vk::ColorSpaceKHR(format.colorSpace)));
+    		}
 
-    // 		spdlog::debug("available present mode:");
-    // 		for (auto& mode : presentModes)
-    // 		{
-    // 			spdlog::debug("{}", vk::to_string(vk::PresentModeKHR(mode)));
-    // 		} });
-    // #endif
+    		spdlog::debug("available present mode:");
+    		for (auto& mode : presentModes)
+    		{
+    			spdlog::debug("{}", vk::to_string(vk::PresentModeKHR(mode)));
+    		} });
+#endif
 }
 
 void SwapChainBuilder::BuildSwapChain()
@@ -113,10 +119,10 @@ void SwapChainBuilder::BuildSwapChain()
     sci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     sci.surface = surface->GetSurface();
 
-    sci.minImageCount = bufferCount;
+    sci.minImageCount = capabilities.minImageCount;
     sci.imageFormat = newSwapChain->format.format;
     sci.imageColorSpace = newSwapChain->format.colorSpace;
-    sci.imageExtent = newSwapChain->capabilities.currentExtent;
+    sci.imageExtent = this->windowExtent;
     sci.imageArrayLayers = 1;
     sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -136,7 +142,8 @@ void SwapChainBuilder::BuildSwapChain()
     }
 
     VkSwapchainKHR swapChain;
-    if (vkCreateSwapchainKHR(context->GetVkDevice(), &sci, nullptr, &swapChain) != VK_SUCCESS)
+    auto result = vkCreateSwapchainKHR(context->GetVkDevice(), &sci, nullptr, &swapChain);
+    if (result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create swap chain");
     }
@@ -210,6 +217,6 @@ IntrusivePtr<VulkanSwapChain> SwapChainBuilder::Build()
     BuildSwapChain();
     ResolveDepthStencilFormat();
     newSwapChain->surface = this->surface;
-    newSwapChain->InitSync();
+    newSwapChain->InitSync(capabilities.minImageCount);
     return this->newSwapChain;
 }

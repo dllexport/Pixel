@@ -2,8 +2,14 @@
 
 #include <stdexcept>
 
+#ifdef WINDOW_GLFW
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#elif
 #include <Windows.h>
 #include <vulkan/vulkan_win32.h>
+#endif
 
 Surface::Surface(IntrusivePtr<Context> context, void *handle) : context(context), handle(handle)
 {
@@ -11,6 +17,13 @@ Surface::Surface(IntrusivePtr<Context> context, void *handle) : context(context)
 
 void Surface::Build()
 {
+#ifdef WINDOW_GLFW
+    VkResult err = glfwCreateWindowSurface(context->GetVkInstance(), (GLFWwindow *)handle, nullptr, &surface);
+    if (err)
+    {
+        throw std::runtime_error("failed to create window surface");
+    }
+#elif
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     createInfo.hwnd = reinterpret_cast<HWND>(this->handle);
@@ -25,6 +38,7 @@ void Surface::Build()
     {
         throw std::runtime_error("failed to create window surface");
     }
+#endif
 }
 
 VkSurfaceKHR Surface::GetSurface()

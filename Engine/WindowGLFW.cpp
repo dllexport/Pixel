@@ -9,7 +9,7 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
-struct GLFWCallbacks
+struct WindowCallbacks
 {
     static void window_size_callback(GLFWwindow *window, int width, int height)
     {
@@ -23,7 +23,7 @@ void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     GLFWwindow *glfwWindow = glfwCreateWindow(width, height, "Window Title", NULL, NULL);
 
-    glfwSetWindowSizeCallback(glfwWindow, GLFWCallbacks::window_size_callback);
+    glfwSetWindowSizeCallback(glfwWindow, WindowCallbacks::window_size_callback);
 
     return glfwWindow;
 }

@@ -58,8 +58,14 @@ target_link_libraries(Pixel PRIVATE
     json_struct
     spdlog
     spirv-reflect-static
+)
+
+if (WINDOW_USE_GLFW)
+target_link_libraries(Pixel PRIVATE
     glfw
 )
+endif()
+
 
 # add_subdirectory(3rd/googletest)
 # enable_testing()

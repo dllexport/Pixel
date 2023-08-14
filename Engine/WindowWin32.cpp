@@ -6,30 +6,46 @@
 
 #include <Windows.h>
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+struct WindowCallbacks
 {
-    switch (uMsg)
+    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-    case WM_CLOSE:
-    {
-        IntrusivePtr<Window> window = reinterpret_cast<Window *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-        DestroyWindow(hwnd);
-        window->SetStopped();
-        break;
+        switch (uMsg)
+        {
+        case WM_CLOSE:
+        {
+            IntrusivePtr<Window> window = reinterpret_cast<Window *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+            DestroyWindow(hwnd);
+            window->SetStopped();
+            break;
+        }
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+            break;
+        }
+        case WM_SIZE:
+        {
+            IntrusivePtr<Window> window = reinterpret_cast<Window *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+            if (!window) {
+                break;
+            }
+            UINT width = LOWORD(lParam);
+            UINT height = HIWORD(lParam);
+            window->resizeCallback(width, height);
+            break;
+        }
+        }
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    }
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
+};
 
 HWND CreateWin32Window(void *window, uint32_t width, uint32_t height)
 {
     LPCSTR CLASS_NAME = {"Sample Window Class"};
 
     WNDCLASS wc = {};
-    wc.lpfnWndProc = WindowProc;
+    wc.lpfnWndProc = WindowCallbacks::WindowProc;
     wc.hInstance = GetModuleHandle(nullptr);
     wc.lpszClassName = CLASS_NAME;
 

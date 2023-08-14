@@ -1,5 +1,4 @@
 #include <Engine/Renderer.h>
-
 #include <Engine/PixelEngine.h>
 
 #include <RHI/RenderPassExecutor.h>
@@ -27,9 +26,12 @@ void Renderer::InitWindow()
 
 void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
 {
-    spdlog::info("recreate");
-    this->renderPassExecutor->WaitIdle();
-    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle(), width, height);
+    if (width == 0 || height == 0)
+    {
+        return;
+    }
+    renderPassExecutor->WaitIdle();
+    swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle(), width, height);
     renderPassExecutor->Reset();
     renderPassExecutor->SetSwapChain(swapChain);
     renderPassExecutor->Prepare();
@@ -70,7 +72,4 @@ void Renderer::Frame()
     }
 
     auto executeResult = renderPassExecutor->Execute();
-    if (!executeResult)
-    {
-    }
 }

@@ -30,7 +30,7 @@ public:
     }
 
 private:
-    friend class GLFWCallbacks;
+    friend class WindowCallbacks;
     bool stopped = false;
     void *hwnd;
 

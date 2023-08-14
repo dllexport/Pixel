@@ -32,6 +32,7 @@ public:
 private:
     friend class WindowCallbacks;
     bool stopped = false;
+    bool focus = false;
     void *hwnd;
 
     std::function<void(uint32_t, uint32_t)> resizeCallback;

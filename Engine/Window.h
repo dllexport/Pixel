@@ -10,11 +10,6 @@ public:
 
     void Build(uint32_t width, uint32_t height);
 
-    void *GetHandle()
-    {
-        return hwnd;
-    }
-
     void Update();
 
     bool Stopped();
@@ -31,6 +26,8 @@ public:
 
 private:
     friend class WindowCallbacks;
+    friend class Renderer;
+
     bool stopped = false;
     bool focus = false;
     void *hwnd;

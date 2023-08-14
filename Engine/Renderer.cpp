@@ -21,7 +21,7 @@ void Renderer::InitWindow()
     this->window->RegisterResizeCallback([this](uint32_t width, uint32_t height)
                                          { this->ReCreateSwapChain(width, height); });
 
-    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle(), 1024, 768);
+    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, 1024, 768);
 }
 
 void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
@@ -31,7 +31,7 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
         return;
     }
     renderPassExecutor->WaitIdle();
-    swapChain = engine->rhiRuntime->CreateSwapChain(this->window->GetHandle(), width, height);
+    swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, width, height);
     renderPassExecutor->Reset();
     renderPassExecutor->SetSwapChain(swapChain);
     renderPassExecutor->Prepare();

@@ -18,6 +18,8 @@ include_directories(3rd/VulkanMemoryAllocator/include)
 
 find_package(Boost COMPONENTS date_time filesystem system)
 
+set(SPIRV_REFLECT_EXECUTABLE OFF)
+set(SPIRV_REFLECT_EXAMPLES OFF)
 set(SPIRV_REFLECT_STATIC_LIB ON)
 set(SPIRV_REFLECT_EXAMPLES OFF)
 add_subdirectory(3rd/SPIRV-Reflect)

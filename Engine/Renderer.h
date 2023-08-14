@@ -38,6 +38,8 @@ public:
         updateCallbacks.push_back(fn);
     }
 
+    void ReCreateSwapChain(uint32_t width, uint32_t height);
+
 private:
     IntrusivePtr<PixelEngine> engine;
     IntrusivePtr<SwapChain> swapChain;

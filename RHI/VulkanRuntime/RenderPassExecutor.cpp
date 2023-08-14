@@ -12,14 +12,23 @@
 
 VulkanRenderPassExecutor::VulkanRenderPassExecutor(IntrusivePtr<Context> context) : context(context)
 {
+    prepareCommandPool();
 }
 
 VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
 {
     vkDeviceWaitIdle(context->GetVkDevice());
 
+    Reset();
+
     vkDestroyCommandPool(context->GetVkDevice(), graphicCommandPool, nullptr);
     vkDestroyCommandPool(context->GetVkDevice(), computeCommandPool, nullptr);
+}
+
+void VulkanRenderPassExecutor::Reset()
+{
+    attachmentImages.clear();
+    sharedImages.clear();
 
     for (auto &[_, frameBuffer] : frameBuffers)
     {
@@ -27,12 +36,21 @@ VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
         {
             vkDestroyFramebuffer(context->GetVkDevice(), fb, nullptr);
         }
+
+        frameBuffer.clear();
+    }
+
+    for (auto &[_, graphicCommandBuffer] : graphicCommandBuffers)
+    {
+        graphicCommandBuffer.clear();
     }
 
     for (auto &fence : queueCompleteFences)
     {
         vkDestroyFence(context->GetVkDevice(), fence, nullptr);
     }
+
+    queueCompleteFences.clear();
 }
 
 void VulkanRenderPassExecutor::prepareFences()
@@ -141,10 +159,8 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
         auto topoResult = graph->Topo();
         for (auto &[k, rps] : topoResult.levelsRenderPassOnly)
         {
-            spdlog::info("level: {}", k);
             for (auto &node : rps)
             {
-                spdlog::info("{}", node->name);
                 auto vulkanPL = subPassName2Pipeline[node->name];
                 auto vrbs = resourceBindingStates[vulkanPL];
                 for (auto vrb : vrbs)
@@ -196,7 +212,6 @@ void VulkanRenderPassExecutor::Prepare()
     auto swapChainImageSize = vulkanSC->GetTextures().size();
 
     prepareFences();
-    prepareCommandPool();
 
     attachmentImages.resize(swapChainImageSize);
 
@@ -294,7 +309,7 @@ void VulkanRenderPassExecutor::Prepare()
     }
 }
 
-void VulkanRenderPassExecutor::Execute()
+bool VulkanRenderPassExecutor::Execute()
 {
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
 
@@ -302,6 +317,11 @@ void VulkanRenderPassExecutor::Execute()
     vkResetFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame]);
 
     auto imageIndex = vulkanSC->Acquire(currentFrame);
+    if (imageIndex == -1)
+    {
+        spdlog::info("acquire failed");
+        return false;
+    }
 
     std::vector<VkCommandBuffer> commandBuffers;
     for (auto cb : updateCommandBuffers)
@@ -338,11 +358,20 @@ void VulkanRenderPassExecutor::Execute()
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
-    swapChain->Present(imageIndex, currentFrame);
+    bool presentResult = swapChain->Present(imageIndex, currentFrame);
+    if (!presentResult)
+    {
+        return false;
+    }
 
     currentFrame = (currentFrame + 1) % vulkanSC->GetTextures().size();
 }
 
-void VulkanRenderPassExecutor::Update() {
+void VulkanRenderPassExecutor::Update()
+{
+}
 
+void VulkanRenderPassExecutor::WaitIdle()
+{
+    vkDeviceWaitIdle(context->GetVkDevice());
 }

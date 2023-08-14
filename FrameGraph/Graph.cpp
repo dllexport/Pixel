@@ -208,8 +208,13 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     return graph;
 }
 
-Graph::TopoResult Graph::Topo()
+Graph::TopoResult& Graph::Topo()
 {
+    if (topoResultCache.has_value())
+    {
+        return topoResultCache.value();
+    }
+
     std::unordered_map<uint16_t, std::vector<GraphNode *>> result;
 
     std::queue<GraphNode *> topoQueue;
@@ -292,7 +297,9 @@ Graph::TopoResult Graph::Topo()
         }
     }
 
-    return TopoResult{
+    topoResultCache = TopoResult{
         .levels = result,
         .levelsRenderPassOnly = passOnly};
+
+    return topoResultCache.value();
 }

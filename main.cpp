@@ -77,7 +77,6 @@ int main()
         rbs->BindIndexBuffer(iBuffer);
 
         double i = 0;
-        // engine->GetDrawableBinder()->BindResource(renderable, rbs);
         renderer->RegisterUpdateCallback([&]()
                                          {
                                          i += 0.0001;

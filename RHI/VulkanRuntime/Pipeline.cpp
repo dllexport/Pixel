@@ -311,13 +311,12 @@ void VulkanPipeline::Build()
         pipelineStates.shaderState.fragmentShaderPath = grp->framgmentShader;
     }
     std::vector<VkPipelineShaderStageCreateInfo> shaderStateCI = TranslateShaderState(pipelineStates.shaderState);
-   
+
     VkGraphicsPipelineCreateInfo pipelineCI = {};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.basePipelineIndex = -1;
     pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
     pipelineCI.renderPass = vulkanRenderPass->GetRenderPass();
-    // pipelineCI.pVertexInputState = &vertexInputStateCI;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pRasterizationState = &rasterizationStateCI;
     pipelineCI.pColorBlendState = &colorBlendStateCI;

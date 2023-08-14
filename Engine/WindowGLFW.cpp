@@ -9,10 +9,22 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+struct GLFWCallbacks
+{
+    static void window_size_callback(GLFWwindow *window, int width, int height)
+    {
+        auto pWnd = (Window *)glfwGetWindowUserPointer(window);
+        pWnd->resizeCallback((uint32_t)width, (uint32_t)height);
+    }
+};
+
 void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     GLFWwindow *glfwWindow = glfwCreateWindow(width, height, "Window Title", NULL, NULL);
+
+    glfwSetWindowSizeCallback(glfwWindow, GLFWCallbacks::window_size_callback);
+
     return glfwWindow;
 }
 
@@ -33,6 +45,7 @@ Window::~Window()
 void Window::Build(uint32_t width, uint32_t height)
 {
     this->hwnd = CreateGLFWWindow(this, width, height);
+    glfwSetWindowUserPointer((GLFWwindow *)this->hwnd, this);
 }
 
 bool Window::Stopped()

@@ -15,8 +15,10 @@ public:
     virtual ~VulkanRenderPassExecutor() override;
 
     virtual void Prepare() override;
-    virtual void Execute() override;
+    virtual bool Execute() override;
     virtual void Update() override;
+    virtual void WaitIdle() override;
+    virtual void Reset() override;
 
 private:
     IntrusivePtr<Context> context;
@@ -28,7 +30,7 @@ private:
 
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkFramebuffer>> frameBuffers;
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkCommandBuffer>> graphicCommandBuffers;
-	std::vector<VkFence> queueCompleteFences;
+    std::vector<VkFence> queueCompleteFences;
 
     std::vector<VkCommandBuffer> updateCommandBuffers;
 

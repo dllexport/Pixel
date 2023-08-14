@@ -32,10 +32,14 @@ public:
     virtual void Prepare() = 0;
 
     // build command buffer
-    virtual void Execute() = 0;
+    virtual bool Execute() = 0;
 
     // update command buffer if any
     virtual void Update() = 0;
+
+    virtual void WaitIdle() = 0;
+    
+    virtual void Reset() = 0;
 
 protected:
     std::unordered_set<IntrusivePtr<RenderPass>> renderPasses;

@@ -18,13 +18,21 @@ public:
     void Update();
 
     bool Stopped();
-    
+
     void SetStopped()
     {
         stopped = true;
     }
 
+    void RegisterResizeCallback(std::function<void(uint32_t, uint32_t)> fn)
+    {
+        this->resizeCallback = fn;
+    }
+
 private:
+    friend class GLFWCallbacks;
     bool stopped = false;
     void *hwnd;
+
+    std::function<void(uint32_t, uint32_t)> resizeCallback;
 };

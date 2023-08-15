@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/IntrusivePtr.h>
+#include <Engine/Event.h>
 
 class Window : public IntrusiveCounter<Window>
 {
@@ -24,6 +25,11 @@ public:
         this->resizeCallback = fn;
     }
 
+    void RegisterEventCallback(std::function<void(Event event)> fn)
+    {
+        this->eventCallback = fn;
+    }
+
 private:
     friend class WindowCallbacks;
     friend class Renderer;
@@ -33,4 +39,5 @@ private:
     void *hwnd;
 
     std::function<void(uint32_t, uint32_t)> resizeCallback;
+    std::function<void(Event event)> eventCallback;
 };

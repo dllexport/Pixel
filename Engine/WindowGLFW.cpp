@@ -20,6 +20,20 @@ struct WindowCallbacks
     static void window_key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
     {
         auto pWnd = (Window *)glfwGetWindowUserPointer(window);
+
+        Event::Type type;
+        if (action == GLFW_PRESS)
+            type = Event::KEY_DOWN;
+        if (action == GLFW_RELEASE)
+            type = Event::KEY_UP;
+        if (action == GLFW_REPEAT)
+            type = Event::KEY_REPEAT;
+
+        spdlog::info("action {}, code {}, mods {}", action, scancode, mods);
+        Event event = {};
+        event.type = type;
+        event.keyCode = scancode;
+        pWnd->eventCallback(event);
     }
 
     static void window_mouse_callback(GLFWwindow *window, int button, int action, int mods)
@@ -28,19 +42,34 @@ struct WindowCallbacks
         double x;
         double y;
         glfwGetCursorPos(window, &x, &y);
-        spdlog::info("{} {}", x, y);
+
+        auto type = (action == GLFW_PRESS) ? Event::MOUSE_DOWN : Event::MOUSE_UP;
+
+        Event event = {};
+        event.type = type;
+        event.mouseX = x;
+        event.mouseY = y;
+        pWnd->eventCallback(event);
     }
 
     static void cursor_position_callback(GLFWwindow *window, double xpos, double ypos)
     {
-        // spdlog::info("{} {}", xpos, ypos);
+        auto pWnd = (Window *)glfwGetWindowUserPointer(window);
+        Event event = {};
+        event.type = Event::MOUSE_MOVE;
+        event.mouseX = xpos;
+        event.mouseY = ypos;
+        pWnd->eventCallback(event);
     }
 
     static void cursor_enter_callback(GLFWwindow *window, int entered)
     {
-        spdlog::info("{} ", !!entered);
         auto pWnd = (Window *)glfwGetWindowUserPointer(window);
         pWnd->focus = !!entered;
+        auto type = !!entered ? Event::WINDOW_FOCUS_IN : Event::WINDOW_FOCUS_OUT;
+        Event event = {};
+        event.type = type;
+        pWnd->eventCallback(event);
     }
 };
 

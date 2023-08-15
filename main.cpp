@@ -58,10 +58,11 @@ int main()
         auto uBuffer = engine->GetRHIRuntime()->CreateBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(uboVS));
 
         Camera camera;
-        camera.type = Camera::CameraType::lookat;
-        camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+        camera.type = Camera::CameraType::firstperson;
+        camera.setPosition(glm::vec3(0.0f, 0.0f, -1.5f));
         camera.setRotation(glm::vec3(0.0f));
         camera.setPerspective(60.0f, (float)1024 / (float)768, 1.0f, 256.0f);
+        glm::vec2 mousePos = {};
 
         uboVS.projectionMatrix = camera.matrices.perspective;
         uboVS.viewMatrix = camera.matrices.view;
@@ -75,16 +76,70 @@ int main()
         rbs->Bind(0, 0, uBuffer);
         rbs->BindVertexBuffer(vBuffer);
         rbs->BindIndexBuffer(iBuffer);
+        
+        renderer->RegisterUpdateCallback([&](Event event, uint64_t deltaTime) {
+            if (event.type == Event::KEY_UP)
+            {
+                if (event.keyCode == 17)
+                {
+                    camera.keys.up = false;
+                }
+                if (event.keyCode == 31)
+                {
+                    camera.keys.down = false;
+                }
+                if (event.keyCode == 30)
+                {
+                    camera.keys.left = false;
+                }
+                if (event.keyCode == 32)
+                {
+                    camera.keys.right = false;
+                }
+            }
+            auto anyKeyDown = event.type & Event::KEY_DOWN || event.type & Event::KEY_REPEAT;
+            if (anyKeyDown)
+            {
+                if (event.keyCode == 17)
+                {
+                    camera.keys.up = true;
+                }
+                if (event.keyCode == 31)
+                {
+                    camera.keys.down = true;
+                }
+                if (event.keyCode == 30)
+                {
+                    camera.keys.left = true;
+                }
+                if (event.keyCode == 32)
+                {
+                    camera.keys.right = true;
+                }
+            }
 
-        double i = 0;
-        renderer->RegisterUpdateCallback([&]()
-                                         {
-                                         i += 0.0001;
-                                         glm::mat4 trans(1.0f);
-                                         trans = glm::scale(trans, {cos(i), cos(i), cos(i)});
-                                         uboVS.modelMatrix = trans;
-                                         memcpy(uBuffer->Map(), &uboVS, sizeof(uboVS));
-                                         uBuffer->Dirty(); });
+            if (event.type == Event::MOUSE_MOVE)
+            {
+
+                if (mousePos.x == 0 && mousePos.y == 0)
+                {
+                    mousePos = {event.mouseX, event.mouseY};
+                }
+                int32_t dx = (int32_t)mousePos.x - event.mouseX;
+                int32_t dy = (int32_t)mousePos.y - event.mouseY;
+
+                camera.rotate(glm::vec3(dy * camera.rotationSpeed * deltaTime / 10.f, -dx * camera.rotationSpeed * deltaTime / 10.f, 0.0f));
+
+                mousePos = {event.mouseX, event.mouseY};
+            }
+            camera.update(deltaTime / 100.f);
+            uboVS.projectionMatrix = camera.matrices.perspective;
+            uboVS.viewMatrix = camera.matrices.view;
+            uboVS.modelMatrix = glm::mat4(1.0f);
+
+            memcpy(uBuffer->Map(), &uboVS, sizeof(uboVS));
+            uBuffer->Dirty();
+        });
         renderer->AddDrawState(rbs);
 
         engine->Frame();

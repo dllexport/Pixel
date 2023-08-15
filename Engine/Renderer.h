@@ -2,10 +2,12 @@
 
 #include <vector>
 #include <unordered_set>
+#include <chrono>
 
 #include <Core/IntrusivePtr.h>
 
 #include <Engine/Window.h>
+#include <Engine/Event.h>
 
 #include <RHI/RenderPass.h>
 #include <RHI/ResourceBindingState.h>
@@ -38,8 +40,6 @@ public:
         updateCallbacks.push_back(fn);
     }
 
-    void ReCreateSwapChain(uint32_t width, uint32_t height);
-
 private:
     IntrusivePtr<PixelEngine> engine;
     IntrusivePtr<SwapChain> swapChain;
@@ -48,7 +48,13 @@ private:
 
     IntrusivePtr<RenderPassExecutor> renderPassExecutor;
 
-    std::vector<std::function<void()>> updateCallbacks;
+    IOState ioState;
 
+    std::vector<std::function<void(Event event, uint64_t)>> updateCallbacks;
+
+    uint64_t deltaTime = 0;
+    
     void InitWindow();
+    void ReCreateSwapChain(uint32_t width, uint32_t height);
+    void EventCallback(Event event);
 };

@@ -31,6 +31,68 @@ static TextureFormat TranslateFormat(std::string formatStr)
 #undef STRINGIFY
 }
 
+void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<GraphNode>> &resolvedMap, std::vector<IntrusivePtr<GraphNode>> &resourceNodes)
+{
+    auto mergeGraphNode = [](GraphNode *source, GraphNode *target)
+    {
+        {
+            std::unordered_set<IntrusivePtr<GraphNode>> set;
+            for (auto n : source->inputs)
+            {
+                set.insert(n);
+            }
+            for (auto n : target->inputs)
+            {
+                set.insert(n);
+            }
+
+            std::vector<IntrusivePtr<GraphNode>> inputs(set.size());
+            std::copy(set.begin(), set.end(), inputs.begin());
+            target->inputs.swap(inputs);
+        }
+
+        {
+            std::unordered_set<IntrusivePtr<GraphNode>> set;
+            for (auto n : source->outputs)
+            {
+                set.insert(n);
+            }
+            for (auto n : target->outputs)
+            {
+                set.insert(n);
+            }
+
+            std::vector<IntrusivePtr<GraphNode>> outputs(set.size());
+            std::copy(set.begin(), set.end(), outputs.begin());
+            target->outputs.swap(outputs);
+        }
+    };
+
+    // handle reference
+    for (auto &node : resourceNodes)
+    {
+        for (auto &n : node->inputs)
+        {
+            if (n->type == GraphNode::REFERENCE)
+            {
+                auto target = resolvedMap[n->name];
+                mergeGraphNode(n.get(), target.get());
+                n = target;
+            }
+        }
+
+        for (auto &n : node->outputs)
+        {
+            if (n->type == GraphNode::REFERENCE)
+            {
+                auto target = resolvedMap[n->name];
+                mergeGraphNode(n.get(), target.get());
+                n = target;
+            }
+        }
+    }
+}
+
 IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 {
     auto jsonStr = ReadStringFile(path);
@@ -38,6 +100,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     RenderPassJson json;
     auto error = context.parseTo(json);
 
+    // resolve reference node
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> resolvedMap;
     std::vector<IntrusivePtr<GraphNode>> resourceNodes;
 
@@ -122,64 +185,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         }
     }
 
-    auto mergeGraphNode = [](GraphNode *source, GraphNode *target)
-    {
-        {
-            std::unordered_set<IntrusivePtr<GraphNode>> set;
-            for (auto n : source->inputs)
-            {
-                set.insert(n);
-            }
-            for (auto n : target->inputs)
-            {
-                set.insert(n);
-            }
-
-            std::vector<IntrusivePtr<GraphNode>> inputs(set.size());
-            std::copy(set.begin(), set.end(), inputs.begin());
-            target->inputs.swap(inputs);
-        }
-
-        {
-            std::unordered_set<IntrusivePtr<GraphNode>> set;
-            for (auto n : source->outputs)
-            {
-                set.insert(n);
-            }
-            for (auto n : target->outputs)
-            {
-                set.insert(n);
-            }
-
-            std::vector<IntrusivePtr<GraphNode>> outputs(set.size());
-            std::copy(set.begin(), set.end(), outputs.begin());
-            target->outputs.swap(outputs);
-        }
-    };
-
-    // handle reference
-    for (auto &node : resourceNodes)
-    {
-        for (auto &n : node->inputs)
-        {
-            if (n->type == GraphNode::REFERENCE)
-            {
-                auto target = resolvedMap[n->name];
-                mergeGraphNode(n.get(), target.get());
-                n = target;
-            }
-        }
-
-        for (auto &n : node->outputs)
-        {
-            if (n->type == GraphNode::REFERENCE)
-            {
-                auto target = resolvedMap[n->name];
-                mergeGraphNode(n.get(), target.get());
-                n = target;
-            }
-        }
-    }
+    ResolveReferenceNode(resolvedMap, resourceNodes);
 
     // remove reference
     for (auto &[k, v] : resolvedMap)
@@ -208,7 +214,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     return graph;
 }
 
-Graph::TopoResult& Graph::Topo()
+Graph::TopoResult &Graph::Topo()
 {
     if (topoResultCache.has_value())
     {

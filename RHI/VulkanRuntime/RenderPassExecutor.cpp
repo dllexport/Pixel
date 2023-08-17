@@ -116,7 +116,7 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
         VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        std::vector<VkClearValue> clearValues(vulkanRP->attachmentDescriptions.size());
+        std::vector<VkClearValue> clearValues(vulkanRP->attachmentNodes.size());
         clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
         clearValues[1].depthStencil = {1.0f, 0};
 
@@ -223,7 +223,7 @@ void VulkanRenderPassExecutor::Prepare()
         {
             auto vulkanRP = static_cast<VulkanRenderPass *>(renderPass.get());
 
-            for (auto attachment : vulkanRP->attachmentDescriptions)
+            for (auto attachment : vulkanRP->attachmentNodes)
             {
                 if (attachment->swapChain)
                 {

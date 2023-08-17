@@ -9,7 +9,6 @@
 PixelEngine::PixelEngine()
 {
     rhiRuntime = RuntimeEntry(RuntimeEntry::Type::VULKAN).Create();
-    drawableBinder = new DrawableBinder;
 }
 
 PixelEngine::~PixelEngine()
@@ -51,11 +50,6 @@ IntrusivePtr<Pipeline> PixelEngine::RegisterPipeline(std::string renderPassName,
 IntrusivePtr<RHIRuntime> PixelEngine::GetRHIRuntime()
 {
     return rhiRuntime;
-}
-
-IntrusivePtr<DrawableBinder> PixelEngine::GetDrawableBinder()
-{
-    return drawableBinder;
 }
 
 IntrusivePtr<Renderer> PixelEngine::CreateRenderer()

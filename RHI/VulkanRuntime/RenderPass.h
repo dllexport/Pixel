@@ -19,6 +19,11 @@ public:
         std::vector<VkAttachmentReference> colorRefs;
         std::vector<VkAttachmentReference> depthRef;
         std::vector<VkAttachmentReference> inputRefs;
+
+        uint64_t TotalSize()
+        {
+            return uint64_t(colorRefs.size() + depthRef.size() + inputRefs.size());
+        }
     };
 
     VkRenderPass GetRenderPass()
@@ -47,7 +52,7 @@ private:
     VkRenderPass renderPass;
     std::vector<IntrusivePtr<GraphicRenderPassGraphNode>> graphicRenderPasses;
 
-    std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentDescriptions;
+    std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentNodes;
     // subpass name -> references
     std::unordered_map<std::string, SubPassAttachmentReferences> referencesMap;
 

@@ -38,6 +38,7 @@ private:
     std::vector<VkDescriptorSetLayout> desriptorSetLayouts;
     VkPipelineLayout pipelineLayout;
 
+    std::vector<VkPushConstantRange> pushConstantRanges;
     std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindingsInSets;
     std::unordered_map<std::string, VkDescriptorSetLayoutBinding> vertexShaderDescriptorBindingMap;
     std::unordered_map<std::string, VkDescriptorSetLayoutBinding> fragmentShaderDescriptorBindingMap;

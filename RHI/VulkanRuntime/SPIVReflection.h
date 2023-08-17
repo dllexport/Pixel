@@ -5,7 +5,7 @@
 #include <spirv_reflect.h>
 
 #include <Core/IntrusivePtr.h>
- 
+
 class SPIVReflection : public IntrusiveCounter<SPIVReflection>
 {
 public:
@@ -22,13 +22,14 @@ public:
 
     struct DescriptorLayoutState
     {
+        VkPushConstantRange pushConstantRange;
         // each set has it's array of VkDescriptorSetLayoutBinding
         std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetLayoutSets;
     };
     DescriptorLayoutState ParseDescriptorLayoutState();
 
     static VkDescriptorType TranslateReflectDescriptorType(SpvReflectDescriptorType type);
-    static VkShaderStageFlagBits TranslateShaderStage(SpvExecutionModel type);
+    static VkFlags TranslateShaderStage(SpvExecutionModel type);
 
 private:
     SpvReflectShaderModule module = {};

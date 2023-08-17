@@ -33,6 +33,11 @@ void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> refle
             auto layoutInSet = descriptorState.descriptorSetLayoutSets[i];
             std::copy(layoutInSet.begin(), layoutInSet.end(), std::back_inserter(bindingsInSets[i]));
         }
+
+        if (descriptorState.pushConstantRange.size != 0)
+        {
+            pushConstantRanges.push_back(descriptorState.pushConstantRange);
+        }
     }
 
     for (auto bindingsInSet : bindingsInSets)
@@ -56,6 +61,8 @@ void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> refle
     pPipelineLayoutCreateInfo.pNext = nullptr;
     pPipelineLayoutCreateInfo.setLayoutCount = desriptorSetLayouts.size();
     pPipelineLayoutCreateInfo.pSetLayouts = desriptorSetLayouts.data();
+    pPipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+    pPipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 
     auto result = vkCreatePipelineLayout(context->GetVkDevice(), &pPipelineLayoutCreateInfo, nullptr, &this->pipelineLayout);
 }

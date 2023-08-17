@@ -24,7 +24,6 @@ public:
     IntrusivePtr<Renderer> CreateRenderer();
 
     IntrusivePtr<RHIRuntime> GetRHIRuntime();
-    IntrusivePtr<DrawableBinder> GetDrawableBinder();
 
     void Frame();
 
@@ -40,7 +39,4 @@ private:
 
     friend class Renderer;
     std::vector<IntrusivePtr<Renderer>> renderers;
-
-    // manage uniform resource binding
-    IntrusivePtr<DrawableBinder> drawableBinder;
 };

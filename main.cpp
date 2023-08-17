@@ -37,17 +37,21 @@ int main()
 
     {
         auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/simple.json");
-        PipelineStates pipelineStates = {
+        PipelineStates colorPipelineStates = {
             .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
             .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
-            .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true},
-        };
+            .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
+
+        PipelineStates imguiPipelineStates = {
+            .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
+            .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
+            .depthStencilState = {.depthTestEnable = false, .depthWriteEnable = false}};
 
         IntrusivePtr<PixelEngine> engine = new PixelEngine;
-        auto drawableBinder = engine->GetDrawableBinder();
 
         auto renderPass = engine->RegisterRenderPass(graph);
-        auto pipeline = engine->RegisterPipeline("singlePass", "single", pipelineStates);
+        auto colorPipeline = engine->RegisterPipeline("singlePass", "single", colorPipelineStates);
+        auto imguiPipeline = engine->RegisterPipeline("singlePass", "imgui", imguiPipelineStates);
 
         auto renderer = engine->CreateRenderer();
 
@@ -72,12 +76,13 @@ int main()
 
         auto renderable = new Engine::Renderable();
 
-        auto rbs = engine->GetRHIRuntime()->CreateResourceBindingState(pipeline);
+        auto rbs = engine->GetRHIRuntime()->CreateResourceBindingState(colorPipeline);
         rbs->Bind(0, 0, uBuffer);
         rbs->BindVertexBuffer(vBuffer);
         rbs->BindIndexBuffer(iBuffer);
-        
-        renderer->RegisterUpdateCallback([&](Event event, uint64_t deltaTime) {
+
+        renderer->RegisterUpdateCallback([&](Event event, uint64_t deltaTime)
+                                         {
             if (event.type == Event::KEY_UP)
             {
                 if (event.keyCode == 17)
@@ -138,8 +143,7 @@ int main()
             uboVS.modelMatrix = glm::mat4(1.0f);
 
             memcpy(uBuffer->Map(), &uboVS, sizeof(uboVS));
-            uBuffer->Dirty();
-        });
+            uBuffer->Dirty(); });
         renderer->AddDrawState(rbs);
 
         engine->Frame();

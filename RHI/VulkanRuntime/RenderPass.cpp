@@ -2,6 +2,8 @@
 #include <RHI/VulkanRuntime/Pipeline.h>
 #include <RHI/VulkanRuntime/Texture.h>
 
+#include <iterator>
+
 VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : RenderPass(graph), context(context)
 {
 }
@@ -13,9 +15,10 @@ VulkanRenderPass::~VulkanRenderPass()
 
 void VulkanRenderPass::Build()
 {
-    std::vector<VkAttachmentDescription> attachments;
-
-    // TODO, aggregate subpasses
+    // todo: handle multisubpassed
+    std::vector<VkAttachmentDescription> attachmentsDescriptions;
+    std::vector<VkSubpassDescription> subPassDescriptions;
+    uint32_t attachmentCounter = 0;
     for (auto &[level, subPassNode] : this->graph->graphNodesMap)
     {
         if (subPassNode->type != GraphNode::GRAPHIC_PASS)
@@ -23,13 +26,11 @@ void VulkanRenderPass::Build()
             continue;
         }
 
+        std::vector<IntrusivePtr<AttachmentGraphNode>> subPassAttachmentNodes;
+
         graphicRenderPasses.push_back(static_cast<GraphicRenderPassGraphNode *>(subPassNode.get()));
 
-        struct
-        {
-            std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentNodes;
-            std::vector<IntrusivePtr<DescriptorGraphNode>> descriptorNodes;
-        } typedNodes;
+        auto &referencesGroup = this->referencesMap[subPassNode->name];
 
         for (auto n : subPassNode->inputs)
         {
@@ -37,92 +38,60 @@ void VulkanRenderPass::Build()
             {
                 auto agn = static_cast<AttachmentGraphNode *>(n.get());
                 agn->input = true;
-                typedNodes.attachmentNodes.push_back(agn);
-            }
-            else if (n->type == GraphNode::BUFFER)
-            {
-                typedNodes.descriptorNodes.push_back(static_cast<DescriptorGraphNode *>(n.get()));
+                subPassAttachmentNodes.push_back(agn);
+                referencesGroup.depthRef.push_back({attachmentCounter++, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
             }
         }
-
-        for (auto n : subPassNode->outputs)
-        {
-            // depth field is filled during parsing
-            if (n->type == GraphNode::ATTACHMENT)
-            {
-                auto agn = static_cast<AttachmentGraphNode *>(n.get());
-                // color and depth is mutual exclusive
-                agn->color = true && !agn->depthStencil;
-                typedNodes.attachmentNodes.push_back(agn);
-            }
-            else if (n->type == GraphNode::BUFFER)
-            {
-                typedNodes.descriptorNodes.push_back(static_cast<DescriptorGraphNode *>(n.get()));
-            }
-        }
-
-        attachments.resize(typedNodes.attachmentNodes.size());
-        attachmentDescriptions.resize(attachments.size());
-        std::unordered_map<std::string, uint32_t> attachmentMap;
-
-        // find all attachment
-        for (int i = 0; i < typedNodes.attachmentNodes.size(); i++)
-        {
-            auto attachmentNode = typedNodes.attachmentNodes[i];
-
-            if (attachmentNode->depthStencil)
-            {
-                attachments[i].format = GeneralFormatToVkFormat(attachmentNode->format);
-                attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
-                attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            }
-            else
-            {
-                attachments[i].format = GeneralFormatToVkFormat(attachmentNode->format);
-                attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
-                attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                attachments[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[i].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            }
-
-            attachmentDescriptions[i] = attachmentNode;
-
-            attachmentMap[attachmentNode->name] = i;
-        }
-
-        auto &referencesGroup = this->referencesMap[subPassNode->name];
 
         for (auto output : subPassNode->outputs)
         {
             if (output->type == GraphNode::ATTACHMENT)
             {
-                auto attachentInput = static_cast<AttachmentGraphNode *>(output.get());
-                if (attachentInput->depthStencil)
+                auto agn = static_cast<AttachmentGraphNode *>(output.get());
+                if (agn->depthStencil)
                 {
-                    referencesGroup.depthRef.push_back({attachmentMap[output->name], VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+                    referencesGroup.depthRef.push_back({attachmentCounter++, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
                 }
                 else
                 {
-                    referencesGroup.colorRefs.push_back({attachmentMap[output->name], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+                    referencesGroup.colorRefs.push_back({attachmentCounter++, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
                 }
+                subPassAttachmentNodes.push_back(agn);
             }
         }
 
-        for (auto input : subPassNode->inputs)
+        // find all attachment
+        for (int i = 0; i < subPassAttachmentNodes.size(); i++)
         {
-            if (input->type == GraphNode::ATTACHMENT)
+            auto attachmentNode = subPassAttachmentNodes[i];
+            VkAttachmentDescription desc = {};
+
+            if (attachmentNode->depthStencil)
             {
-                referencesGroup.inputRefs.push_back({attachmentMap[input->name], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+                desc.format = GeneralFormatToVkFormat(attachmentNode->format);
+                desc.samples = VK_SAMPLE_COUNT_1_BIT;
+                desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             }
+            else
+            {
+                desc.format = GeneralFormatToVkFormat(attachmentNode->format);
+                desc.samples = VK_SAMPLE_COUNT_1_BIT;
+                desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            }
+            attachmentsDescriptions.push_back(desc);
         }
+
+        attachmentNodes.insert(std::end(attachmentNodes), subPassAttachmentNodes.begin(), subPassAttachmentNodes.end());
 
         VkSubpassDescription subPassDescription = {};
         subPassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -131,20 +100,19 @@ void VulkanRenderPass::Build()
         subPassDescription.colorAttachmentCount = (uint32_t)referencesGroup.colorRefs.size();
         subPassDescription.pColorAttachments = referencesGroup.colorRefs.data();
         subPassDescription.pDepthStencilAttachment = referencesGroup.depthRef.data();
-
-        VkRenderPassCreateInfo renderPassInfoCI = {};
-        renderPassInfoCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfoCI.attachmentCount = (uint32_t)(attachments.size());
-        renderPassInfoCI.pAttachments = attachments.data();
-        renderPassInfoCI.subpassCount = 1;
-        renderPassInfoCI.pSubpasses = &subPassDescription;
-        renderPassInfoCI.dependencyCount = 0;
-        renderPassInfoCI.pDependencies = nullptr;
-
-        auto device = this->context->GetVkDevice();
-        auto result = vkCreateRenderPass(device, &renderPassInfoCI, nullptr, &this->renderPass);
-        break;
+        subPassDescriptions.push_back(subPassDescription);
     }
+
+    VkRenderPassCreateInfo renderPassInfoCI = {};
+    renderPassInfoCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfoCI.attachmentCount = (uint32_t)(attachmentsDescriptions.size());
+    renderPassInfoCI.pAttachments = attachmentsDescriptions.data();
+    renderPassInfoCI.subpassCount = subPassDescriptions.size();
+    renderPassInfoCI.pSubpasses = subPassDescriptions.data();
+    renderPassInfoCI.dependencyCount = 0;
+    renderPassInfoCI.pDependencies = nullptr;
+
+    auto result = vkCreateRenderPass(context->GetVkDevice(), &renderPassInfoCI, nullptr, &this->renderPass);
 }
 
 void VulkanRenderPass::RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline)

@@ -215,6 +215,7 @@ SPIVReflection::InputVertexState SPIVReflection::ParseInputVertexState()
 
 SPIVReflection::DescriptorLayoutState SPIVReflection::ParseDescriptorLayoutState()
 {
+    SPIVReflection::DescriptorLayoutState dls = {};
 
     uint32_t setCount;
     spvReflectEnumerateDescriptorSets(&module, &setCount, NULL);
@@ -242,7 +243,22 @@ SPIVReflection::DescriptorLayoutState SPIVReflection::ParseDescriptorLayoutState
         descriptorLayoutState.push_back(bindings);
     }
 
-    return {descriptorLayoutState};
+    uint32_t pushConstantCount;
+    spvReflectEnumeratePushConstants(&module, &pushConstantCount, NULL);
+    assert(pushConstantCount <= 1);
+    std::vector<SpvReflectBlockVariable *> reflectDescriptorPushConstant(pushConstantCount);
+    result = spvReflectEnumeratePushConstants(&module, &pushConstantCount, reflectDescriptorPushConstant.data());
+    if (!reflectDescriptorPushConstant.empty())
+    {
+        VkPushConstantRange range = {
+            .stageFlags = TranslateShaderStage(module.spirv_execution_model),
+            .offset = reflectDescriptorPushConstant[0]->offset,
+            .size = reflectDescriptorPushConstant[0]->size};
+        dls.pushConstantRange = range;
+    }
+
+    dls.descriptorSetLayoutSets = std::move(descriptorLayoutState);
+    return dls;
 }
 
 VkDescriptorType SPIVReflection::TranslateReflectDescriptorType(SpvReflectDescriptorType type)
@@ -278,7 +294,7 @@ VkDescriptorType SPIVReflection::TranslateReflectDescriptorType(SpvReflectDescri
     return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
-VkShaderStageFlagBits SPIVReflection::TranslateShaderStage(SpvExecutionModel type)
+VkFlags SPIVReflection::TranslateShaderStage(SpvExecutionModel type)
 {
     switch (type)
     {

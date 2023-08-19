@@ -33,6 +33,9 @@
         {
             "name": "imgui",
             "type": "graphic",
+            "subpass_dependency": [
+                "single"
+            ],
             "shaders": {
                 "vertex": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.vert.spv",
                 "fragment": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.frag.spv"
@@ -45,9 +48,8 @@
             ],
             "outputs": [
                 {
-                    "name": "imguiColor",
-                    "type": "attachment",
-                    "format": "FORMAT_B8G8R8A8_SRGB",
+                    "name": "color",
+                    "type": "reference",
                     "swapChain": true
                 }
             ]

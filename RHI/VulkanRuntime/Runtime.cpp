@@ -10,6 +10,7 @@
 #include <RHI/VulkanRuntime/Pipeline.h>
 #include <RHI/VulkanRuntime/Buffer.h>
 #include <RHI/VulkanRuntime/Texture.h>
+#include <RHI/VulkanRuntime/Sampler.h>
 #include <RHI/VulkanRuntime/TextureView.h>
 #include <RHI/VulkanRuntime/ResourceBindingState.h>
 #include <RHI/VulkanRuntime/SwapChain.h>
@@ -65,10 +66,11 @@ IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderPass> re
 
 IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
-    if (memoryProperties & MemoryProperty::MEMORY_PROPERTY_HOST_LOCAL_BIT) {
+    if (memoryProperties & MemoryProperty::MEMORY_PROPERTY_HOST_LOCAL_BIT)
+    {
         return new ConstantBuffer(size);
     }
-    
+
     auto buffer = new VulkanBuffer(context);
     buffer->Allocate(type, memoryProperties, size);
     return buffer;
@@ -79,6 +81,13 @@ IntrusivePtr<Texture> VulkanRuntime::CreateTexture(TextureFormat format, Texture
     auto texture = new VulkanTexture(context);
     texture->Allocate(format, type, memoryProperties, extent, config);
     return texture;
+}
+
+IntrusivePtr<Sampler> VulkanRuntime::CreateSampler(IntrusivePtr<Texture> texture, Sampler::Configuration config)
+{
+    auto sampler = new VulkanSampler(context, texture);
+    sampler->Allocate(config);
+    return sampler;
 }
 
 IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor()

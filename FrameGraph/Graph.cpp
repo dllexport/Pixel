@@ -221,7 +221,7 @@ Graph::TopoResult &Graph::Topo()
         return topoResultCache.value();
     }
 
-    std::unordered_map<uint16_t, std::vector<GraphNode *>> result;
+    std::map<uint16_t, std::vector<GraphNode *>> result;
 
     std::queue<GraphNode *> topoQueue;
     for (auto &[k, v] : graphNodesMap)
@@ -291,21 +291,28 @@ Graph::TopoResult &Graph::Topo()
         }
     }
 
-    std::unordered_map<uint16_t, std::vector<GraphNode *>> passOnly;
+    std::map<uint16_t, std::vector<GraphNode *>> passOnly;
+    uint16_t levelPassOnly = 0;
     for (auto &[k, v] : result)
     {
+        bool insertAny = false;
         for (auto &n : v)
         {
             if (n->type == GraphNode::Type::GRAPHIC_PASS || n->type == GraphNode::Type::COMPUTE_PASS)
             {
-                passOnly[k].push_back(n);
+                passOnly[levelPassOnly].push_back(n);
+                insertAny = true;
             }
         }
+        if (insertAny)
+            levelPassOnly++;
     }
 
     topoResultCache = TopoResult{
         .levels = result,
-        .levelsRenderPassOnly = passOnly};
+        .levelsRenderPassOnly = passOnly,
+        .maxLevel = uint16_t(level - 1),
+        .maxLevelRenderPassOnly = uint16_t(levelPassOnly - 1)};
 
     return topoResultCache.value();
 }

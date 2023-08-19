@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <RHI/ConstantBuffer.h>
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/ContextBuilder.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
@@ -64,6 +65,10 @@ IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderPass> re
 
 IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
+    if (memoryProperties & MemoryProperty::MEMORY_PROPERTY_HOST_LOCAL_BIT) {
+        return new ConstantBuffer(size);
+    }
+    
     auto buffer = new VulkanBuffer(context);
     buffer->Allocate(type, memoryProperties, size);
     return buffer;

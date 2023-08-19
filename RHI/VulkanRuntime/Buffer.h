@@ -12,9 +12,14 @@ public:
 
     virtual void *Map() override;
 
-    VkBuffer& GetBuffer()
+    VkBuffer &GetBuffer()
     {
         return buffer;
+    }
+
+    virtual size_t Size() override
+    {
+        return bufferAllocationInfo.size;
     }
 
 private:

@@ -15,6 +15,11 @@ endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 include_directories(3rd/VulkanMemoryAllocator/include)
+include_directories(3rd/imgui)
+
+file(GLOB IMGUI_SOURCE_FILES
+    "3rd/imgui/*.cpp"
+)
 
 find_package(Boost COMPONENTS date_time filesystem system)
 
@@ -48,7 +53,7 @@ file(GLOB PIXEL_SOURCE_FILES
     "RHI/VulkanRuntime/*.*"
 )
 
-add_executable(Pixel main.cpp ${PIXEL_SOURCE_FILES})
+add_executable(Pixel main.cpp ${PIXEL_SOURCE_FILES} ${IMGUI_SOURCE_FILES})
    
 target_include_directories(Pixel PRIVATE
     ${VULKAN_SDK}/include

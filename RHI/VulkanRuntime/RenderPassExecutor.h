@@ -16,6 +16,7 @@ public:
 
     virtual void Prepare() override;
     virtual bool Execute() override;
+    // rebuild command buffer
     virtual void Update() override;
     virtual void WaitIdle() override;
     virtual void Reset() override;

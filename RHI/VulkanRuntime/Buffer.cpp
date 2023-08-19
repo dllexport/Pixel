@@ -7,7 +7,10 @@ VulkanBuffer::VulkanBuffer(IntrusivePtr<Context> context) : context(context)
 VulkanBuffer::~VulkanBuffer()
 {
     auto allocator = context->GetVmaAllocator();
-    vmaUnmapMemory(allocator, bufferAllocation);
+    if (this->mappedData)
+    {
+        vmaUnmapMemory(allocator, bufferAllocation);
+    }
     vmaDestroyBuffer(allocator, buffer, bufferAllocation);
 }
 
@@ -30,7 +33,8 @@ bool VulkanBuffer::Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProp
 
 void *VulkanBuffer::Map()
 {
-    if (mappedData) {
+    if (mappedData)
+    {
         return mappedData;
     }
 

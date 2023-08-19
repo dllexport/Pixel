@@ -6,6 +6,8 @@
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/SwapChain.h>
 
+#include <RHI/ConstantBuffer.h>
+
 #include <FrameGraph/Graph.h>
 
 #include <spdlog/spdlog.h>
@@ -90,17 +92,17 @@ void VulkanRenderPassExecutor::prepareCommandPool()
 void VulkanRenderPassExecutor::prepareCommandBuffer()
 {
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
+    auto scTextureSize = vulkanSC->GetTextures().size();
 
     for (auto &renderPass : renderPasses)
     {
-        std::vector<VkCommandBuffer> cbs(1);
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         commandBufferAllocateInfo.commandPool = graphicCommandPool;
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        commandBufferAllocateInfo.commandBufferCount = 1;
-        auto result = vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, cbs.data());
-        graphicCommandBuffers[renderPass].push_back(cbs[0]);
+        commandBufferAllocateInfo.commandBufferCount = uint32_t(scTextureSize);
+        graphicCommandBuffers[renderPass].resize(scTextureSize);
+        auto result = vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, graphicCommandBuffers[renderPass].data());
     }
 }
 
@@ -141,12 +143,6 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        VkRect2D scissor = {};
-        scissor.extent = vulkanSC->extent;
-        scissor.offset.x = 0;
-        scissor.offset.y = 0;
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
         std::unordered_map<std::string, IntrusivePtr<VulkanPipeline>> subPassName2Pipeline;
 
         for (auto [pipeline, resourceBinding] : resourceBindingStates)
@@ -158,15 +154,10 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
         auto graph = renderPass->GetGraph();
         auto topoResult = graph->Topo();
         bool firstPass = true;
-        for (auto &[k, rps] : topoResult.levelsRenderPassOnly)
+        for (auto &[level, rps] : topoResult.levelsRenderPassOnly)
         {
             for (auto &node : rps)
             {
-                if (!firstPass)
-                {
-                    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-                    firstPass = false;
-                }
                 auto vulkanPL = subPassName2Pipeline[node->name];
                 if (!resourceBindingStates.count(vulkanPL))
                 {
@@ -174,12 +165,18 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                 }
                 auto vrbs = resourceBindingStates[vulkanPL];
                 // for each drawable of pipeline
-                for (auto vrb : vrbs)
+                for (int rpIndex = 0; rpIndex < vrbs.size(); rpIndex++)
                 {
+                    auto &vrb = vrbs[rpIndex];
                     auto vulkanRBS = static_cast<VulkanResourceBindingState *>(vrb.get());
                     auto &pipelineLayout = vulkanPL->GetPipelineLayout();
                     auto &descriptorSets = vulkanRBS->GetDescriptorSets();
-                    auto &constantBuffer = vulkanRBS->GetConstantBuffer();
+                    auto constantBuffer = static_cast<ConstantBuffer *>(vulkanRBS->GetConstantBuffer().get());
+
+                    if (!vulkanRBS->GetVertexBuffer() || !vulkanRBS->GetIndexBuffer())
+                    {
+                        continue;
+                    }
 
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPL->GetPipeline());
 
@@ -187,7 +184,7 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                     {
                         vkCmdPushConstants(commandBuffer, pipelineLayout->GetLayout(),
                                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                           0, constantBuffer->size(), constantBuffer->data());
+                                           0, constantBuffer->Size(), constantBuffer->Map());
                     }
 
                     if (!descriptorSets.empty())
@@ -197,9 +194,29 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
 
                     const VkDeviceSize offsets[1] = {0};
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanRBS->GetVertexBuffer()->GetBuffer(), offsets);
-                    vkCmdBindIndexBuffer(commandBuffer, vulkanRBS->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindIndexBuffer(commandBuffer, vulkanRBS->GetIndexBuffer()->GetBuffer(), 0, vulkanRBS->GetIndexType());
 
-                    vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 0, 1);
+                    // default scissor
+                    VkRect2D scissor = {};
+                    scissor.extent = vulkanSC->extent;
+                    scissor.offset.x = 0;
+                    scissor.offset.y = 0;
+
+                    for (auto drawOP : vulkanRBS->GetDrawOps())
+                    {
+                        if (drawOP.scissorExtent.x && drawOP.scissorExtent.y)
+                        {
+                            scissor.offset = {drawOP.scissorOffset.x, drawOP.scissorOffset.y};
+                            scissor.extent = {drawOP.scissorExtent.x, drawOP.scissorExtent.y};
+                        }
+                        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+                        vkCmdDrawIndexed(commandBuffer, drawOP.indexCount, drawOP.instanceCount, drawOP.firstIndex, drawOP.vertexOffset, drawOP.firstInstance);
+                    }
+
+                    if (level < topoResult.maxLevelRenderPassOnly && rpIndex < vrbs.size())
+                    {
+                        vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+                    }
                 }
             }
         }
@@ -235,6 +252,7 @@ void VulkanRenderPassExecutor::Prepare()
     auto swapChainImageSize = vulkanSC->GetTextures().size();
 
     prepareFences();
+    prepareCommandBuffer();
 
     attachmentImages.resize(swapChainImageSize);
 
@@ -326,8 +344,6 @@ void VulkanRenderPassExecutor::Prepare()
             frameBuffers[vulkanRP].push_back(frameBuffer);
         }
 
-        prepareCommandBuffer();
-
         buildCommandBuffer(i);
     }
 }
@@ -388,10 +404,27 @@ bool VulkanRenderPassExecutor::Execute()
     }
 
     currentFrame = (currentFrame + 1) % vulkanSC->GetTextures().size();
+    return true;
 }
 
 void VulkanRenderPassExecutor::Update()
 {
+    auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
+
+    // aggregate command buffers
+    for (auto [_, cbs] : graphicCommandBuffers)
+    {
+        for (auto &cb : cbs)
+        {
+            vkResetCommandBuffer(cb, 0);
+        }
+    }
+
+    // rebuild the command buffer at lastFrame index
+    for (int i = 0; i < vulkanSC->GetTextures().size(); i++)
+    {
+        buildCommandBuffer(i);
+    }
 }
 
 void VulkanRenderPassExecutor::WaitIdle()

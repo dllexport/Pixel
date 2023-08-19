@@ -78,6 +78,7 @@ void PixelEngine::Frame()
             }
             renderer->Update();
             renderer->Frame();
+            renderer->PostFrame();
             it++;
         }
     }

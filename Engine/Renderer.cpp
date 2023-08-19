@@ -48,15 +48,30 @@ void Renderer::Build()
     renderPassExecutor->Prepare();
 }
 
-void Renderer::Update()
+void Renderer::PostFrame()
 {
+    // TODO: opt resource update with frame overlap
+    renderPassExecutor->WaitIdle();
+
+    window->Update();
+
+    // update call back may involved resource change
     Event event = {};
     event.type = Event::FRAME;
-    for (auto &cb : updateCallbacks)
+    for (auto &[drawState, cb] : updateCallbacks)
     {
-        cb(event, deltaTime);
+        UpdateInputs updateInputs = {
+            .event = event,
+            .deltaTime = deltaTime,
+            .rbs = drawState};
+        cb(updateInputs);
     }
-    window->Update();
+
+    renderPassExecutor->Update();
+}
+
+void Renderer::Update()
+{
 }
 
 bool Renderer::Stopped()
@@ -79,9 +94,13 @@ void Renderer::Frame()
 void Renderer::EventCallback(Event event)
 {
     spdlog::info("{}", event.type);
-    for (auto &cb : updateCallbacks)
+    for (auto &[drawState, cb] : updateCallbacks)
     {
-        cb(event, deltaTime);
+        UpdateInputs updateInputs = {
+            .event = event,
+            .deltaTime = deltaTime,
+            .rbs = drawState};
+        cb(updateInputs);
     }
 
     // switch (event.type)

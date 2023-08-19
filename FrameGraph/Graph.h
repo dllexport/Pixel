@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <queue>
 #include <optional>
 
@@ -15,8 +15,10 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
 
     struct TopoResult
     {
-        std::unordered_map<uint16_t, std::vector<GraphNode *>> levels;
-        std::unordered_map<uint16_t, std::vector<GraphNode *>> levelsRenderPassOnly;
+        std::map<uint16_t, std::vector<GraphNode *>> levels;
+        std::map<uint16_t, std::vector<GraphNode *>> levelsRenderPassOnly;
+        uint16_t maxLevel;
+        uint16_t maxLevelRenderPassOnly;
 
         uint16_t LevelOf(GraphNode * node) {
             

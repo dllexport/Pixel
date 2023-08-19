@@ -15,7 +15,7 @@ VulkanResourceBindingState::~VulkanResourceBindingState()
     vkDestroyDescriptorPool(context->GetVkDevice(), descriptorPool, nullptr);
 }
 
-void VulkanResourceBindingState::Bind(std::shared_ptr<std::vector<char>> constantBuffer)
+void VulkanResourceBindingState::Bind(IntrusivePtr<ResourceHandle> resource)
 {
     this->constantBuffer = constantBuffer;
 }

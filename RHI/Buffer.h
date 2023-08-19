@@ -42,6 +42,7 @@ public:
     using TypeBits = uint32_t;
 
     virtual void *Map() = 0;
+    virtual size_t Size() = 0;
 
     void Dirty()
     {

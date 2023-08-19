@@ -119,7 +119,7 @@ void SwapChainBuilder::BuildSwapChain()
     sci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     sci.surface = surface->GetSurface();
 
-    sci.minImageCount = capabilities.minImageCount;
+    sci.minImageCount = std::max(capabilities.minImageCount, (uint32_t)2);
     sci.imageFormat = newSwapChain->format.format;
     sci.imageColorSpace = newSwapChain->format.colorSpace;
     sci.imageExtent = this->windowExtent;
@@ -217,6 +217,6 @@ IntrusivePtr<VulkanSwapChain> SwapChainBuilder::Build()
     BuildSwapChain();
     ResolveDepthStencilFormat();
     newSwapChain->surface = this->surface;
-    newSwapChain->InitSync(capabilities.minImageCount);
+    newSwapChain->InitSync(std::max(capabilities.minImageCount, (uint32_t)2));
     return this->newSwapChain;
 }

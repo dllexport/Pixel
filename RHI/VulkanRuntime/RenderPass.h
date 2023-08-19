@@ -54,6 +54,7 @@ private:
 
     std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentNodes;
     // subpass name -> references
+    // storing input color VkAttachmentReference for each subpass
     std::unordered_map<std::string, SubPassAttachmentReferences> referencesMap;
 
     std::unordered_map<std::string, IntrusivePtr<VulkanPipeline>> pipelineMap;

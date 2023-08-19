@@ -80,6 +80,7 @@ int main()
         rbs->Bind(0, 0, uBuffer);
         rbs->BindVertexBuffer(vBuffer);
         rbs->BindIndexBuffer(iBuffer);
+        renderer->AddDrawState(rbs);
 
         renderer->RegisterUpdateCallback([&](Event event, uint64_t deltaTime)
                                          {
@@ -144,7 +145,7 @@ int main()
 
             memcpy(uBuffer->Map(), &uboVS, sizeof(uboVS));
             uBuffer->Dirty(); });
-        renderer->AddDrawState(rbs);
+
 
         engine->Frame();
 

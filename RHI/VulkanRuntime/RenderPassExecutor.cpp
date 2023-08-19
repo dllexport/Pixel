@@ -157,20 +157,43 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
 
         auto graph = renderPass->GetGraph();
         auto topoResult = graph->Topo();
+        bool firstPass = true;
         for (auto &[k, rps] : topoResult.levelsRenderPassOnly)
         {
             for (auto &node : rps)
             {
+                if (!firstPass)
+                {
+                    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+                    firstPass = false;
+                }
                 auto vulkanPL = subPassName2Pipeline[node->name];
+                if (!resourceBindingStates.count(vulkanPL))
+                {
+                    continue;
+                }
                 auto vrbs = resourceBindingStates[vulkanPL];
+                // for each drawable of pipeline
                 for (auto vrb : vrbs)
                 {
                     auto vulkanRBS = static_cast<VulkanResourceBindingState *>(vrb.get());
-                    auto pipelineLayout = vulkanPL->GetPipelineLayout();
-                    auto descriptorSets = vulkanRBS->GetDescriptorSets();
+                    auto &pipelineLayout = vulkanPL->GetPipelineLayout();
+                    auto &descriptorSets = vulkanRBS->GetDescriptorSets();
+                    auto &constantBuffer = vulkanRBS->GetConstantBuffer();
 
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPL->GetPipeline());
-                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->GetLayout(), 0, descriptorSets.size(), descriptorSets.data(), 0, nullptr);
+
+                    if (constantBuffer)
+                    {
+                        vkCmdPushConstants(commandBuffer, pipelineLayout->GetLayout(),
+                                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                           0, constantBuffer->size(), constantBuffer->data());
+                    }
+
+                    if (!descriptorSets.empty())
+                    {
+                        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->GetLayout(), 0, descriptorSets.size(), descriptorSets.data(), 0, nullptr);
+                    }
 
                     const VkDeviceSize offsets[1] = {0};
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanRBS->GetVertexBuffer()->GetBuffer(), offsets);

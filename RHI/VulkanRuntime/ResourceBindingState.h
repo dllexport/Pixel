@@ -13,6 +13,7 @@ class VulkanResourceBindingState : public ResourceBindingState
 public:
     VulkanResourceBindingState(IntrusivePtr<Context> context, IntrusivePtr<Pipeline> pipeline);
     virtual ~VulkanResourceBindingState() override;
+    virtual void Bind(std::shared_ptr<std::vector<char>> constantBuffer) override;
     virtual void Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource) override;
     virtual void Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources) override;
 
@@ -31,6 +32,11 @@ public:
         return descriptorSets;
     }
 
+    std::shared_ptr<std::vector<char>> &GetConstantBuffer()
+    {
+        return constantBuffer;
+    }
+
 private:
     IntrusivePtr<Context> context;
 
@@ -46,4 +52,6 @@ private:
     void AllocateDescriptorSets();
     void WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
     void WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
+
+    std::shared_ptr<std::vector<char>> constantBuffer = {};
 };

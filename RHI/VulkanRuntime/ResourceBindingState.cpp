@@ -15,6 +15,11 @@ VulkanResourceBindingState::~VulkanResourceBindingState()
     vkDestroyDescriptorPool(context->GetVkDevice(), descriptorPool, nullptr);
 }
 
+void VulkanResourceBindingState::Bind(std::shared_ptr<std::vector<char>> constantBuffer)
+{
+    this->constantBuffer = constantBuffer;
+}
+
 void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
 {
     resourceHandlesMap[set][binding].insert(resource);

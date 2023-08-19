@@ -17,6 +17,10 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
     {
         std::unordered_map<uint16_t, std::vector<GraphNode *>> levels;
         std::unordered_map<uint16_t, std::vector<GraphNode *>> levelsRenderPassOnly;
+
+        uint16_t LevelOf(GraphNode * node) {
+            
+        }
     };
     TopoResult &Topo();
 

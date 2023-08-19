@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_set>
 
 #include <Core/IntrusivePtr.h>
@@ -19,6 +20,7 @@ public:
         return pipeline;
     }
 
+    virtual void Bind(std::shared_ptr<std::vector<char>> constantBuffer) = 0;
     virtual void Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource) = 0;
     virtual void Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources) = 0;
 

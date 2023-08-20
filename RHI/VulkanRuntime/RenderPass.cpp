@@ -222,7 +222,6 @@ void VulkanRenderPass::Build()
         }
     }
 
-
     VkRenderPassCreateInfo renderPassInfoCI = {};
     renderPassInfoCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfoCI.attachmentCount = (uint32_t)(attachmentsDescriptions.size());

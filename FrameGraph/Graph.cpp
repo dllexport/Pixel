@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_set>
 
+#include <spdlog/spdlog.h>
+
 #include <Core/ReadFile.h>
 
 #include <FrameGraph/GraphNodeJson.h>
@@ -263,9 +265,8 @@ Graph::TopoResult &Graph::Topo()
     {
         for (auto &node : nodes)
         {
-            printf("%s\n", node->name.c_str());
+            spdlog::info("{}", node->name);
         }
-        printf("-------\n");
     }
 
     for (auto &[level, nodes] : result)

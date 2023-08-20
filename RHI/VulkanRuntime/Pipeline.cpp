@@ -169,15 +169,21 @@ std::vector<VkPipelineColorBlendAttachmentState> TranslateColorBlendAttachmentSt
         }
     }
 
-    assert(result.size() == subPassColorAttachmentSize);
-
     for (auto state : states)
     {
         VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState = {};
-        pipelineColorBlendAttachmentState.colorWriteMask = state.colorWriteMask;
-        pipelineColorBlendAttachmentState.blendEnable = state.blendEnable;
+        pipelineColorBlendAttachmentState.blendEnable = (VkBool32)state.blendEnable;
+        pipelineColorBlendAttachmentState.srcColorBlendFactor = (VkBlendFactor)state.srcColorBlendFactor;
+        pipelineColorBlendAttachmentState.dstColorBlendFactor = (VkBlendFactor)state.dstColorBlendFactor;
+        pipelineColorBlendAttachmentState.colorBlendOp = (VkBlendOp)state.colorBlendOp;
+        pipelineColorBlendAttachmentState.srcAlphaBlendFactor = (VkBlendFactor)state.srcAlphaBlendFactor;
+        pipelineColorBlendAttachmentState.dstAlphaBlendFactor = (VkBlendFactor)state.dstAlphaBlendFactor;
+        pipelineColorBlendAttachmentState.alphaBlendOp = (VkBlendOp)state.alphaBlendOp;
+        pipelineColorBlendAttachmentState.colorWriteMask = (VkColorComponentFlags)state.colorWriteMask;
         result.push_back(pipelineColorBlendAttachmentState);
     }
+
+    assert(result.size() == subPassColorAttachmentSize);
 
     return result;
 }

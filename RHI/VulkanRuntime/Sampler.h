@@ -4,6 +4,8 @@
 
 #include <RHI/Sampler.h>
 #include <RHI/VulkanRuntime/Context.h>
+#include <RHI/VulkanRuntime/Texture.h>
+#include <RHI/VulkanRuntime/TextureView.h>
 
 class VulkanSampler : public Sampler
 {
@@ -12,8 +14,24 @@ public:
     virtual ~VulkanSampler() override;
     virtual bool Allocate(Configuration config) override;
 
+    VkSampler GetSampler()
+    {
+        return sampler;
+    }
+
+    IntrusivePtr<VulkanTexture> GetTexture()
+    {
+        return boost::static_pointer_cast<VulkanTexture>(this->texture);
+    }
+
+    void StoreTextureView(IntrusivePtr<VulkanTextureView> textureView)
+    {
+        this->textureView = textureView;
+    }
+
 private:
     friend class VulkanRuntime;
     IntrusivePtr<Context> context;
+    IntrusivePtr<VulkanTextureView> textureView;
     VkSampler sampler;
 };

@@ -17,6 +17,8 @@ inline TextureFormat VkFormatToGeneralFormat(VkFormat format)
         return TextureFormat::FORMAT_R16G16B16A16_SFLOAT;
     case VK_FORMAT_B8G8R8A8_UNORM:
         return TextureFormat::FORMAT_B8G8R8A8_UNORM;
+    case VK_FORMAT_R8G8B8A8_UNORM:
+        return TextureFormat::FORMAT_R8G8B8A8_UNORM;
     default:
         return TextureFormat::FORMAT_NONE;
     }
@@ -32,6 +34,8 @@ inline VkFormat GeneralFormatToVkFormat(TextureFormat format)
         return VK_FORMAT_D16_UNORM;
     case TextureFormat::FORMAT_B8G8R8A8_UNORM:
         return VK_FORMAT_B8G8R8A8_UNORM;
+    case TextureFormat::FORMAT_R8G8B8A8_UNORM:
+        return VK_FORMAT_R8G8B8A8_UNORM;
     case TextureFormat::FORMAT_R16G16B16A16_SFLOAT:
         return VK_FORMAT_R16G16B16A16_SFLOAT;
     default:
@@ -47,16 +51,13 @@ public:
     VulkanTexture(IntrusivePtr<Context> context);
     virtual ~VulkanTexture() override;
     virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config) override;
-
-    void Assign(VkImage image, VkFormat format)
-    {
-        this->image = image;
-        this->format = format;
-    }
-
-    VkImage GetImage();
+    void Assign(VkImage image, VkFormat format);
 
     IntrusivePtr<VulkanTextureView> CreateTextureView(VkImageViewCreateInfo ci);
+    void *Map() override;
+
+    VkImage GetImage();
+    VkFormat GetFormat();
 
 private:
     friend class VulkanRuntime;
@@ -65,6 +66,7 @@ private:
     VmaAllocation imageAllocation = VK_NULL_HANDLE;
     VmaAllocationInfo imageAllocationInfo;
     VkFormat format;
+    void *mappedData = nullptr;
 
     bool IsExternal()
     {

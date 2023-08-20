@@ -7,7 +7,7 @@
 class Sampler : public ResourceHandle
 {
 public:
-    Sampler(IntrusivePtr<Texture> texture) : texture(texture) {}
+    Sampler(IntrusivePtr<Texture> texture) : ResourceHandle(ResourceHandleType::SAMPLER), texture(texture) {}
     virtual ~Sampler() = default;
 
     enum Filter

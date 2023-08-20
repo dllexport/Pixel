@@ -7,6 +7,7 @@
 
 #include <vk_mem_alloc.h>
 
+class RHIRuntime;
 class Context : public IntrusiveCounter<Context>
 {
 public:
@@ -46,6 +47,9 @@ public:
 
 private:
     friend class ContextBuilder;
+    friend class VulkanRuntime;
+    
+    RHIRuntime* runtime;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;

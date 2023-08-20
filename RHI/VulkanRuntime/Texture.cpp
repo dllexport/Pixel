@@ -7,6 +7,11 @@ VulkanTexture::VulkanTexture(IntrusivePtr<Context> context) : context(context)
 
 VulkanTexture::~VulkanTexture()
 {
+    if (mappedData)
+    {
+        vmaUnmapMemory(context->GetVmaAllocator(), imageAllocation);
+    }
+
     if (!IsExternal())
     {
         vmaDestroyImage(context->GetVmaAllocator(), image, imageAllocation);
@@ -51,4 +56,29 @@ IntrusivePtr<VulkanTextureView> VulkanTexture::CreateTextureView(VkImageViewCrea
     IntrusivePtr<VulkanTextureView> view = new VulkanTextureView(context);
     view->Allocate(this, ci);
     return view;
+}
+
+void *VulkanTexture::Map()
+{
+    if (!mappedData)
+    {
+        auto result = vmaMapMemory(context->GetVmaAllocator(), imageAllocation, &mappedData);
+        if (result != VK_SUCCESS)
+        {
+            return nullptr;
+        }
+    }
+
+    return (char *)mappedData;
+}
+
+void VulkanTexture::Assign(VkImage image, VkFormat format)
+{
+    this->image = image;
+    this->format = format;
+}
+
+VkFormat VulkanTexture::GetFormat()
+{
+    return format;
 }

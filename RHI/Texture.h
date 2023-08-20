@@ -18,7 +18,7 @@ public:
         IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT = 0x00000020,
         IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT = 0x00000040,
         IMAGE_USAGE_INPUT_ATTACHMENT_BIT = 0x00000080,
-        _IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT = 0x00000200,
+        IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT = 0x00000200,
         IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR = 0x00000100,
         IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT = 0x00080000,
         IMAGE_USAGE_INVOCATION_MASK_BIT_HUAWEI = 0x00040000,
@@ -45,10 +45,10 @@ public:
 
     struct Configuration
     {
-        uint32_t mipLevels;
-        uint32_t arrayLayers;
-        uint32_t samples;
-        Tiling tiling;
+        uint32_t mipLevels = 1;
+        uint32_t arrayLayers = 1;
+        uint32_t samples = 1;
+        Tiling tiling = IMAGE_TILING_OPTIMAL;
 
         // VkSharingMode sharingMode;
         // uint32_t queueFamilyIndexCount;
@@ -56,9 +56,12 @@ public:
         // VkImageLayout initialLayout;
     };
 
-    Texture() = default;
+    Texture() : ResourceHandle(ResourceHandleType::TEXTURE) {}
     virtual ~Texture() = default;
+    
+    // available only if texture memory is allocated on host
+    virtual void *Map() = 0;
 
 protected:
-    virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config) = 0;
+    virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config = Configuration()) = 0;
 };

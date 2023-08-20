@@ -50,7 +50,7 @@ public:
     }
 
 protected:
-    Buffer() = default;
+    Buffer() : ResourceHandle(ResourceHandleType::BUFFER) {}
     virtual ~Buffer() = default;
 
     virtual bool Allocate(TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;

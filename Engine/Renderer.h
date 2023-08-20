@@ -42,10 +42,12 @@ public:
         updateCallbacks[state] = fn;
     }
 
-    struct UpdateInputs {
+    struct UpdateInputs
+    {
         Event event;
         uint64_t deltaTime;
         IntrusivePtr<ResourceBindingState> rbs;
+        IOState &ioState;
     };
 
 private:

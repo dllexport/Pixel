@@ -55,7 +55,7 @@ VkFormat TranslateReflectFormat(SpvReflectFormat format)
     case SPV_REFLECT_FORMAT_R32G32B32A32_SINT:
         return VK_FORMAT_R32G32B32A32_SINT;
     case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
-        return VK_FORMAT_R32G32B32A32_SFLOAT;
+        return VK_FORMAT_R8G8B8A8_UNORM;
     case SPV_REFLECT_FORMAT_R64_UINT:
         return VK_FORMAT_R64_UINT;
     case SPV_REFLECT_FORMAT_R64_SINT:
@@ -136,7 +136,7 @@ uint32_t TranslateReflectFormatToSize(SpvReflectFormat format)
     case SPV_REFLECT_FORMAT_R32G32B32A32_SINT:
         return 16;
     case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
-        return 16;
+        return 4;
     case SPV_REFLECT_FORMAT_R64_UINT:
         return 8;
     case SPV_REFLECT_FORMAT_R64_SINT:

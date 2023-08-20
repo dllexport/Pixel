@@ -7,6 +7,7 @@
 
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/Buffer.h>
+#include <RHI/VulkanRuntime/Texture.h>
 
 class VulkanResourceBindingState : public ResourceBindingState
 {
@@ -52,6 +53,21 @@ public:
         }
     }
 
+    struct UpdateRequest
+    {
+        IntrusivePtr<VulkanTexture> texutre;
+        VkImageAspectFlags aspectMask;
+        VkImageLayout oldLayout;
+        VkImageLayout newLayout;
+        VkPipelineStageFlags srcStageMask;
+        VkPipelineStageFlags dstStageMask;
+    };
+
+    std::vector<UpdateRequest> &GetUpdateRequests()
+    {
+        return updateRequests;
+    }
+
 private:
     IntrusivePtr<Context> context;
 
@@ -68,5 +84,10 @@ private:
     void WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
     void WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
 
+    void WriteDescriptorBuffer(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
+    void WriteDescriptorSampler(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
+
     IntrusivePtr<ResourceHandle> constantBuffer;
+
+    std::vector<UpdateRequest> updateRequests;
 };

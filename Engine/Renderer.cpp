@@ -30,10 +30,26 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
         return;
     }
     renderPassExecutor->WaitIdle();
+
+    Event event = {};
+    event.type = Event::RESIZE;
+    event.resizeEvent.width = width;
+    event.resizeEvent.height = height;
+    for (auto &[drawState, cb] : updateCallbacks)
+    {
+        UpdateInputs updateInputs = {
+            .event = event,
+            .deltaTime = deltaTime,
+            .rbs = drawState,
+            .ioState = this->ioState};
+        cb(updateInputs);
+    }
+
     swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, width, height);
     renderPassExecutor->Reset();
     renderPassExecutor->SetSwapChain(swapChain);
     renderPassExecutor->Prepare();
+
 }
 
 void Renderer::Build()
@@ -50,6 +66,10 @@ void Renderer::Build()
 
 void Renderer::PostFrame()
 {
+}
+
+void Renderer::Update()
+{
     // TODO: opt resource update with frame overlap
     renderPassExecutor->WaitIdle();
 
@@ -58,20 +78,19 @@ void Renderer::PostFrame()
     // update call back may involved resource change
     Event event = {};
     event.type = Event::FRAME;
+    this->ioState.Update(event);
+
     for (auto &[drawState, cb] : updateCallbacks)
     {
         UpdateInputs updateInputs = {
             .event = event,
             .deltaTime = deltaTime,
-            .rbs = drawState};
+            .rbs = drawState,
+            .ioState = this->ioState};
         cb(updateInputs);
     }
 
     renderPassExecutor->Update();
-}
-
-void Renderer::Update()
-{
 }
 
 bool Renderer::Stopped()
@@ -93,48 +112,14 @@ void Renderer::Frame()
 
 void Renderer::EventCallback(Event event)
 {
-    spdlog::info("{}", event.type);
+    this->ioState.Update(event);
     for (auto &[drawState, cb] : updateCallbacks)
     {
         UpdateInputs updateInputs = {
             .event = event,
             .deltaTime = deltaTime,
-            .rbs = drawState};
+            .rbs = drawState,
+            .ioState = this->ioState};
         cb(updateInputs);
     }
-
-    // switch (event.type)
-    // {
-    // case Event::KEY_DOWN:
-    // {
-    //     break;
-    // }
-    // case Event::KEY_UP:
-    // {
-    //     break;
-    // }
-    // case Event::KEY_REPEAT:
-    // {
-    //     break;
-    // }
-    // case Event::MOUSE_DOWN:
-    // {
-    //     break;
-    // }
-    // case Event::MOUSE_UP:
-    // {
-    //     break;
-    // }
-    // case Event::WINDOW_FOCUS_IN:
-    // {
-    //     break;
-    // }
-    // case Event::WINDOW_FOCUS_OUT:
-    // {
-    //     break;
-    // }
-
-    // default:
-    //     break;
-    // }
 }

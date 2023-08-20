@@ -13,6 +13,7 @@ public:
     ~VulkanTextureView();
 
     bool Allocate(IntrusivePtr<VulkanTexture> parent, VkImageViewCreateInfo ci);
+    
     VkImageView GetImageView()
     {
         return imageView;

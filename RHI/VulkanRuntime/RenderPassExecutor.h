@@ -33,12 +33,13 @@ private:
     std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkCommandBuffer>> graphicCommandBuffers;
     std::vector<VkFence> queueCompleteFences;
 
-    std::vector<VkCommandBuffer> updateCommandBuffers;
 
     void prepareFences();
     void prepareCommandPool();
     void prepareCommandBuffer();
     void buildCommandBuffer(uint32_t imageIndex);
+
+    void updateDrawStates();
 
     uint64_t currentFrame = 0;
 };

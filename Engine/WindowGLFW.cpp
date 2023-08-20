@@ -29,10 +29,10 @@ struct WindowCallbacks
         if (action == GLFW_REPEAT)
             type = Event::KEY_REPEAT;
 
-        spdlog::info("action {}, code {}, mods {}", action, scancode, mods);
+        spdlog::info("action {}, code {}, mods {}", action, key, mods);
         Event event = {};
         event.type = type;
-        event.keyCode = scancode;
+        event.keyEvent.keyCode = key;
         pWnd->eventCallback(event);
     }
 
@@ -43,12 +43,15 @@ struct WindowCallbacks
         double y;
         glfwGetCursorPos(window, &x, &y);
 
+        spdlog::info("{} {}", x, y);
+
         auto type = (action == GLFW_PRESS) ? Event::MOUSE_DOWN : Event::MOUSE_UP;
 
         Event event = {};
         event.type = type;
-        event.mouseX = x;
-        event.mouseY = y;
+        event.keyEvent.keyCode = button;
+        event.keyEvent.mouseX = x;
+        event.keyEvent.mouseY = y;
         pWnd->eventCallback(event);
     }
 
@@ -57,8 +60,8 @@ struct WindowCallbacks
         auto pWnd = (Window *)glfwGetWindowUserPointer(window);
         Event event = {};
         event.type = Event::MOUSE_MOVE;
-        event.mouseX = xpos;
-        event.mouseY = ypos;
+        event.keyEvent.mouseX = xpos;
+        event.keyEvent.mouseY = ypos;
         pWnd->eventCallback(event);
     }
 

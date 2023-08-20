@@ -74,6 +74,23 @@ struct WindowCallbacks
         event.type = type;
         pWnd->eventCallback(event);
     }
+
+    static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+    {
+        auto pWnd = (Window *)glfwGetWindowUserPointer(window);
+
+        double x;
+        double y;
+        glfwGetCursorPos(window, &x, &y);
+
+        Event event = {};
+        event.type = Event::MOUSE_SCROLL;
+        event.scrollEvent.offsetX = (float)xoffset;
+        event.scrollEvent.offsetY = (float)yoffset;
+        event.scrollEvent.mouseX = x;
+        event.scrollEvent.mouseY = y;
+        pWnd->eventCallback(event);
+    }
 };
 
 void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
@@ -86,6 +103,7 @@ void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
     glfwSetMouseButtonCallback(glfwWindow, WindowCallbacks::window_mouse_callback);
     glfwSetCursorPosCallback(glfwWindow, WindowCallbacks::cursor_position_callback);
     glfwSetCursorEnterCallback(glfwWindow, WindowCallbacks::cursor_enter_callback);
+    glfwSetScrollCallback(glfwWindow, WindowCallbacks::scroll_callback);
 
     return glfwWindow;
 }

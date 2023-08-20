@@ -114,6 +114,11 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
             event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_RIGHT ? io.MouseDown[2] = 0 : 0;
         }
 
+        if (event.type == Event::MOUSE_SCROLL) {
+            io.MouseWheel = event.scrollEvent.offsetY;
+            io.MouseWheelH = event.scrollEvent.offsetX;
+        }
+
         if (event.type & Event::KEY_DOWN || event.type & Event::KEY_REPEAT || event.type & Event::KEY_UP)
         {
             auto keyDown = event.type & Event::KEY_DOWN || event.type & Event::KEY_REPEAT;

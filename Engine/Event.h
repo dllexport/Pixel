@@ -195,10 +195,11 @@ public:
         MOUSE_DOWN = 1 << 4,
         MOUSE_UP = 1 << 5,
         MOUSE_MOVE = 1 << 6,
-        WINDOW_FOCUS_IN = 1 << 7,
-        WINDOW_FOCUS_OUT = 1 << 8,
-        FRAME = 1 << 9,
-        RESIZE = 1 << 10
+        MOUSE_SCROLL = 1 << 7,
+        WINDOW_FOCUS_IN = 1 << 8,
+        WINDOW_FOCUS_OUT = 1 << 9,
+        FRAME = 1 << 10,
+        RESIZE = 1 << 11
     };
 
     using TypeBits = uint16_t;
@@ -216,6 +217,14 @@ public:
             uint16_t width;
             uint16_t height;
         } resizeEvent;
+
+        struct
+        {
+            float offsetX;
+            float offsetY;
+            uint16_t mouseX;
+            uint16_t mouseY;
+        } scrollEvent;
     };
 };
 

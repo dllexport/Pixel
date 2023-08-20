@@ -19,6 +19,8 @@ inline TextureFormat VkFormatToGeneralFormat(VkFormat format)
         return TextureFormat::FORMAT_B8G8R8A8_UNORM;
     case VK_FORMAT_R8G8B8A8_UNORM:
         return TextureFormat::FORMAT_R8G8B8A8_UNORM;
+    case VK_FORMAT_R32G32_SFLOAT:
+        return TextureFormat::FORMAT_R32G32_SFLOAT;
     default:
         return TextureFormat::FORMAT_NONE;
     }
@@ -38,6 +40,29 @@ inline VkFormat GeneralFormatToVkFormat(TextureFormat format)
         return VK_FORMAT_R8G8B8A8_UNORM;
     case TextureFormat::FORMAT_R16G16B16A16_SFLOAT:
         return VK_FORMAT_R16G16B16A16_SFLOAT;
+    case TextureFormat::FORMAT_R32G32_SFLOAT:
+        return VK_FORMAT_R32G32_SFLOAT;
+    default:
+        return VK_FORMAT_UNDEFINED;
+    }
+}
+
+inline uint32_t GeneralFormatToSize(TextureFormat format)
+{
+    switch (format)
+    {
+    case TextureFormat::FORMAT_B8G8R8A8_SRGB:
+        return 4;
+    case TextureFormat::FORMAT_D16_UNORM:
+        return 2;
+    case TextureFormat::FORMAT_B8G8R8A8_UNORM:
+        return 4;
+    case TextureFormat::FORMAT_R8G8B8A8_UNORM:
+        return 4;
+    case TextureFormat::FORMAT_R16G16B16A16_SFLOAT:
+        return 8;
+    case TextureFormat::FORMAT_R32G32_SFLOAT:
+        return 8;
     default:
         return VK_FORMAT_UNDEFINED;
     }

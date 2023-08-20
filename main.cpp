@@ -114,7 +114,8 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
             event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_RIGHT ? io.MouseDown[2] = 0 : 0;
         }
 
-        if (event.type == Event::MOUSE_SCROLL) {
+        if (event.type == Event::MOUSE_SCROLL)
+        {
             io.MouseWheel = event.scrollEvent.offsetY;
             io.MouseWheelH = event.scrollEvent.offsetX;
         }
@@ -279,7 +280,14 @@ int main()
             .alphaBlendOp = BLEND_OP_ADD,
             .colorWriteMask = COLOR_COMPONENT_ALL_BIT};
 
+        std::vector<VertexInputState> vertexInputStates {
+            {0, 0, TextureFormat::FORMAT_R32G32_SFLOAT},
+            {0, 1, TextureFormat::FORMAT_R32G32_SFLOAT},
+            {0, 2, TextureFormat::FORMAT_R8G8B8A8_UNORM},
+        };
+
         PipelineStates imguiPipelineStates = {
+            .vertexInputStates = vertexInputStates,
             .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
             .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
             .colorBlendAttachmentStates = {imguiColorBlendState},
@@ -382,8 +390,8 @@ int main()
             uBuffer->Dirty(); });
 
         auto imguiDrawable = rhiRuntime->CreateResourceBindingState(imguiPipeline);
-        renderer->AddDrawState(imguiDrawable);
         auto imguiUpdateCallback = createImguiDrawable(rhiRuntime, imguiDrawable);
+        renderer->AddDrawState(imguiDrawable);
         renderer->RegisterUpdateCallback(imguiDrawable, imguiUpdateCallback);
 
         engine->Frame();

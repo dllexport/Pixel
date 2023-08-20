@@ -1,5 +1,6 @@
 #include <RHI/VulkanRuntime/Pipeline.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
+#include <RHI/VulkanRuntime/Texture.h>
 
 #include <Core/ReadFile.h>
 
@@ -335,10 +336,36 @@ void VulkanPipeline::Build()
     pipelineCI.subpass = subPassIndex;
 
     IntrusivePtr<SPIVReflection> vertexReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_VERTEX_BIT]);
-    auto inputState = vertexReflection->ParseInputVertexState();
-    auto inputVertexStateCI = TranslateInputVertexState(inputState);
-    pipelineCI.pVertexInputState = &inputVertexStateCI;
 
+    SPIVReflection::InputVertexState inputVertexState;
+
+    if (pipelineStates.vertexInputStates.empty())
+    {
+        inputVertexState = vertexReflection->ParseInputVertexState();
+    }
+    else
+    {
+        // reuse InputVertexState
+        uint32_t offset = 0;
+        for (auto vis : pipelineStates.vertexInputStates)
+        {
+            VkVertexInputAttributeDescription viad = {
+                .location = vis.location,
+                .binding = vis.binding,
+                .format = GeneralFormatToVkFormat(vis.format),
+                .offset = offset};
+            offset += GeneralFormatToSize(vis.format);
+            inputVertexState.inputAttributeDescriptions.push_back(viad);
+        }
+        VkVertexInputBindingDescription ibd = {
+            .binding = 0,
+            .stride = offset,
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
+        inputVertexState.inputBindingDescriptions.push_back(ibd);
+    }
+
+    auto inputVertexStateCI = TranslateInputVertexState(inputVertexState);
+    pipelineCI.pVertexInputState = &inputVertexStateCI;
     IntrusivePtr<SPIVReflection> fragmentReflection = new SPIVReflection(shaderCode[VK_SHADER_STAGE_FRAGMENT_BIT]);
     this->pipelineLayout = new VulkanPipelineLayout(context);
     this->pipelineLayout->Build({vertexReflection, fragmentReflection});

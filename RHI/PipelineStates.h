@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+#include <RHI/TextureFormat.h>
+
 struct InputAssembleState
 {
     enum class Type
@@ -120,9 +122,20 @@ struct ShaderState
     }
 };
 
+struct VertexInputState
+{
+    uint32_t binding;
+    uint32_t location;
+    TextureFormat format;
+};
+
 // aggregate states
 struct PipelineStates
 {
+    // reflection always parse vec*(x) as 32bit * x size if vertexInputStates is empty
+    // support 1 vertex buffer binding only
+    // parse by index order
+    std::vector<VertexInputState> vertexInputStates;
     InputAssembleState inputAssembleState;
     RasterizationState rasterizationState;
     std::vector<ColorBlendAttachmentState> colorBlendAttachmentStates;

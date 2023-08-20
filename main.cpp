@@ -80,7 +80,8 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
     pimguiCBuffer->translate = glm::vec2(-1.0f);
     imguiDrawable->Bind(imguiCBuffer);
 
-    return [&](Renderer::UpdateInputs inputs)
+    // capture IntrusivePtr
+    return [rhiRuntime, imguiCBuffer, imguiDrawable](Renderer::UpdateInputs inputs)
     {
         auto &event = inputs.event;
         ImGuiIO &io = ImGui::GetIO();
@@ -88,6 +89,7 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
         if (event.type == Event::RESIZE)
         {
             io.DisplaySize = ImVec2((float)event.resizeEvent.width, (float)event.resizeEvent.height);
+            auto pimguiCBuffer = (ImguiPushConstant *)imguiCBuffer->Map();
             pimguiCBuffer->scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
             pimguiCBuffer->translate = glm::vec2(-1.0f);
         }

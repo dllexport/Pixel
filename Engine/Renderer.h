@@ -39,7 +39,7 @@ public:
 
     bool Stopped();
 
-    void RegisterUpdateCallback(std::function<void(UpdateInput)> callback) {
+    void RegisterUpdateCallback(UpdateCallback callback) {
         updateCallbacks.push_back(callback);
     }
 
@@ -56,7 +56,7 @@ private:
 
     uint64_t deltaTime = 0;
 
-    std::vector<std::function<void(UpdateInput)>> updateCallbacks;
+    std::vector<UpdateCallback> updateCallbacks;
 
     void InitWindow();
     void ReCreateSwapChain(uint32_t width, uint32_t height);

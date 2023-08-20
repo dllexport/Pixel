@@ -15,7 +15,7 @@ void Camera::Sync()
     memcpy(uniformBuffer->Map(), &ubo, sizeof(ubo));
 }
 
-void Camera::EventCallback(UpdateInput inputs)
+bool Camera::EventCallback(UpdateInput inputs)
 {
     auto event = inputs.event;
     auto deltaTime = inputs.deltaTime;
@@ -36,6 +36,7 @@ void Camera::EventCallback(UpdateInput inputs)
         if (event.keyEvent.keyCode == EVENT_KEY_D)
             this->keys.right = false;
     }
+
     auto anyKeyDown = event.type & Event::KEY_DOWN || event.type & Event::KEY_REPEAT;
     if (anyKeyDown)
     {
@@ -78,4 +79,6 @@ void Camera::EventCallback(UpdateInput inputs)
 
     this->update(deltaTime / 100.f);
     this->Sync();
+
+    return false;
 }

@@ -78,21 +78,14 @@ public:
         return indexBuffer;
     }
 
-    void RegisterUpdateCallback(std::function<void(UpdateInput)> callback)
+    void RegisterUpdateCallback(UpdateCallback callback)
     {
         updateCallbacks.push_back(callback);
     }
 
-    void Update(const UpdateInput& input)
-    {
-        for (auto& cb : updateCallbacks) {
-            cb(input);
-        }
-    }
-
 protected:
     friend class std::hash<ResourceBindingState>;
-    friend class DrawableBinder;
+    friend class Renderer;
     IntrusivePtr<Pipeline> pipeline;
     IntrusivePtr<Buffer> vertexBuffer;
     IntrusivePtr<Buffer> indexBuffer;
@@ -101,7 +94,7 @@ protected:
     // define how renderer will draw the buffer
     std::vector<DrawOP> drawOps;
 
-    std::vector<std::function<void(UpdateInput)>> updateCallbacks;
+    std::vector<UpdateCallback> updateCallbacks;
 };
 
 template <>

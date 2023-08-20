@@ -97,14 +97,28 @@ void Renderer::EventCallback(Event event)
     UpdateInput updateInput = {.event = event,
                                .deltaTime = deltaTime,
                                .ioState = ioState};
+
+    std::vector<UpdateCallback> groupCallbacks;
     for (auto &drawState : drawStates)
     {
-        drawState->Update(updateInput);
+        groupCallbacks.insert(groupCallbacks.end(), drawState->updateCallbacks.begin(), drawState->updateCallbacks.end());
     }
 
+    for (auto cb : updateCallbacks)
+    {
+        groupCallbacks.insert(groupCallbacks.end(), updateCallbacks.begin(), updateCallbacks.end());
+    }
+
+    std::sort(groupCallbacks.begin(), groupCallbacks.end(), [](UpdateCallback &left, UpdateCallback &right)
+              { return left.priority > right.priority; });
+
     // update renderer scope callbacks, camera
-    for (auto cb : updateCallbacks) {
-        cb(updateInput);
+    for (auto cb : groupCallbacks)
+    {
+        if (cb.callback(updateInput))
+        {
+            break;
+        }
     }
 }
 
@@ -120,7 +134,7 @@ IntrusivePtr<Camera> Renderer::GetCamera()
         camera->ubo.modelMatrix = glm::mat4(1.0f);
         camera->Sync();
 
-        this->RegisterUpdateCallback(std::bind(&Camera::EventCallback, camera.get(), std::placeholders::_1));
+        this->RegisterUpdateCallback({GENERAL, std::bind(&Camera::EventCallback, camera.get(), std::placeholders::_1)});
     }
 
     return camera;

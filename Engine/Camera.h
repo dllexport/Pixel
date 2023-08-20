@@ -79,7 +79,7 @@ public:
 	void Allocate();
 	void Sync();
 
-	void EventCallback(UpdateInput inputs);
+	bool EventCallback(UpdateInput inputs);
 
 	enum CameraType
 	{

@@ -295,5 +295,16 @@ struct UpdateInput
 {
     Event event;
     uint64_t deltaTime;
-    IOState& ioState;
+    IOState &ioState;
+};
+
+using UpdateCallbackPriority = uint32_t;
+
+constexpr UpdateCallbackPriority GENERAL = 0;
+constexpr UpdateCallbackPriority UI = 1;
+
+struct UpdateCallback
+{
+    UpdateCallbackPriority priority = GENERAL;
+    std::function<bool(UpdateInput)> callback;
 };

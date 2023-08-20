@@ -195,7 +195,7 @@ void CreateImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Rende
 
         if ((vertexBufferSize == 0) || (indexBufferSize == 0))
         {
-            return;
+            return false;
         }
 
         if ((!vertexBuffer) || (vertexBuffer->Size() != imDrawData->TotalVtxCount))
@@ -251,9 +251,11 @@ void CreateImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Rende
                 vertexOffset += cmd_list->VtxBuffer.Size;
             }
         }
+
+        return io.WantCaptureMouse;
     };
 
-    imguiDrawable->RegisterUpdateCallback(imguiUpdateCallback);
+    imguiDrawable->RegisterUpdateCallback({UI, imguiUpdateCallback});
     renderer->AddDrawState(imguiDrawable);
 }
 

@@ -213,7 +213,8 @@ public:
             uint16_t mouseY;
         } keyEvent;
 
-        struct {
+        struct
+        {
             uint16_t width;
             uint16_t height;
         } resizeEvent;
@@ -287,4 +288,12 @@ public:
     char mouse[3];
     uint32_t mouseX;
     uint32_t mouseY;
+};
+
+class ResourceBindingState;
+struct UpdateInput
+{
+    Event event;
+    uint64_t deltaTime;
+    IOState& ioState;
 };

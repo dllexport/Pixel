@@ -1,10 +1,11 @@
 /*
-* Basic camera class
-*
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+ * Basic camera class
+ *
+ * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
+ *
+ * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ */
+#pragma once
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -12,9 +13,18 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-class Camera
+#include <Core/IntrusivePtr.h>
+#include <RHI/Buffer.h>
+#include <RHI/RHIRuntime.h>
+
+class Camera : public IntrusiveCounter<Camera>
 {
 private:
+	// uniform Buffer for camera matrix
+	IntrusivePtr<Buffer> uniformBuffer;
+	IntrusivePtr<RHIRuntime> rhiRuntime;
+	glm::vec2 mousePos = {};
+
 	float fov;
 	float znear, zfar;
 
@@ -28,7 +38,8 @@ private:
 		rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		glm::vec3 translation = position;
-		if (flipY) {
+		if (flipY)
+		{
 			translation.y *= -1.0f;
 		}
 		transM = glm::translate(glm::mat4(1.0f), translation);
@@ -45,9 +56,36 @@ private:
 		viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
 		updated = true;
+
+		ubo.viewMatrix = matrices.view;
 	};
+
 public:
-	enum CameraType { lookat, firstperson };
+	struct UBO
+	{
+		glm::mat4 projectionMatrix;
+		glm::mat4 modelMatrix;
+		glm::mat4 viewMatrix;
+	};
+
+	UBO ubo;
+
+	IntrusivePtr<Buffer> GetUBOBuffer()
+	{
+		return this->uniformBuffer;
+	}
+
+	Camera(IntrusivePtr<RHIRuntime> rhiRuntime);
+	void Allocate();
+	void Sync();
+
+	void EventCallback(UpdateInput inputs);
+
+	enum CameraType
+	{
+		lookat,
+		firstperson
+	};
 	CameraType type = CameraType::lookat;
 
 	glm::vec3 rotation = glm::vec3();
@@ -79,11 +117,13 @@ public:
 		return keys.left || keys.right || keys.up || keys.down;
 	}
 
-	float getNearClip() { 
+	float getNearClip()
+	{
 		return znear;
 	}
 
-	float getFarClip() {
+	float getFarClip()
+	{
 		return zfar;
 	}
 
@@ -93,15 +133,18 @@ public:
 		this->znear = znear;
 		this->zfar = zfar;
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-		if (flipY) {
+		if (flipY)
+		{
 			matrices.perspective[1][1] *= -1.0f;
 		}
+		ubo.projectionMatrix = matrices.perspective;
 	};
 
 	void updateAspectRatio(float aspect)
 	{
 		matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-		if (flipY) {
+		if (flipY)
+		{
 			matrices.perspective[1][1] *= -1.0f;
 		}
 	}
@@ -183,7 +226,7 @@ public:
 
 		if (type == CameraType::firstperson)
 		{
-			// Use the common console thumbstick layout		
+			// Use the common console thumbstick layout
 			// Left = view, right = move
 
 			const float deadZone = 0.0015f;
@@ -197,7 +240,7 @@ public:
 
 			float moveSpeed = deltaTime * movementSpeed * 2.0f;
 			float rotSpeed = deltaTime * rotationSpeed * 50.0f;
-			 
+
 			// Move
 			if (fabsf(axisLeft.y) > deadZone)
 			{
@@ -238,5 +281,4 @@ public:
 
 		return retVal;
 	}
-
 };

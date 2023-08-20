@@ -35,21 +35,12 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
     event.type = Event::RESIZE;
     event.resizeEvent.width = width;
     event.resizeEvent.height = height;
-    for (auto &[drawState, cb] : updateCallbacks)
-    {
-        UpdateInputs updateInputs = {
-            .event = event,
-            .deltaTime = deltaTime,
-            .rbs = drawState,
-            .ioState = this->ioState};
-        cb(updateInputs);
-    }
+    EventCallback(event);
 
     swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, width, height);
     renderPassExecutor->Reset();
     renderPassExecutor->SetSwapChain(swapChain);
     renderPassExecutor->Prepare();
-
 }
 
 void Renderer::Build()
@@ -78,17 +69,7 @@ void Renderer::Update()
     // update call back may involved resource change
     Event event = {};
     event.type = Event::FRAME;
-    this->ioState.Update(event);
-
-    for (auto &[drawState, cb] : updateCallbacks)
-    {
-        UpdateInputs updateInputs = {
-            .event = event,
-            .deltaTime = deltaTime,
-            .rbs = drawState,
-            .ioState = this->ioState};
-        cb(updateInputs);
-    }
+    EventCallback(event);
 
     renderPassExecutor->Update();
 }
@@ -113,13 +94,34 @@ void Renderer::Frame()
 void Renderer::EventCallback(Event event)
 {
     this->ioState.Update(event);
-    for (auto &[drawState, cb] : updateCallbacks)
+    UpdateInput updateInput = {.event = event,
+                               .deltaTime = deltaTime,
+                               .ioState = ioState};
+    for (auto &drawState : drawStates)
     {
-        UpdateInputs updateInputs = {
-            .event = event,
-            .deltaTime = deltaTime,
-            .rbs = drawState,
-            .ioState = this->ioState};
-        cb(updateInputs);
+        drawState->Update(updateInput);
     }
+
+    // update renderer scope callbacks, camera
+    for (auto cb : updateCallbacks) {
+        cb(updateInput);
+    }
+}
+
+IntrusivePtr<Camera> Renderer::GetCamera()
+{
+    if (!this->camera)
+    {
+        camera = new Camera(engine->GetRHIRuntime());
+        camera->type = Camera::CameraType::firstperson;
+        camera->setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+        camera->setRotation(glm::vec3(0.0f));
+        camera->setPerspective(60.0f, (float)1024 / (float)768, 0.1f, 256.0f);
+        camera->ubo.modelMatrix = glm::mat4(1.0f);
+        camera->Sync();
+
+        this->RegisterUpdateCallback(std::bind(&Camera::EventCallback, camera.get(), std::placeholders::_1));
+    }
+
+    return camera;
 }

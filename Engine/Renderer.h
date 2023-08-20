@@ -8,6 +8,7 @@
 
 #include <Engine/Window.h>
 #include <Engine/Event.h>
+#include <Engine/Camera.h>
 
 #include <RHI/RenderPass.h>
 #include <RHI/ResourceBindingState.h>
@@ -26,6 +27,8 @@ public:
         drawStates.push_back(state);
     }
 
+    IntrusivePtr<Camera> GetCamera();
+
     void Build();
 
     void PostFrame();
@@ -36,33 +39,24 @@ public:
 
     bool Stopped();
 
-    template <class FN>
-    void RegisterUpdateCallback(IntrusivePtr<ResourceBindingState> state, FN fn)
-    {
-        updateCallbacks[state] = fn;
+    void RegisterUpdateCallback(std::function<void(UpdateInput)> callback) {
+        updateCallbacks.push_back(callback);
     }
-
-    struct UpdateInputs
-    {
-        Event event;
-        uint64_t deltaTime;
-        IntrusivePtr<ResourceBindingState> rbs;
-        IOState &ioState;
-    };
 
 private:
     IntrusivePtr<PixelEngine> engine;
     IntrusivePtr<SwapChain> swapChain;
     IntrusivePtr<Window> window;
+    IntrusivePtr<Camera> camera;
     std::vector<IntrusivePtr<ResourceBindingState>> drawStates;
 
     IntrusivePtr<RenderPassExecutor> renderPassExecutor;
 
     IOState ioState;
 
-    std::unordered_map<IntrusivePtr<ResourceBindingState>, std::function<void(UpdateInputs)>> updateCallbacks;
-
     uint64_t deltaTime = 0;
+
+    std::vector<std::function<void(UpdateInput)>> updateCallbacks;
 
     void InitWindow();
     void ReCreateSwapChain(uint32_t width, uint32_t height);

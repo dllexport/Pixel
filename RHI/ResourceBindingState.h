@@ -10,6 +10,8 @@
 #include <RHI/ResourceHandle.h>
 #include <RHI/Buffer.h>
 
+#include <Engine/Event.h>
+
 // state descriping one pipeline
 class ResourceBindingState : public IntrusiveCounter<ResourceBindingState>
 {
@@ -76,6 +78,18 @@ public:
         return indexBuffer;
     }
 
+    void RegisterUpdateCallback(std::function<void(UpdateInput)> callback)
+    {
+        updateCallbacks.push_back(callback);
+    }
+
+    void Update(const UpdateInput& input)
+    {
+        for (auto& cb : updateCallbacks) {
+            cb(input);
+        }
+    }
+
 protected:
     friend class std::hash<ResourceBindingState>;
     friend class DrawableBinder;
@@ -86,6 +100,8 @@ protected:
 
     // define how renderer will draw the buffer
     std::vector<DrawOP> drawOps;
+
+    std::vector<std::function<void(UpdateInput)>> updateCallbacks;
 };
 
 template <>

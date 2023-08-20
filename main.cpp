@@ -27,13 +27,6 @@ struct Vertex
     float color[3];
 };
 
-struct
-{
-    glm::mat4 projectionMatrix;
-    glm::mat4 modelMatrix;
-    glm::mat4 viewMatrix;
-} uboVS;
-
 struct ImguiPushConstant
 {
     glm::vec2 scale;
@@ -51,8 +44,10 @@ std::vector<uint32_t> indexBuffer = {0, 1, 2};
 uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 
 // return update callback
-auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<ResourceBindingState> imguiDrawable)
+void CreateImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
 {
+    auto imguiDrawable = rhiRuntime->CreateResourceBindingState(pipeline);
+
     // IMGUI
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -81,7 +76,7 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
     imguiDrawable->Bind(imguiCBuffer);
 
     // capture IntrusivePtr
-    return [rhiRuntime, imguiCBuffer, imguiDrawable](Renderer::UpdateInputs inputs)
+    auto imguiUpdateCallback = [rhiRuntime, imguiCBuffer, imguiDrawable](UpdateInput inputs)
     {
         auto &event = inputs.event;
         ImGuiIO &io = ImGui::GetIO();
@@ -190,8 +185,8 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
         // draw ui to internal buffer
         ImGUINewFrame();
 
-        auto &vertexBuffer = inputs.rbs->GetVertexBuffer();
-        auto &indexBuffer = inputs.rbs->GetIndexBuffer();
+        auto &vertexBuffer = imguiDrawable->GetVertexBuffer();
+        auto &indexBuffer = imguiDrawable->GetIndexBuffer();
 
         ImDrawData *imDrawData = ImGui::GetDrawData();
 
@@ -206,13 +201,13 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
         if ((!vertexBuffer) || (vertexBuffer->Size() != imDrawData->TotalVtxCount))
         {
             auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
-            inputs.rbs->BindVertexBuffer(vBuffer);
+            imguiDrawable->BindVertexBuffer(vBuffer);
         }
 
         if ((!indexBuffer) || (indexBuffer->Size() != imDrawData->TotalIdxCount))
         {
             auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
-            inputs.rbs->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT16);
+            imguiDrawable->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT16);
         }
 
         // Upload data
@@ -257,147 +252,79 @@ auto createImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Resou
             }
         }
     };
+
+    imguiDrawable->RegisterUpdateCallback(imguiUpdateCallback);
+    renderer->AddDrawState(imguiDrawable);
+}
+
+void CreateTriangleDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
+{
+    auto camera = renderer->GetCamera();
+
+    auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
+    memcpy(vBuffer->Map(), vertexBuffer.data(), vertexBufferSize);
+    auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
+    memcpy(iBuffer->Map(), indexBuffer.data(), indexBufferSize);
+
+    auto rbs = rhiRuntime->CreateResourceBindingState(pipeline);
+    rbs->Bind(0, 0, camera->GetUBOBuffer());
+    rbs->BindVertexBuffer(vBuffer);
+    rbs->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT32);
+    rbs->BindDrawOp({ResourceBindingState::DrawOP{
+        .indexCount = 3,
+        .instanceCount = 1,
+        .firstIndex = 0,
+        .vertexOffset = 0,
+        .firstInstance = 1}});
+    renderer->AddDrawState(rbs);
 }
 
 int main()
 {
     spdlog::set_level(spdlog::level::debug);
 
-    {
-        auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/simple.json");
-        PipelineStates colorPipelineStates = {
-            .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
-            .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
-            .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
+    auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/simple.json");
+    PipelineStates colorPipelineStates = {
+        .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
+        .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
+        .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
 
-        ColorBlendAttachmentState imguiColorBlendState = {
-            .blendEnable = true,
-            .srcColorBlendFactor = BLEND_FACTOR_SRC_ALPHA,
-            .dstColorBlendFactor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-            .colorBlendOp = BLEND_OP_ADD,
-            .srcAlphaBlendFactor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-            .dstAlphaBlendFactor = BLEND_FACTOR_ZERO,
-            .alphaBlendOp = BLEND_OP_ADD,
-            .colorWriteMask = COLOR_COMPONENT_ALL_BIT};
+    ColorBlendAttachmentState imguiColorBlendState = {
+        .blendEnable = true,
+        .srcColorBlendFactor = BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = BLEND_OP_ADD,
+        .srcAlphaBlendFactor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .dstAlphaBlendFactor = BLEND_FACTOR_ZERO,
+        .alphaBlendOp = BLEND_OP_ADD,
+        .colorWriteMask = COLOR_COMPONENT_ALL_BIT};
 
-        std::vector<VertexInputState> vertexInputStates {
-            {0, 0, TextureFormat::FORMAT_R32G32_SFLOAT},
-            {0, 1, TextureFormat::FORMAT_R32G32_SFLOAT},
-            {0, 2, TextureFormat::FORMAT_R8G8B8A8_UNORM},
-        };
+    std::vector<VertexInputState> vertexInputStates{
+        {0, 0, TextureFormat::FORMAT_R32G32_SFLOAT},
+        {0, 1, TextureFormat::FORMAT_R32G32_SFLOAT},
+        {0, 2, TextureFormat::FORMAT_R8G8B8A8_UNORM},
+    };
 
-        PipelineStates imguiPipelineStates = {
-            .vertexInputStates = vertexInputStates,
-            .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
-            .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
-            .colorBlendAttachmentStates = {imguiColorBlendState},
-            .depthStencilState = {.depthTestEnable = false, .depthWriteEnable = false}};
+    PipelineStates imguiPipelineStates = {
+        .vertexInputStates = vertexInputStates,
+        .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
+        .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
+        .colorBlendAttachmentStates = {imguiColorBlendState},
+        .depthStencilState = {.depthTestEnable = false, .depthWriteEnable = false}};
 
-        IntrusivePtr<PixelEngine> engine = new PixelEngine;
+    IntrusivePtr<PixelEngine> engine = new PixelEngine;
 
-        auto renderPass = engine->RegisterRenderPass(graph);
-        auto colorPipeline = engine->RegisterPipeline("singlePass", "single", colorPipelineStates);
-        auto imguiPipeline = engine->RegisterPipeline("singlePass", "imgui", imguiPipelineStates);
+    auto renderPass = engine->RegisterRenderPass(graph);
+    auto colorPipeline = engine->RegisterPipeline("singlePass", "single", colorPipelineStates);
+    auto imguiPipeline = engine->RegisterPipeline("singlePass", "imgui", imguiPipelineStates);
 
-        auto rhiRuntime = engine->GetRHIRuntime();
+    auto rhiRuntime = engine->GetRHIRuntime();
+    auto renderer = engine->CreateRenderer();
 
-        auto renderer = engine->CreateRenderer();
+    CreateImguiDrawable(rhiRuntime, renderer, imguiPipeline);
+    CreateTriangleDrawable(rhiRuntime, renderer, colorPipeline);
 
-        auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
-        memcpy(vBuffer->Map(), vertexBuffer.data(), vertexBufferSize);
-        auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
-        memcpy(iBuffer->Map(), indexBuffer.data(), indexBufferSize);
-        auto uBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(uboVS));
-
-        Camera camera;
-        camera.type = Camera::CameraType::firstperson;
-        camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
-        camera.setRotation(glm::vec3(0.0f));
-        camera.setPerspective(60.0f, (float)1024 / (float)768, 1.0f, 256.0f);
-        glm::vec2 mousePos = {};
-
-        uboVS.projectionMatrix = camera.matrices.perspective;
-        uboVS.viewMatrix = camera.matrices.view;
-        uboVS.modelMatrix = glm::mat4(1.0f);
-        memcpy(uBuffer->Map(), &uboVS, sizeof(uboVS));
-
-        auto rbs = rhiRuntime->CreateResourceBindingState(colorPipeline);
-        rbs->Bind(0, 0, uBuffer);
-        rbs->BindVertexBuffer(vBuffer);
-        rbs->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT32);
-        rbs->BindDrawOp({ResourceBindingState::DrawOP{
-            .indexCount = 3,
-            .instanceCount = 1,
-            .firstIndex = 0,
-            .vertexOffset = 0,
-            .firstInstance = 1}});
-        renderer->AddDrawState(rbs);
-
-        renderer->RegisterUpdateCallback(rbs, [&](Renderer::UpdateInputs inputs)
-                                         {
-            auto event = inputs.event;
-            auto deltaTime = inputs.deltaTime;
-            if (event.type == Event::KEY_UP)
-            {
-                if (event.keyEvent.keyCode == EVENT_KEY_W)
-                    camera.keys.up = false;
-                if (event.keyEvent.keyCode == EVENT_KEY_A)
-                    camera.keys.left = false;
-                if (event.keyEvent.keyCode == EVENT_KEY_S)
-                    camera.keys.down = false;
-                if (event.keyEvent.keyCode == EVENT_KEY_D)
-                    camera.keys.right = false;
-            }
-            auto anyKeyDown = event.type & Event::KEY_DOWN || event.type & Event::KEY_REPEAT;
-            if (anyKeyDown)
-            {
-                if (event.keyEvent.keyCode == EVENT_KEY_W)
-                    camera.keys.up = true;
-                if (event.keyEvent.keyCode == EVENT_KEY_A)
-                    camera.keys.left = true;
-                if (event.keyEvent.keyCode == EVENT_KEY_S)
-                    camera.keys.down = true;
-                if (event.keyEvent.keyCode == EVENT_KEY_D)
-                    camera.keys.right = true;
-            }
-
-            if (event.type == Event::MOUSE_MOVE)
-            {
-                if (inputs.ioState.mouse[0]) {
-                    if (mousePos.x == 0 && mousePos.y == 0)
-                    {
-                        mousePos = {event.keyEvent.mouseX, event.keyEvent.mouseY};
-                    }
-                    int32_t dx = (int32_t)mousePos.x - event.keyEvent.mouseX;
-                    int32_t dy = (int32_t)mousePos.y - event.keyEvent.mouseY;
-
-                    camera.rotate(glm::vec3(dy * camera.rotationSpeed * deltaTime / 10.f, -dx * camera.rotationSpeed * deltaTime / 10.f, 0.0f));
-
-                    mousePos = {event.keyEvent.mouseX, event.keyEvent.mouseY};
-                }
-            }
-
-            if (event.type == Event::MOUSE_UP) {
-                mousePos = {};
-            }
-
-            camera.update(deltaTime / 100.f);
-            uboVS.projectionMatrix = camera.matrices.perspective;
-            uboVS.viewMatrix = camera.matrices.view;
-            uboVS.modelMatrix = glm::mat4(1.0f);
-
-            memcpy(uBuffer->Map(), &uboVS, sizeof(uboVS));
-            uBuffer->Dirty(); });
-
-        auto imguiDrawable = rhiRuntime->CreateResourceBindingState(imguiPipeline);
-        auto imguiUpdateCallback = createImguiDrawable(rhiRuntime, imguiDrawable);
-        renderer->AddDrawState(imguiDrawable);
-        renderer->RegisterUpdateCallback(imguiDrawable, imguiUpdateCallback);
-
-        engine->Frame();
-
-        int di = 0;
-    }
+    engine->Frame();
 
     return 0;
 }

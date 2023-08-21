@@ -32,6 +32,9 @@ add_subdirectory(3rd/SPIRV-Reflect)
 add_subdirectory(3rd/json_struct)
 add_subdirectory(3rd/spdlog)
 
+set(KTX_FEATURE_TESTS OFF)
+add_subdirectory(3rd/KTX-Software)
+
 if (WINDOW_USE_GLFW)
     add_definitions(-DWINDOW_USE_GLFW)
     set(GLFW_BUILD_EXAMPLES OFF)
@@ -47,6 +50,7 @@ endif()
 
 file(GLOB PIXEL_SOURCE_FILES
     "Core/*.*"
+    "IO/*.*"
     "Engine/*.*"
     "FrameGraph/*.*"
     "RHI/*.*"
@@ -65,6 +69,7 @@ target_link_libraries(Pixel PRIVATE
     json_struct
     spdlog
     spirv-reflect-static
+    ktx
 )
 
 if (WINDOW_USE_GLFW)

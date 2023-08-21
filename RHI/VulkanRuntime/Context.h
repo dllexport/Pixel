@@ -45,11 +45,16 @@ public:
         return queueContextMap[queueType];
     }
 
+    const RHIRuntime *GetRHIRuntime()
+    {
+        return runtime;
+    }
+
 private:
     friend class ContextBuilder;
     friend class VulkanRuntime;
-    
-    RHIRuntime* runtime;
+
+    RHIRuntime *runtime;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;

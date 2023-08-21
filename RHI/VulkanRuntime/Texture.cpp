@@ -46,6 +46,9 @@ bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropert
     auto result = vmaCreateImage(allocator, &imageCI, &allocInfo, &image, &imageAllocation, &imageAllocationInfo);
 
     this->format = imageCI.format;
+    this->extent.width = imageCI.extent.width;
+    this->extent.height = imageCI.extent.height;
+    this->extent.depth = imageCI.extent.depth;
 
     return result == VK_SUCCESS;
 }

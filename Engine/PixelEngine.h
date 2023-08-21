@@ -7,6 +7,7 @@
 
 #include <RHI/PipelineStates.h>
 #include <RHI/RuntimeEntry.h>
+#include <RHI/AuxiliaryExecutor.h>
 
 class RenderPass;
 class Pipeline;
@@ -30,6 +31,11 @@ public:
         return pipelineTemplates[renderPass];
     }
 
+    IntrusivePtr<AuxiliaryExecutor> GetAuxiliaryExecutor()
+    {
+        return auxExecutor;
+    }
+
 private:
     std::unordered_map<std::string, IntrusivePtr<RenderPass>> renderPassTemplates;
     std::unordered_map<IntrusivePtr<RenderPass>, std::unordered_map<std::string, IntrusivePtr<Pipeline>>> pipelineTemplates;
@@ -37,4 +43,6 @@ private:
 
     friend class Renderer;
     std::vector<IntrusivePtr<Renderer>> renderers;
+
+    IntrusivePtr<AuxiliaryExecutor> auxExecutor;
 };

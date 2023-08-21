@@ -58,10 +58,17 @@ public:
 
     Texture() : ResourceHandle(ResourceHandleType::TEXTURE) {}
     virtual ~Texture() = default;
-    
+
     // available only if texture memory is allocated on host
     virtual void *Map() = 0;
 
+    Extent GetExtent()
+    {
+        return extent;
+    }
+
 protected:
     virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config = Configuration()) = 0;
+
+    Extent extent;
 };

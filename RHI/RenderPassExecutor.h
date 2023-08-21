@@ -2,20 +2,28 @@
 
 #include <unordered_set>
 #include <Core/IntrusivePtr.h>
+#include <RHI/Executor.h>
 #include <RHI/RenderPass.h>
 #include <RHI/ResourceBindingState.h>
 #include <RHI/Texture.h>
 #include <RHI/Pipeline.h>
 #include <RHI/SwapChain.h>
 
-class RenderPassExecutor : public IntrusiveCounter<RenderPassExecutor>
+class RenderPassExecutor : public Executor
 {
 public:
-    RenderPassExecutor()
-    {
-    }
+    RenderPassExecutor() = default;
 
     virtual ~RenderPassExecutor() = default;
+
+    // allocate resource, attachments, framebuffer etc.
+    virtual void Prepare() = 0;
+
+    // update command buffer if any
+    virtual void Update() = 0;
+
+    // reset to init state when swapchain recreate
+    virtual void Reset() = 0;
 
     void AddBindingState(IntrusivePtr<ResourceBindingState> state)
     {
@@ -27,19 +35,6 @@ public:
     {
         this->swapChain = swapChain;
     }
-
-    // allocate resource, attachments, framebuffer etc.
-    virtual void Prepare() = 0;
-
-    // build command buffer
-    virtual bool Execute() = 0;
-
-    // update command buffer if any
-    virtual void Update() = 0;
-
-    virtual void WaitIdle() = 0;
-    
-    virtual void Reset() = 0;
 
 protected:
     std::unordered_set<IntrusivePtr<RenderPass>> renderPasses;

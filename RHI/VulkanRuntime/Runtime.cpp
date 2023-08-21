@@ -15,6 +15,7 @@
 #include <RHI/VulkanRuntime/ResourceBindingState.h>
 #include <RHI/VulkanRuntime/SwapChain.h>
 #include <RHI/VulkanRuntime/SwapChainBuilder.h>
+#include <RHI/VulkanRuntime/AuxiliaryExecutor.h>
 
 VulkanRuntime::VulkanRuntime()
 {
@@ -111,4 +112,9 @@ IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle, uint32_t wi
         .SetPreferPresentMode(VK_PRESENT_MODE_FIFO_KHR)
         .SetPreferFormat({VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
         .Build();
+}
+
+IntrusivePtr<AuxiliaryExecutor> VulkanRuntime::CreateAuxiliaryExecutor() 
+{
+    return new VulkanAuxiliaryExecutor(context);
 }

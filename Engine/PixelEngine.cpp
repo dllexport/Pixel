@@ -9,6 +9,7 @@
 PixelEngine::PixelEngine()
 {
     rhiRuntime = RuntimeEntry(RuntimeEntry::Type::VULKAN).Create();
+    this->auxExecutor = rhiRuntime->CreateAuxiliaryExecutor();
 }
 
 PixelEngine::~PixelEngine()
@@ -76,6 +77,10 @@ void PixelEngine::Frame()
                 it = renderers.erase(it);
                 continue;
             }
+
+            // perform global update before renderer frame
+            this->auxExecutor->Execute();
+
             renderer->Update();
             renderer->Frame();
             renderer->PostFrame();

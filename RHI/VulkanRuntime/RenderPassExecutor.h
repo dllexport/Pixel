@@ -39,7 +39,5 @@ private:
     void prepareCommandBuffer();
     void buildCommandBuffer(uint32_t imageIndex);
 
-    void updateDrawStates();
-
     uint64_t currentFrame = 0;
 };

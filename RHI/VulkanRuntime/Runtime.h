@@ -24,6 +24,7 @@ public:
     virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor() override;
     virtual IntrusivePtr<ResourceBindingState> CreateResourceBindingState(IntrusivePtr<Pipeline> pipeline) override;
     virtual IntrusivePtr<SwapChain> CreateSwapChain(void *handle, uint32_t width, uint32_t height) override;
+    virtual IntrusivePtr<AuxiliaryExecutor> CreateAuxiliaryExecutor() override;
 
 private:
     IntrusivePtr<Context> context = nullptr;

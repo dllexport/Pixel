@@ -1,6 +1,8 @@
 #include <FrameGraph/Graph.h>
 #include <RHI/RuntimeEntry.h>
 
+#include <IO/KTXReader.h>
+
 #include <Engine/Renderer.h>
 #include <Engine/PixelEngine.h>
 #include <Engine/Renderable.h>
@@ -45,8 +47,10 @@ std::vector<uint32_t> indexBuffer = {0, 1, 2};
 uint32_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 
 // return update callback
-void CreateImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
+void CreateImguiDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
 {
+    auto rhiRuntime = engine->GetRHIRuntime();
+
     auto imguiDrawable = rhiRuntime->CreateResourceBindingState(pipeline);
 
     ImGui::CreateContext();
@@ -60,15 +64,18 @@ void CreateImguiDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Rende
     io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
     auto uploadSize = texWidth * texHeight * 4 * sizeof(char);
 
-    Texture::Configuration config;
-    config.tiling = Texture::IMAGE_TILING_LINEAR;
-    auto imguiFontTexture = rhiRuntime->CreateTexture(TextureFormat::FORMAT_R8G8B8A8_UNORM, Texture::Usage::IMAGE_USAGE_SAMPLED_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, {uint32_t(texWidth), uint32_t(texHeight), 1}, config);
-    auto imguiFontTextureMapped = imguiFontTexture->Map();
-    memcpy(imguiFontTextureMapped, fontData, uploadSize);
+    auto imguiFontHostBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, uploadSize);
+    memcpy(imguiFontHostBuffer->Map(), fontData, uploadSize);
 
+    Texture::Configuration config;
+    config.tiling = Texture::IMAGE_TILING_OPTIMAL;
+    auto imguiFontTexture = rhiRuntime->CreateTexture(TextureFormat::FORMAT_R8G8B8A8_UNORM, Texture::Usage::IMAGE_USAGE_SAMPLED_BIT | Texture::Usage::IMAGE_USAGE_TRANSFER_DST_BIT, MemoryProperty::MEMORY_PROPERTY_DEVICE_LOCAL_BIT, {uint32_t(texWidth), uint32_t(texHeight), 1}, config);
     auto imguiFontSampler = rhiRuntime->CreateSampler(imguiFontTexture);
     imguiDrawable->Bind(0, 0, imguiFontSampler);
 
+    engine->GetAuxiliaryExecutor()->TransferResource(imguiFontTexture, imguiFontHostBuffer);
+    imguiFontHostBuffer.reset();
+    
     auto imguiCBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_LOCAL_BIT, sizeof(ImguiPushConstant));
     auto pimguiCBuffer = (ImguiPushConstant *)imguiCBuffer->Map();
     pimguiCBuffer->scale = glm::vec2(2.0f / 1024.0f, 2.0f / 768.0f);
@@ -281,6 +288,28 @@ void CreateTriangleDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Re
     renderer->AddDrawState(rbs);
 }
 
+void CreateTextureDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
+{
+    auto camera = renderer->GetCamera();
+
+    auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
+    memcpy(vBuffer->Map(), vertexBuffer.data(), vertexBufferSize);
+    auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
+    memcpy(iBuffer->Map(), indexBuffer.data(), indexBufferSize);
+
+    auto rbs = rhiRuntime->CreateResourceBindingState(pipeline);
+    rbs->Bind(0, 0, camera->GetUBOBuffer());
+    rbs->BindVertexBuffer(vBuffer);
+    rbs->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT32);
+    rbs->BindDrawOp({ResourceBindingState::DrawOP{
+        .indexCount = 3,
+        .instanceCount = 1,
+        .firstIndex = 0,
+        .vertexOffset = 0,
+        .firstInstance = 1}});
+    renderer->AddDrawState(rbs);
+}
+
 int main()
 {
     spdlog::set_level(spdlog::level::debug);
@@ -323,7 +352,7 @@ int main()
     auto rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();
 
-    CreateImguiDrawable(rhiRuntime, renderer, imguiPipeline);
+    CreateImguiDrawable(engine.get(), renderer, imguiPipeline);
     CreateTriangleDrawable(rhiRuntime, renderer, colorPipeline);
 
     engine->Frame();

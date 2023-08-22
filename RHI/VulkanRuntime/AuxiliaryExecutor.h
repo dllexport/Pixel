@@ -17,7 +17,7 @@ public:
     // wait gpu idle
     virtual void WaitIdle() override;
 
-    virtual void TransferResource(IntrusivePtr<Texture> gpuTexture, IntrusivePtr<Buffer> hostBuffer) override;
+    virtual void TransferResource(IntrusivePtr<Texture> gpuTexture, IntrusivePtr<Buffer> hostBuffer, TransferConfig config = {}) override;
     virtual void TransferResource(IntrusivePtr<Buffer> gpuBuffer, IntrusivePtr<Buffer> hostBuffer) override;
 
 private:
@@ -31,8 +31,9 @@ private:
         VkCommandBuffer commandBuffer;
 
         // ptr copy to keep resource alive during submit
-        IntrusivePtr<Texture> texture;
-        IntrusivePtr<Buffer> buffer;
+        IntrusivePtr<Texture> dstTexture;
+        IntrusivePtr<Buffer> dstBuffer;
+        IntrusivePtr<Buffer> srcBuffer;
     };
 
     // commandBuffers to be submit

@@ -179,7 +179,7 @@ static void setImageLayout(
         1, &imageMemoryBarrier);
 }
 
-void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Texture> gpuTexture, IntrusivePtr<Buffer> hostBuffer)
+void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Texture> gpuTexture, IntrusivePtr<Buffer> hostBuffer, TransferConfig config)
 {
     auto texture = static_cast<VulkanTexture *>(gpuTexture.get());
     auto stagingBuffer = static_cast<VulkanBuffer *>(hostBuffer.get());
@@ -191,8 +191,14 @@ void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Texture> gpuTexture,
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = 1;
-    subresourceRange.layerCount = 1;
+    subresourceRange.baseArrayLayer = 0;
+    subresourceRange.levelCount = texture->LevelCount();
+    subresourceRange.layerCount = texture->LayerCount();
+
+    if (texture->LevelCount() != 1 && config.mipmapBufferLevelOffsets.size() != texture->LevelCount())
+    {
+        throw std::runtime_error("mipmapBufferLevelOffsets not found when texture mipmapLevel > 1");
+    }
 
     setImageLayout(commandBuffer,
                    texture->GetImage(),
@@ -202,20 +208,29 @@ void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Texture> gpuTexture,
                    VK_PIPELINE_STAGE_HOST_BIT,
                    VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    VkBufferImageCopy bufferCopyRegion = {};
-    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    bufferCopyRegion.imageSubresource.layerCount = 1;
-    bufferCopyRegion.imageExtent.width = texture->GetExtent().width;
-    bufferCopyRegion.imageExtent.height = texture->GetExtent().height;
-    bufferCopyRegion.imageExtent.depth = texture->GetExtent().depth;
+    std::vector<VkBufferImageCopy> bufferCopyRegions;
+    for (uint32_t i = 0; i < texture->LevelCount(); i++)
+    {
+        // Setup a buffer image copy structure for the current mip level
+        VkBufferImageCopy bufferCopyRegion = {};
+        bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        bufferCopyRegion.imageSubresource.mipLevel = i;
+        bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+        bufferCopyRegion.imageSubresource.layerCount = 1;
+        bufferCopyRegion.imageExtent.width = texture->GetExtent().width >> i;
+        bufferCopyRegion.imageExtent.height = texture->GetExtent().height >> i;
+        bufferCopyRegion.imageExtent.depth = texture->GetExtent().depth;
+        bufferCopyRegion.bufferOffset = config.mipmapBufferLevelOffsets.empty() ? 0 : config.mipmapBufferLevelOffsets[i];
+        bufferCopyRegions.push_back(bufferCopyRegion);
+    }
 
     vkCmdCopyBufferToImage(
         commandBuffer,
         stagingBuffer->GetBuffer(),
         texture->GetImage(),
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &bufferCopyRegion);
+        (uint32_t)bufferCopyRegions.size(),
+        bufferCopyRegions.data());
 
     setImageLayout(commandBuffer,
                    texture->GetImage(),
@@ -229,12 +244,33 @@ void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Texture> gpuTexture,
 
     this->submitGroups.push_back(SubmitGroup{
         .commandBuffer = commandBuffer,
-        .texture = texture,
-        .buffer = stagingBuffer});
+        .dstTexture = texture,
+        .srcBuffer = stagingBuffer});
 }
 
 void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Buffer> gpuBuffer, IntrusivePtr<Buffer> hostBuffer)
 {
+    auto buffer = static_cast<VulkanBuffer *>(gpuBuffer.get());
+    auto stagingBuffer = static_cast<VulkanBuffer *>(hostBuffer.get());
+
+    auto commandBuffer = allocateCommandBuffer(graphicCommandPool);
+    VkCommandBufferBeginInfo cmdBufferBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
+
+    VkBufferCopy bufferCopyRegion = {
+        .srcOffset = 0,
+        .dstOffset = 0,
+        .size = stagingBuffer->Size(),
+    };
+
+    vkCmdCopyBuffer(commandBuffer, stagingBuffer->GetBuffer(), buffer->GetBuffer(), 1, &bufferCopyRegion);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    this->submitGroups.push_back(SubmitGroup{
+        .commandBuffer = commandBuffer,
+        .dstBuffer = buffer,
+        .srcBuffer = stagingBuffer});
 }
 
 void VulkanAuxiliaryExecutor::prepareCommandPool()

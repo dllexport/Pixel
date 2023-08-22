@@ -13,8 +13,6 @@ if(MSVC)
     add_definitions(/MP)
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR})
-include_directories(3rd/VulkanMemoryAllocator/include)
 include_directories(3rd/imgui)
 
 file(GLOB IMGUI_SOURCE_FILES
@@ -31,6 +29,7 @@ add_subdirectory(3rd/SPIRV-Reflect)
 
 add_subdirectory(3rd/json_struct)
 add_subdirectory(3rd/spdlog)
+add_subdirectory(3rd/glm)
 
 set(KTX_FEATURE_TESTS OFF)
 add_subdirectory(3rd/KTX-Software)
@@ -57,17 +56,24 @@ file(GLOB PIXEL_SOURCE_FILES
     "RHI/VulkanRuntime/*.*"
 )
 
-add_executable(Pixel main.cpp ${PIXEL_SOURCE_FILES} ${IMGUI_SOURCE_FILES})
-   
+add_library(Pixel STATIC ${PIXEL_SOURCE_FILES} ${IMGUI_SOURCE_FILES})
+
 target_include_directories(Pixel PRIVATE
+    3rd/VulkanMemoryAllocator/include
     ${VULKAN_SDK}/include
 )
 
-target_link_libraries(Pixel PRIVATE
+target_include_directories(Pixel PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${Boost_INCLUDE_DIRS}
+)
+
+target_link_libraries(Pixel PUBLIC
     ${Boost_LIBRARIES}
-    ${VULKAN_SDK}/lib/vulkan-1.lib
     json_struct
     spdlog
+    glm
+    ${VULKAN_SDK}/lib/vulkan-1.lib
     spirv-reflect-static
     ktx
 )
@@ -77,7 +83,6 @@ target_link_libraries(Pixel PRIVATE
     glfw
 )
 endif()
-
 
 # add_subdirectory(3rd/googletest)
 # enable_testing()
@@ -93,3 +98,5 @@ endif()
 
 # include(GoogleTest)
 # gtest_discover_tests(framegraph_test)
+
+add_subdirectory(Examples)

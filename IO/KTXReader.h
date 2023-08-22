@@ -2,12 +2,11 @@
 
 #include <string>
 
+#include <Engine/PixelEngine.h>
 #include <RHI/Texture.h>
-#include <RHI/RHIRuntime.h>
 
 class KTXReader
 {
 public:
-    KTXReader() = default;
-    static IntrusivePtr<Texture> ReadFile(RHIRuntime *rhiRuntime, std::string file);
+    static IntrusivePtr<Texture> ReadFile(PixelEngine *engine, std::string file);
 };

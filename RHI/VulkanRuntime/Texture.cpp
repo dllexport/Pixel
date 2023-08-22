@@ -45,7 +45,10 @@ bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropert
 
     auto result = vmaCreateImage(allocator, &imageCI, &allocInfo, &image, &imageAllocation, &imageAllocationInfo);
 
-    this->format = imageCI.format;
+    this->format = format;
+    this->mimapLevel = config.mipLevels;
+    this->layers = config.arrayLayers;
+    this->samples = config.samples;
     this->extent.width = imageCI.extent.width;
     this->extent.height = imageCI.extent.height;
     this->extent.depth = imageCI.extent.depth;
@@ -78,10 +81,10 @@ void *VulkanTexture::Map()
 void VulkanTexture::Assign(VkImage image, VkFormat format)
 {
     this->image = image;
-    this->format = format;
+    this->format = VkFormatToGeneralFormat(format);
 }
 
 VkFormat VulkanTexture::GetFormat()
 {
-    return format;
+    return GeneralFormatToVkFormat(format);
 }

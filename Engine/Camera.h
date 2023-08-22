@@ -64,7 +64,6 @@ public:
 	struct UBO
 	{
 		glm::mat4 projectionMatrix;
-		glm::mat4 modelMatrix;
 		glm::mat4 viewMatrix;
 	};
 

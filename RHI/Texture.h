@@ -67,8 +67,27 @@ public:
         return extent;
     }
 
+    uint16_t LayerCount()
+    {
+        return layers;
+    }
+
+    uint16_t LevelCount()
+    {
+        return mimapLevel;
+    }
+
+    uint16_t SampleCount()
+    {
+        return samples;
+    }
+
 protected:
     virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config = Configuration()) = 0;
 
+    uint16_t layers;
+    uint16_t mimapLevel;
+    uint16_t samples;
     Extent extent;
+    TextureFormat format;
 };

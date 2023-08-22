@@ -199,9 +199,9 @@ void VulkanResourceBindingState::WriteDescriptorSampler(uint32_t set, uint32_t b
         ci.subresourceRange = {};
         ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         ci.subresourceRange.baseMipLevel = 0;
-        ci.subresourceRange.levelCount = 1;
+        ci.subresourceRange.levelCount = texture->LevelCount();
         ci.subresourceRange.baseArrayLayer = 0;
-        ci.subresourceRange.layerCount = 1;
+        ci.subresourceRange.layerCount = texture->LayerCount();
         ci.image = texture->GetImage();
         auto textureView = texture->CreateTextureView(ci);
         sampler->StoreTextureView(textureView);

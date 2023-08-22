@@ -90,7 +90,6 @@ private:
     VkImage image;
     VmaAllocation imageAllocation = VK_NULL_HANDLE;
     VmaAllocationInfo imageAllocationInfo;
-    VkFormat format;
     void *mappedData = nullptr;
 
     bool IsExternal()

@@ -131,7 +131,6 @@ IntrusivePtr<Camera> Renderer::GetCamera()
         camera->setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
         camera->setRotation(glm::vec3(0.0f));
         camera->setPerspective(60.0f, (float)1024 / (float)768, 0.1f, 256.0f);
-        camera->ubo.modelMatrix = glm::mat4(1.0f);
         camera->Sync();
 
         this->RegisterUpdateCallback({GENERAL, std::bind(&Camera::EventCallback, camera.get(), std::placeholders::_1)});

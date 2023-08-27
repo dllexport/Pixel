@@ -28,10 +28,22 @@ void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> refle
     {
         auto descriptorState = reflection->ParseDescriptorLayoutState();
         // for each set = i
-        for (int i = 0; i < descriptorState.descriptorSetLayoutSets.size(); i++)
+        for (uint32_t i = 0; i < descriptorState.descriptorSetLayoutSets.size(); i++)
         {
             auto layoutInSet = descriptorState.descriptorSetLayoutSets[i];
             std::copy(layoutInSet.begin(), layoutInSet.end(), std::back_inserter(bindingsInSets[i]));
+
+            for (uint32_t j = 0; j < layoutInSet.size(); j++)
+            {
+
+                SetBindingQuery sbq = {
+                    .set = i,
+                    .binding = j,
+                    .descriptorSetLayoutBinding = layoutInSet[j]};
+
+                uniformNameBindingMap.insert({layoutInSet[j].name,
+                                              sbq});
+            }
         }
 
         if (descriptorState.pushConstantRange.size != 0)
@@ -40,17 +52,19 @@ void VulkanPipelineLayout::Build(std::vector<IntrusivePtr<SPIVReflection>> refle
         }
     }
 
-    for (auto bindingsInSet : bindingsInSets)
+    for (uint32_t i = 0; i < bindingsInSets.size(); i++)
     {
-        if (bindingsInSet.empty())
+        auto bindings = bindingsInSets[i];
+        if (bindings.empty())
         {
             break;
         }
+
         VkDescriptorSetLayoutCreateInfo descriptorLayout = {};
         descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorLayout.pNext = nullptr;
-        descriptorLayout.bindingCount = (uint32_t)bindingsInSet.size();
-        descriptorLayout.pBindings = bindingsInSet.data();
+        descriptorLayout.bindingCount = (uint32_t)bindings.size();
+        descriptorLayout.pBindings = bindings.data();
         VkDescriptorSetLayout layout;
         auto result = vkCreateDescriptorSetLayout(context->GetVkDevice(), &descriptorLayout, nullptr, &layout);
         desriptorSetLayouts.push_back(layout);

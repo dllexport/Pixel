@@ -68,6 +68,11 @@ void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<GraphNode
             std::copy(set.begin(), set.end(), outputs.begin());
             target->outputs.swap(outputs);
         }
+
+        for (auto subPassName : source->inputSubPassNames)
+        {
+            target->inputSubPassNames.insert(subPassName);
+        }
     };
 
     // handle reference
@@ -129,12 +134,12 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             GraphNode *inputNode;
             if (input.type == "attachment")
             {
-                auto attachent = new AttachmentGraphNode(input.name, GraphNode::ATTACHMENT);
-                attachent->depthStencil = input.depthStencil;
-                attachent->swapChain = input.swapChain;
-                attachent->shared = input.shared;
-                attachent->format = TranslateFormat(input.format);
-                inputNode = attachent;
+                auto attachment = new AttachmentGraphNode(input.name, GraphNode::ATTACHMENT);
+                attachment->depthStencil = input.depthStencil;
+                attachment->swapChain = input.swapChain;
+                attachment->shared = input.shared;
+                attachment->format = TranslateFormat(input.format);
+                inputNode = attachment;
             }
             else if (input.type == "buffer")
             {
@@ -150,6 +155,8 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 resolvedMap[input.name] = inputNode;
             }
 
+            inputNode->inputSubPassNames.insert(subpass.name);
+
             resourceNodes.push_back(inputNode);
             node->inputs.push_back(inputNode);
             inputNode->outputs.push_back(node);
@@ -160,12 +167,13 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             GraphNode *outputNode;
             if (output.type == "attachment")
             {
-                auto attachent = new AttachmentGraphNode(output.name, GraphNode::ATTACHMENT);
-                attachent->depthStencil = output.depthStencil;
-                attachent->swapChain = output.swapChain;
-                attachent->shared = output.shared;
-                attachent->format = TranslateFormat(output.format);
-                outputNode = attachent;
+                auto attachment = new AttachmentGraphNode(output.name, GraphNode::ATTACHMENT);
+                attachment->depthStencil = output.depthStencil;
+                attachment->swapChain = output.swapChain;
+                attachment->shared = output.shared;
+                attachment->color = attachment->depthStencil ? false : true;
+                attachment->format = TranslateFormat(output.format);
+                outputNode = attachment;
             }
             else if (output.type == "buffer")
             {
@@ -188,6 +196,29 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     }
 
     ResolveReferenceNode(resolvedMap, resourceNodes);
+
+    for (auto node : resourceNodes)
+    {
+        if (node->type != GraphNode::GRAPHIC_PASS)
+        {
+            continue;
+        }
+        auto passNode = (GraphicRenderPassGraphNode *)node.get();
+        for (int i = 0; i < passNode->inputs.size(); i++)
+        {
+            switch (passNode->inputs[i]->type)
+            {
+            case GraphNode::BUFFER:
+            case GraphNode::ATTACHMENT:
+            {
+                auto resNode = (ResourceNode *)passNode->inputs[i].get();
+                passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding};
+            }
+            default:
+                break;
+            }
+        }
+    }
 
     // remove reference
     for (auto &[k, v] : resolvedMap)

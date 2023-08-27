@@ -1,8 +1,5 @@
-add_executable(Texture ./Texture/Texture.cpp)
-   
-target_link_libraries(Texture PRIVATE
-    Pixel
-)
+add_subdirectory(Texture)
+add_subdirectory(Deferred)
 
 add_executable(Triangle Triangle.cpp)
    

@@ -33,6 +33,11 @@ public:
         return desriptorSetLayouts;
     }
 
+    auto &GetSetBindingQueryMap()
+    {
+        return uniformNameBindingMap;
+    }
+
 private:
     IntrusivePtr<Context> context;
     std::vector<VkDescriptorSetLayout> desriptorSetLayouts;
@@ -40,6 +45,13 @@ private:
 
     std::vector<VkPushConstantRange> pushConstantRanges;
     std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindingsInSets;
-    std::unordered_map<std::string, VkDescriptorSetLayoutBinding> vertexShaderDescriptorBindingMap;
-    std::unordered_map<std::string, VkDescriptorSetLayoutBinding> fragmentShaderDescriptorBindingMap;
+
+    struct SetBindingQuery
+    {
+        uint32_t set;
+        uint32_t binding;
+        VkDescriptorSetLayoutBinding descriptorSetLayoutBinding;
+    };
+
+    std::unordered_multimap<std::string, SetBindingQuery> uniformNameBindingMap;
 };

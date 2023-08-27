@@ -5,6 +5,8 @@
 #include <RHI/VulkanRuntime/PipelineLayout.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/SwapChain.h>
+#include <RHI/VulkanRuntime/Sampler.h>
+#include <RHI/VulkanRuntime/Image.h>
 
 #include <RHI/ConstantBuffer.h>
 
@@ -110,6 +112,10 @@ void VulkanRenderPassExecutor::prepareCommandBuffer()
 
 void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
 {
+    // make sure all descriptor set in layout is valid
+    // fill dummy or internal data if slot is empty
+    resolveDrawStatesDescriptors();
+
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
 
     for (auto &renderPass : renderPasses)
@@ -121,8 +127,15 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
         std::vector<VkClearValue> clearValues(vulkanRP->attachmentNodes.size());
-        clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
-        clearValues[1].depthStencil = {1.0f, 0};
+        for (int i = 0; i < vulkanRP->attachmentNodes.size(); i++)
+        {
+            auto attachmentNode = vulkanRP->attachmentNodes[i];
+            if (attachmentNode->color)
+                clearValues[i].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+
+            if (attachmentNode->depthStencil)
+                clearValues[i].depthStencil = {1.0f, 0};
+        }
 
         VkRenderPassBeginInfo renderPassBeginInfo = {};
         renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -175,7 +188,7 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                     auto &descriptorSets = vulkanRBS->GetDescriptorSets();
                     auto constantBuffer = static_cast<ConstantBuffer *>(vulkanRBS->GetConstantBuffer().get());
 
-                    if (!vulkanRBS->GetVertexBuffer() || !vulkanRBS->GetIndexBuffer())
+                    if (vrb->GetDrawOps().empty() && (!vulkanRBS->GetVertexBuffer() || !vulkanRBS->GetIndexBuffer()))
                     {
                         continue;
                     }
@@ -195,8 +208,10 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                     }
 
                     const VkDeviceSize offsets[1] = {0};
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanRBS->GetVertexBuffer()->GetBuffer(), offsets);
-                    vkCmdBindIndexBuffer(commandBuffer, vulkanRBS->GetIndexBuffer()->GetBuffer(), 0, vulkanRBS->GetIndexType());
+                    if (vulkanRBS->GetVertexBuffer())
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanRBS->GetVertexBuffer()->GetBuffer(), offsets);
+                    if (vulkanRBS->GetIndexBuffer())
+                        vkCmdBindIndexBuffer(commandBuffer, vulkanRBS->GetIndexBuffer()->GetBuffer(), 0, vulkanRBS->GetIndexType());
 
                     // default scissor
                     VkRect2D scissor = {};
@@ -212,14 +227,17 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                             scissor.extent = {drawOP.scissorExtent.x, drawOP.scissorExtent.y};
                         }
                         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-                        vkCmdDrawIndexed(commandBuffer, drawOP.indexCount, drawOP.instanceCount, drawOP.firstIndex, drawOP.vertexOffset, drawOP.firstInstance);
-                    }
-
-                    if (level < topoResult.maxLevelRenderPassOnly && rpIndex < vrbs.size())
-                    {
-                        vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+                        if (drawOP.indexCount)
+                            vkCmdDrawIndexed(commandBuffer, drawOP.indexCount, drawOP.instanceCount, drawOP.firstIndex, drawOP.vertexOffset, drawOP.firstInstance);
+                        else if (drawOP.vertexCount)
+                            vkCmdDraw(commandBuffer, drawOP.vertexCount, drawOP.instanceCount, 0, 0);
                     }
                 }
+            }
+
+            if (level < topoResult.maxLevelRenderPassOnly)
+            {
+                vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
             }
         }
 
@@ -237,13 +255,14 @@ uint32_t DeferAttachmentUsage(IntrusivePtr<AttachmentGraphNode> attachmentNode)
     {
         usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
-    if (attachmentNode->input)
+    if (attachmentNode->inputSubPassNames.size() != 0)
     {
         usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
     if (attachmentNode->color)
     {
         usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
     }
     return usage;
 }
@@ -256,8 +275,6 @@ void VulkanRenderPassExecutor::Prepare()
     prepareFences();
     prepareCommandBuffer();
 
-    attachmentImages.resize(swapChainImageSize);
-
     for (int i = 0; i < swapChainImageSize; i++)
     {
         std::vector<VkImageView> attachmentViews;
@@ -268,19 +285,21 @@ void VulkanRenderPassExecutor::Prepare()
 
             for (auto attachment : vulkanRP->attachmentNodes)
             {
+                // if attachment is swapchain, use reference instead of creating one
                 if (attachment->swapChain)
                 {
                     sharedImages[attachment->name].emplace_back(vulkanSC->GetTextures()[i], vulkanSC->GetTextureViews()[i]);
+                    attachmentImages[attachment->name].push_back({vulkanSC->GetTextures()[i], vulkanSC->GetTextureViews()[i], nullptr});
                     attachmentViews.push_back(vulkanSC->GetTextureViews()[i]->GetImageView());
                     continue;
                 }
 
                 // if shared attachment is already created, take it's view cache
-                if (attachment->shared && sharedImages.count(attachment->name))
-                {
-                    attachmentViews.push_back(sharedImages[attachment->name][0].textureView->GetImageView());
-                    continue;
-                }
+                // if (attachment->shared && sharedImages.count(attachment->name))
+                // {
+                //     attachmentViews.push_back(sharedImages[attachment->name][0].textureView->GetImageView());
+                //     continue;
+                // }
 
                 IntrusivePtr<VulkanTexture> texture = new VulkanTexture(context);
                 auto textureExtent = Texture::Extent{
@@ -322,13 +341,19 @@ void VulkanRenderPassExecutor::Prepare()
 
                 auto textureView = texture->CreateTextureView(imageView);
 
-                attachmentImages.emplace_back(texture, textureView);
+                // if (attachment->shared && !sharedImages.count(attachment->name) )
+                // {
+                //     sharedImages[attachment->name].emplace_back(texture, textureView);
+                // }
 
-                if (attachment->shared && !sharedImages.count(attachment->name))
+                IntrusivePtr<VulkanSampler> sampler;
+                if (attachment->inputSubPassNames.size() != 0)
                 {
-                    sharedImages[attachment->name].emplace_back(texture, textureView);
+                    sampler = new VulkanSampler(context, texture);
+                    sampler->Allocate({});
                 }
 
+                attachmentImages[attachment->name].push_back({texture, textureView, sampler});
                 attachmentViews.push_back(textureView->GetImageView());
             }
 
@@ -345,8 +370,41 @@ void VulkanRenderPassExecutor::Prepare()
             auto result = vkCreateFramebuffer(context->GetVkDevice(), &frameBufferCreateInfo, nullptr, &frameBuffer);
             frameBuffers[vulkanRP].push_back(frameBuffer);
         }
+    }
 
+    for (int i = 0; i < swapChainImageSize; i++)
+    {
         buildCommandBuffer(i);
+    }
+}
+
+void VulkanRenderPassExecutor::resolveDrawStatesDescriptors()
+{
+    for (auto &[pipeline, drawStates] : resourceBindingStates)
+    {
+        auto vulkanRP = static_cast<VulkanRenderPass *>(pipeline->GetRenderPass().get());
+        auto vulkanPL = static_cast<VulkanPipeline *>(pipeline.get());
+        auto pipelineName = vulkanPL->GetSubPassName();
+        auto subPassNode = vulkanRP->GetGraphicRenderPassGraphNode(vulkanRP->GetSubPassIndex(pipelineName));
+
+        auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
+        auto swapChainImageSize = vulkanSC->GetTextures().size();
+
+        for (auto &[resourceName, bindingSet] : subPassNode->bindingSets)
+        {
+            // spdlog::info("checking {} at {} {}", resourceName, bindingSet.first, bindingSet.second);
+            for (auto &drawState : drawStates)
+            {
+                auto vulkanDrawState = static_cast<VulkanResourceBindingState *>(drawState.get());
+                auto resourceHandleMap = vulkanDrawState->GetResourceHandlesMap();
+
+                for (auto i = 0; i < swapChainImageSize; i++)
+                {
+                    if (resourceHandleMap[bindingSet.first][bindingSet.second].empty())
+                        drawState->Bind(bindingSet.first, bindingSet.second, attachmentImages[resourceName][i].sampler);
+                }
+            }
+        }
     }
 }
 

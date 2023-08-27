@@ -1,0 +1,107 @@
+{
+    "name": "singlePass",
+    "subpasses": [
+        {
+            "name": "deferred",
+            "type": "graphic",
+            "shaders": {
+                "vertex": "C:/Users/Mario/Desktop/Pixel/Examples/Deferred/gbuffer.vert.spv",
+                "fragment": "C:/Users/Mario/Desktop/Pixel/Examples/Deferred/gbuffer.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "ubo",
+                    "type": "buffer"
+                },
+                {
+                    "name": "configUBO",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "position",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "normal",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "albedo",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "depth",
+                    "type": "attachment",
+                    "format": "FORMAT_D16_UNORM",
+                    "depthStencil": true,
+                    "shared": true
+                }
+            ]
+        },
+        {
+            "name": "compose",
+            "type": "graphic",
+            "subpass_dependency": [
+                "deferred"
+            ],
+            "shaders": {
+                "vertex": "C:/Users/Mario/Desktop/Pixel/Examples/Deferred/compose.vert.spv",
+                "fragment": "C:/Users/Mario/Desktop/Pixel/Examples/Deferred/compose.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "lightUbo",
+                    "type": "buffer"
+                },
+                {
+                    "name": "position",
+                    "type": "reference"
+                },
+                {
+                    "name": "normal",
+                    "type": "reference"
+                },
+                {
+                    "name": "albedo",
+                    "type": "reference"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "color",
+                    "type": "reference"
+                }
+            ]
+        },
+        {
+            "name": "imgui",
+            "type": "graphic",
+            "subpass_dependency": [
+                "compose"
+            ],
+            "shaders": {
+                "vertex": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.vert.spv",
+                "fragment": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "imguiUBO",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "color",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "swapChain": true
+                }
+            ]
+        }
+    ]
+}

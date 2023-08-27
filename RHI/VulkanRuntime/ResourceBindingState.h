@@ -68,14 +68,21 @@ public:
         return updateRequests;
     }
 
+    auto &GetResourceHandlesMap()
+    {
+        return resourceHandlesMaps;
+    }
+
 private:
     IntrusivePtr<Context> context;
 
-    std::vector<VkDescriptorSet> descriptorSets;
     VkDescriptorPool descriptorPool;
+    
+    std::vector<VkDescriptorSet> descriptorSets;
 
     // sets -> bindings -> resource handles
-    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_set<IntrusivePtr<ResourceHandle>>>> resourceHandlesMap;
+    using ResourceHandleMap = std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<IntrusivePtr<ResourceHandle>>>>;
+    std::vector<ResourceHandleMap> resourceHandlesMaps;
 
     void AllocateDescriptorPool(IntrusivePtr<Pipeline> pipeline);
 

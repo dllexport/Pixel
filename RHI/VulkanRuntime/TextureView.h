@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 class VulkanTexture;
+class VulkanSampler;
 class VulkanTextureView : public IntrusiveCounter<VulkanTextureView>
 {
 public:
@@ -23,11 +24,4 @@ private:
     IntrusivePtr<Context> context;
     IntrusivePtr<VulkanTexture> parentTexture;
     VkImageView imageView = VK_NULL_HANDLE;
-};
-
-// image is a pair of texture and textureView
-struct VulkanImage
-{
-    IntrusivePtr<VulkanTexture> texture;
-    IntrusivePtr<VulkanTextureView> textureView;
 };

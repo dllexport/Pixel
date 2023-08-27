@@ -26,12 +26,12 @@ public:
 
     void StoreTextureView(IntrusivePtr<VulkanTextureView> textureView)
     {
-        this->textureView = textureView;
+        this->textureViews.insert(textureView);
     }
 
 private:
     friend class VulkanRuntime;
     IntrusivePtr<Context> context;
-    IntrusivePtr<VulkanTextureView> textureView;
+    std::unordered_set<IntrusivePtr<VulkanTextureView>> textureViews;
     VkSampler sampler;
 };

@@ -35,6 +35,7 @@ public:
         glm::u32vec2 scissorExtent;
 
         uint32_t indexCount;
+        uint32_t vertexCount;
         uint32_t instanceCount;
         uint32_t firstIndex;
         int32_t vertexOffset;
@@ -95,14 +96,4 @@ protected:
     std::vector<DrawOP> drawOps;
 
     std::vector<UpdateCallback> updateCallbacks;
-};
-
-template <>
-struct std::hash<ResourceBindingState>
-{
-    std::size_t operator()(const ResourceBindingState &k) const
-    {
-        // TODO HASH states
-        return size_t(k.pipeline.get());
-    }
 };

@@ -42,9 +42,22 @@ public:
         }
         return -1;
     }
-
+    
     void RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline);
 
+    SubPassAttachmentReferences GetSubPassReference(std::string name)
+    {
+        if (referencesMap.count(name))
+        {
+            return referencesMap[name];
+        }
+        return {};
+    }
+
+    IntrusivePtr<GraphicRenderPassGraphNode> GetGraphicRenderPassGraphNode(uint32_t subPassIndex) {
+        return graphicRenderPasses[subPassIndex];
+    }
+    
 private:
     friend class VulkanPipeline;
     friend class VulkanRenderPassExecutor;

@@ -27,16 +27,17 @@ void VulkanResourceBindingState::Bind(IntrusivePtr<ResourceHandle> resource)
 
 void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
 {
-    resourceHandlesMap[set][binding].insert(resource);
+    if (resourceHandlesMaps.empty())
+        resourceHandlesMaps.resize(1);
+    resourceHandlesMaps[0][set][binding] = {resource};
     WriteDescriptor(set, binding, resource);
 }
 
 void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources)
 {
-    for (auto &resource : resources)
-    {
-        resourceHandlesMap[set][binding].insert(resource);
-    }
+    if (resourceHandlesMaps.empty())
+        resourceHandlesMaps.resize(1);
+    resourceHandlesMaps[0][set][binding] = resources;
     WriteDescriptor(set, binding, resources);
 }
 

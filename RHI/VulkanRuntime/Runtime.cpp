@@ -79,6 +79,13 @@ IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPr
     return buffer;
 }
 
+IntrusivePtr<BufferArray> VulkanRuntime::CreateBufferArray(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
+{
+    auto defaultBuffer = CreateBuffer(type, memoryProperties, size);
+    auto bufferArray = new BufferArray(defaultBuffer);
+    return bufferArray;
+}
+
 IntrusivePtr<Texture> VulkanRuntime::CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config)
 {
     auto texture = new VulkanTexture(context);
@@ -114,7 +121,7 @@ IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle, uint32_t wi
         .Build();
 }
 
-IntrusivePtr<AuxiliaryExecutor> VulkanRuntime::CreateAuxiliaryExecutor() 
+IntrusivePtr<AuxiliaryExecutor> VulkanRuntime::CreateAuxiliaryExecutor()
 {
     return new VulkanAuxiliaryExecutor(context);
 }

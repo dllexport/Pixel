@@ -8,6 +8,7 @@ public:
     enum ResourceHandleType
     {
         BUFFER,
+        BUFFER_ARRAY,
         TEXTURE,
         SAMPLER
     };

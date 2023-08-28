@@ -24,10 +24,3 @@ private:
     IntrusivePtr<VulkanTexture> parentTexture;
     VkImageView imageView = VK_NULL_HANDLE;
 };
-
-// image is a pair of texture and textureView
-struct VulkanImage
-{
-    IntrusivePtr<VulkanTexture> texture;
-    IntrusivePtr<VulkanTextureView> textureView;
-};

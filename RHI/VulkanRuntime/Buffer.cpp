@@ -24,7 +24,7 @@ bool VulkanBuffer::Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProp
     memoryCI = {};
     memoryCI.requiredFlags = memoryProperties;
 
-    auto result = vmaCreateBuffer(context->GetVmaAllocator(), &ci, &memoryCI, &buffer, &bufferAllocation, &bufferAllocationInfo);
+    auto result = vmaCreateBuffer(context->GetVmaAllocator(), &bufferCI, &memoryCI, &buffer, &bufferAllocation, &bufferAllocationInfo);
 
     return result == VK_SUCCESS;
 }

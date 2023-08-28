@@ -30,6 +30,12 @@ public:
         return buffer.size();
     }
 
+    virtual IntrusivePtr<Buffer> Clone() override
+    {
+        auto newBuffer = new ConstantBuffer(this->buffer.size());
+        return newBuffer;
+    }
+
 private:
     std::vector<char> buffer;
 };

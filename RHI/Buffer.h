@@ -44,16 +44,12 @@ public:
     virtual void *Map() = 0;
     virtual size_t Size() = 0;
 
-    void Dirty()
-    {
-        dirty = true;
-    }
+    // clone buffer with same settings
+    virtual IntrusivePtr<Buffer> Clone() = 0;
 
 protected:
     Buffer() : ResourceHandle(ResourceHandleType::BUFFER) {}
     virtual ~Buffer() = default;
 
     virtual bool Allocate(TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
-
-    bool dirty = false;
 };

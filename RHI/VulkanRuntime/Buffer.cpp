@@ -16,19 +16,30 @@ VulkanBuffer::~VulkanBuffer()
 
 bool VulkanBuffer::Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
-    auto allocator = context->GetVmaAllocator();
-    // Create the buffer handle
-    VkBufferCreateInfo bufferCreateInfo = {};
-    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferCreateInfo.usage = type;
-    bufferCreateInfo.size = size;
+    bufferCI = {};
+    bufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferCI.usage = type;
+    bufferCI.size = size;
 
-    VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.requiredFlags = memoryProperties;
+    memoryCI = {};
+    memoryCI.requiredFlags = memoryProperties;
 
-    auto result = vmaCreateBuffer(allocator, &bufferCreateInfo, &allocInfo, &buffer, &bufferAllocation, &bufferAllocationInfo);
+    auto result = vmaCreateBuffer(context->GetVmaAllocator(), &ci, &memoryCI, &buffer, &bufferAllocation, &bufferAllocationInfo);
 
     return result == VK_SUCCESS;
+}
+
+bool VulkanBuffer::Allocate(VkBufferCreateInfo bufferCI, VmaAllocationCreateInfo memoryCI)
+{
+    auto result = vmaCreateBuffer(context->GetVmaAllocator(), &bufferCI, &memoryCI, &buffer, &bufferAllocation, &bufferAllocationInfo);
+    return result == VK_SUCCESS;
+}
+
+IntrusivePtr<Buffer> VulkanBuffer::Clone()
+{
+    auto newBuffer = new VulkanBuffer(context);
+    newBuffer->Allocate(bufferCI, memoryCI);
+    return newBuffer;
 }
 
 void *VulkanBuffer::Map()

@@ -1,5 +1,7 @@
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
+#include <algorithm>
+
 #include <spdlog/spdlog.h>
 
 VkFormat TranslateReflectFormat(SpvReflectFormat format)
@@ -55,7 +57,7 @@ VkFormat TranslateReflectFormat(SpvReflectFormat format)
     case SPV_REFLECT_FORMAT_R32G32B32A32_SINT:
         return VK_FORMAT_R32G32B32A32_SINT;
     case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
-        return VK_FORMAT_R8G8B8A8_UNORM;
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
     case SPV_REFLECT_FORMAT_R64_UINT:
         return VK_FORMAT_R64_UINT;
     case SPV_REFLECT_FORMAT_R64_SINT:
@@ -136,7 +138,7 @@ uint32_t TranslateReflectFormatToSize(SpvReflectFormat format)
     case SPV_REFLECT_FORMAT_R32G32B32A32_SINT:
         return 16;
     case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
-        return 4;
+        return 16;
     case SPV_REFLECT_FORMAT_R64_UINT:
         return 8;
     case SPV_REFLECT_FORMAT_R64_SINT:
@@ -191,6 +193,17 @@ SPIVReflection::InputVertexState SPIVReflection::ParseInputVertexState()
     assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
     // TODO, handle multi binding case
+    for (auto it = inputVars.begin(); it != inputVars.end();)
+    {
+        if (strcmp((*it)->name, "gl_VertexIndex") == 0)
+        {
+            it = inputVars.erase(it);
+        }
+        else
+        {
+            it++;
+        }
+    }
 
     std::sort(inputVars.begin(), inputVars.end(), [](SpvReflectInterfaceVariable *left, SpvReflectInterfaceVariable *right)
               { return left->location < right->location; });
@@ -208,7 +221,11 @@ SPIVReflection::InputVertexState SPIVReflection::ParseInputVertexState()
 
         offset += TranslateReflectFormatToSize(inputVar->format);
     }
-    std::vector<VkVertexInputBindingDescription> inputBindings{{0, offset, VK_VERTEX_INPUT_RATE_VERTEX}};
+    std::vector<VkVertexInputBindingDescription> inputBindings;
+    if (offset != 0)
+    {
+        inputBindings.push_back({0, offset, VK_VERTEX_INPUT_RATE_VERTEX});
+    }
 
     return {inputBindings, inputAttributes};
 }
@@ -222,21 +239,22 @@ SPIVReflection::DescriptorLayoutState SPIVReflection::ParseDescriptorLayoutState
     std::vector<SpvReflectDescriptorSet *> reflectDescriptorSets(setCount);
     auto result = spvReflectEnumerateDescriptorSets(&module, &setCount, reflectDescriptorSets.data());
 
-    std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorLayoutState;
+    std::vector<std::vector<VkDescriptorSetLayoutBindingWithName>> descriptorLayoutState;
 
     for (int i = 0; i < setCount; i++)
     {
         auto reflectDescriptorSet = reflectDescriptorSets[i];
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
+        std::vector<VkDescriptorSetLayoutBindingWithName> bindings;
         for (int j = 0; j < reflectDescriptorSet->binding_count; j++)
         {
             auto reflectBinding = reflectDescriptorSets[i]->bindings[j];
-            VkDescriptorSetLayoutBinding layoutBinding = {};
+            VkDescriptorSetLayoutBindingWithName layoutBinding = {};
             layoutBinding.binding = reflectBinding->binding;
             layoutBinding.descriptorType = TranslateReflectDescriptorType(reflectBinding->descriptor_type);
             layoutBinding.descriptorCount = reflectBinding->count;
             layoutBinding.stageFlags = TranslateShaderStage(module.spirv_execution_model);
             layoutBinding.pImmutableSamplers = nullptr;
+            layoutBinding.name = reflectBinding->name;
             bindings.push_back(layoutBinding);
         }
 

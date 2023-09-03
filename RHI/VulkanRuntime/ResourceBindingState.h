@@ -8,6 +8,7 @@
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/Buffer.h>
 #include <RHI/VulkanRuntime/Texture.h>
+#include <RHI/VulkanRuntime/DescriptorSet.h>
 
 class VulkanResourceBindingState : public ResourceBindingState
 {
@@ -28,14 +29,14 @@ public:
         return static_cast<VulkanBuffer *>(this->indexBuffer.get());
     }
 
-    std::vector<VkDescriptorSet> &GetDescriptorSets()
+    std::vector<VkDescriptorSet> &GetDescriptorSets(uint32_t frameIndex)
     {
-        return descriptorSets;
+        return descriptorSet->frameDescriptor[frameIndex].descriptorSets;
     }
 
     IntrusivePtr<ResourceHandle> &GetConstantBuffer()
     {
-        return constantBuffer;
+        return descriptorSet->constantBuffer;
     }
 
     VkIndexType GetIndexType()
@@ -68,26 +69,24 @@ public:
         return updateRequests;
     }
 
+    auto &GetResourceHandlesMap(uint32_t frameIndex)
+    {
+        return descriptorSet->frameDescriptor[frameIndex].resourceHandlesMaps;
+    }
+
+    // bind internal resources
+    void BindInternal(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
+
+    // Copy constant resource only
+    // if resource will be written, bind extra frame related resource instead
+    void Copy(uint32_t targetFrameIndex, uint32_t set, uint32_t binding);
+
 private:
     IntrusivePtr<Context> context;
 
-    std::vector<VkDescriptorSet> descriptorSets;
-    VkDescriptorPool descriptorPool;
+    IntrusivePtr<VulkanDescriptorSet> descriptorSet;
 
-    // sets -> bindings -> resource handles
-    std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_set<IntrusivePtr<ResourceHandle>>>> resourceHandlesMap;
-
-    void AllocateDescriptorPool(IntrusivePtr<Pipeline> pipeline);
-
-    // pipeline's desc layout may contains multiple sets
-    void AllocateDescriptorSets();
-    void WriteDescriptor(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
-    void WriteDescriptor(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
-
-    void WriteDescriptorBuffer(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
-    void WriteDescriptorSampler(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources);
-
-    IntrusivePtr<ResourceHandle> constantBuffer;
+    void AllocateDescriptors(IntrusivePtr<Pipeline> pipeline, uint32_t frameOverlapped);
 
     std::vector<UpdateRequest> updateRequests;
 };

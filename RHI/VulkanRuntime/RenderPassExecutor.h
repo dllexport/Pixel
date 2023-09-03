@@ -5,6 +5,7 @@
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/Texture.h>
 #include <RHI/VulkanRuntime/TextureView.h>
+#include <RHI/VulkanRuntime/Image.h>
 
 #include <vulkan/vulkan.h>
 
@@ -26,18 +27,25 @@ private:
     VkCommandPool graphicCommandPool;
     VkCommandPool computeCommandPool;
 
-    std::vector<VulkanImage> attachmentImages;
-    std::unordered_map<std::string, std::vector<VulkanImage>> sharedImages;
+    struct RenderPassResource
+    {
+        // attachment name -> vulkan image(1 per inflight)
+        std::unordered_map<std::string, std::vector<VulkanImage>> attachmentImages;
+        std::vector<VkFramebuffer> frameBuffers;
+        std::vector<VkCommandBuffer> graphicCommandBuffers;
+    };
 
-    std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkFramebuffer>> frameBuffers;
-    std::unordered_map<IntrusivePtr<RenderPass>, std::vector<VkCommandBuffer>> graphicCommandBuffers;
+    std::unordered_map<IntrusivePtr<RenderPass>, RenderPassResource> renderPassResourceMap;
     std::vector<VkFence> queueCompleteFences;
-
 
     void prepareFences();
     void prepareCommandPool();
-    void prepareCommandBuffer();
     void buildCommandBuffer(uint32_t imageIndex);
+    void prepareRenderPassResource(IntrusivePtr<RenderPass>& renderPass);
+    void prepareCommandBuffer(IntrusivePtr<RenderPass>& renderPass);
+    void prepareFrameBuffer(IntrusivePtr<RenderPass>& renderPass);
+
+    void resolveDrawStatesDescriptors();
 
     uint64_t currentFrame = 0;
 };

@@ -39,6 +39,9 @@ IntrusivePtr<Buffer> VulkanBuffer::Clone()
 {
     auto newBuffer = new VulkanBuffer(context);
     newBuffer->Allocate(bufferCI, memoryCI);
+    if (memoryCI.requiredFlags & MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+        memcpy(newBuffer->Map(), this->Map(), Size());
+    }
     return newBuffer;
 }
 

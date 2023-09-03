@@ -19,7 +19,7 @@ public:
     virtual IntrusivePtr<RenderPass> CreateRenderPass(IntrusivePtr<Graph> graph) override;
     virtual IntrusivePtr<Pipeline> CreatePipeline(IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates) override;
     virtual IntrusivePtr<Buffer> CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits, uint32_t size) override;
-    virtual IntrusivePtr<BufferArray> CreateBufferArray(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
+    virtual IntrusivePtr<MutableBuffer> CreateMutableBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
     virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config) override;
     virtual IntrusivePtr<Sampler> CreateSampler(IntrusivePtr<Texture> texture, Sampler::Configuration config) override;
     virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor() override;

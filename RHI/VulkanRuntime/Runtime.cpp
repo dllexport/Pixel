@@ -79,10 +79,10 @@ IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPr
     return buffer;
 }
 
-IntrusivePtr<BufferArray> VulkanRuntime::CreateBufferArray(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
+IntrusivePtr<MutableBuffer> VulkanRuntime::CreateMutableBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
     auto defaultBuffer = CreateBuffer(type, memoryProperties, size);
-    auto bufferArray = new BufferArray(defaultBuffer);
+    auto bufferArray = new MutableBuffer(defaultBuffer);
     return bufferArray;
 }
 

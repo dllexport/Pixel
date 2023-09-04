@@ -12,7 +12,6 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
     static IntrusivePtr<Graph> ParseRenderPassJson(std::string path);
 
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> graphNodesMap;
-    std::vector<IntrusivePtr<GraphNode>> resourceNodes;
 
     struct TopoResult
     {
@@ -20,10 +19,6 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
         std::map<uint16_t, std::vector<GraphNode *>> levelsRenderPassOnly;
         uint16_t maxLevel;
         uint16_t maxLevelRenderPassOnly;
-
-        uint16_t LevelOf(GraphNode * node) {
-            
-        }
     };
     TopoResult &Topo();
 

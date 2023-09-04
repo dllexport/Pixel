@@ -33,8 +33,10 @@ static TextureFormat TranslateFormat(std::string formatStr)
 #undef STRINGIFY
 }
 
-void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<GraphNode>> &resolvedMap, std::vector<IntrusivePtr<GraphNode>> &resourceNodes)
+// replace reference node with instance
+static void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<GraphNode>> &resolvedMap, std::vector<IntrusivePtr<GraphNode>> &resourceNodes)
 {
+    // merge ref source to target, including all inputs && outputs
     auto mergeGraphNode = [](GraphNode *source, GraphNode *target)
     {
         {
@@ -107,7 +109,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     RenderPassJson json;
     auto error = context.parseTo(json);
 
-    // resolve reference node
+    // none reference node save here
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> resolvedMap;
     std::vector<IntrusivePtr<GraphNode>> resourceNodes;
 
@@ -155,6 +157,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 resolvedMap[input.name] = inputNode;
             }
 
+            // save which subpass use this node as input
             inputNode->inputSubPassNames.insert(subpass.name);
 
             resourceNodes.push_back(inputNode);
@@ -197,7 +200,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 
     ResolveReferenceNode(resolvedMap, resourceNodes);
 
-    for (auto node : resourceNodes)
+    for (auto [name, node] : resolvedMap)
     {
         if (node->type != GraphNode::GRAPHIC_PASS)
         {
@@ -207,17 +210,9 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         for (int i = 0; i < passNode->inputs.size(); i++)
         {
             auto resNode = (ResourceNode *)passNode->inputs[i].get();
-            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding, resNode->type};
+            passNode->bindingSets[name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding, resNode->type};
         }
-    }
-
-    // remove reference
-    for (auto &[k, v] : resolvedMap)
-    {
-        if (v->type == GraphNode::REFERENCE)
-        {
-            resolvedMap.erase(k);
-        }
+        // TODO, handle outputs (BUFFER SSBO)
     }
 
     // append subpass dependency
@@ -304,7 +299,7 @@ Graph::TopoResult &Graph::Topo()
                 }
                 if (outputSet.count(output))
                 {
-                    printf("level %d concurrent write to %s\n", level, output->name.c_str());
+                    spdlog::info("level {} concurrent write to {}", level, output->name);
                 }
                 else
                 {

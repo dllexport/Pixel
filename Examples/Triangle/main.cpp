@@ -52,6 +52,7 @@ void CreateImguiDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer, I
     auto rhiRuntime = engine->GetRHIRuntime();
 
     auto imguiDrawable = rhiRuntime->CreateResourceBindingState(pipeline);
+    imguiDrawable->name = "imguiDrawable";
 
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -69,13 +70,14 @@ void CreateImguiDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer, I
 
     Texture::Configuration config;
     config.tiling = Texture::IMAGE_TILING_OPTIMAL;
+    spdlog::info("imguiFontTexture");
     auto imguiFontTexture = rhiRuntime->CreateTexture(TextureFormat::FORMAT_R8G8B8A8_UNORM, Texture::Usage::IMAGE_USAGE_SAMPLED_BIT | Texture::Usage::IMAGE_USAGE_TRANSFER_DST_BIT, MemoryProperty::MEMORY_PROPERTY_DEVICE_LOCAL_BIT, {uint32_t(texWidth), uint32_t(texHeight), 1}, config);
     auto imguiFontSampler = rhiRuntime->CreateSampler(imguiFontTexture);
     imguiDrawable->Bind(0, 0, imguiFontSampler);
 
     engine->GetAuxiliaryExecutor()->TransferResource(imguiFontTexture, imguiFontHostBuffer);
     imguiFontHostBuffer.reset();
-    
+
     auto imguiCBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_LOCAL_BIT, sizeof(ImguiPushConstant));
     auto pimguiCBuffer = (ImguiPushConstant *)imguiCBuffer->Map();
     pimguiCBuffer->scale = glm::vec2(2.0f / 1024.0f, 2.0f / 768.0f);
@@ -192,8 +194,8 @@ void CreateImguiDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer, I
         // draw ui to internal buffer
         ImGUINewFrame();
 
-        auto &vertexBuffer = imguiDrawable->GetVertexBuffer();
-        auto &indexBuffer = imguiDrawable->GetIndexBuffer();
+        auto &vertexBuffers = imguiDrawable->GetVertexBuffers();
+        auto &indexBuffers = imguiDrawable->GetIndexBuffers();
 
         ImDrawData *imDrawData = ImGui::GetDrawData();
 
@@ -205,16 +207,37 @@ void CreateImguiDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer, I
             return false;
         }
 
-        if ((!vertexBuffer) || (vertexBuffer->Size() != imDrawData->TotalVtxCount))
+        // create buffer if not exist
+        if (!vertexBuffers || !indexBuffers)
         {
-            auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
-            imguiDrawable->BindVertexBuffer(vBuffer);
+            vertexBuffers = rhiRuntime->CreateMutableBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
+            imguiDrawable->BindVertexBuffer(vertexBuffers);
+            indexBuffers = rhiRuntime->CreateMutableBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
+            imguiDrawable->BindIndexBuffer(indexBuffers, ResourceBindingState::INDEX_TYPE_UINT16);
         }
 
-        if ((!indexBuffer) || (indexBuffer->Size() != imDrawData->TotalIdxCount))
+        auto mutableVertexBuffer = static_cast<MutableBuffer *>(vertexBuffers.get());
+        auto mutableIndexBuffer = static_cast<MutableBuffer *>(indexBuffers.get());
+
+        auto &vertexBuffer = mutableVertexBuffer->GetBuffer(inputs.currentImageIndex);
+        auto &indexBuffer = mutableIndexBuffer->GetBuffer(inputs.currentImageIndex);
+
+        // mutate buffer if change
+        if (vertexBuffers && indexBuffers)
         {
-            auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
-            imguiDrawable->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT16);
+            auto b1 = vertexBuffer->Size() != imDrawData->TotalVtxCount;
+            if (b1)
+            {
+                auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
+                mutableVertexBuffer->SetBuffer(inputs.currentImageIndex, vBuffer);
+            }
+
+            auto b2 = indexBuffer->Size() != imDrawData->TotalIdxCount;
+            if (b2)
+            {
+                auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
+                mutableIndexBuffer->SetBuffer(inputs.currentImageIndex, iBuffer);
+            }
         }
 
         // Upload data
@@ -275,8 +298,14 @@ void CreateTriangleDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Re
     auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
     memcpy(iBuffer->Map(), indexBuffer.data(), indexBufferSize);
 
+    glm::mat4 model = glm::mat4(1.0f);
+
+    auto uBuffer = rhiRuntime->CreateMutableBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(model));
+    memcpy(uBuffer->GetBuffer(0)->Map(), &model, sizeof(model));
+
     auto rbs = rhiRuntime->CreateResourceBindingState(pipeline);
     rbs->Bind(0, 0, camera->GetUBOBuffer());
+    rbs->Bind(0, 1, uBuffer);
     rbs->BindVertexBuffer(vBuffer);
     rbs->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT32);
     rbs->BindDrawOp({ResourceBindingState::DrawOP{
@@ -285,31 +314,7 @@ void CreateTriangleDrawable(IntrusivePtr<RHIRuntime> rhiRuntime, IntrusivePtr<Re
         .firstIndex = 0,
         .vertexOffset = 0,
         .firstInstance = 1}});
-    renderer->AddDrawState(rbs);
-}
-
-void CreateTextureDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
-{
-    auto rhiRuntime = engine->GetRHIRuntime();
-    
-    auto camera = renderer->GetCamera();
-
-    auto vBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_VERTEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBufferSize);
-    memcpy(vBuffer->Map(), vertexBuffer.data(), vertexBufferSize);
-    auto iBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_INDEX_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, indexBufferSize);
-    memcpy(iBuffer->Map(), indexBuffer.data(), indexBufferSize);
-
-    auto rbs = rhiRuntime->CreateResourceBindingState(pipeline);
-    rbs->Bind(0, 0, camera->GetUBOBuffer());
-    rbs->BindVertexBuffer(vBuffer);
-    rbs->BindIndexBuffer(iBuffer, ResourceBindingState::INDEX_TYPE_UINT32);
-    rbs->BindDrawOp({ResourceBindingState::DrawOP{
-        .indexCount = 3,
-        .instanceCount = 1,
-        .firstIndex = 0,
-        .vertexOffset = 0,
-        .firstInstance = 1}});
-
+    rbs->name = "triangle";
     renderer->AddDrawState(rbs);
 }
 
@@ -317,7 +322,7 @@ int main()
 {
     spdlog::set_level(spdlog::level::debug);
 
-    auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/simple.json");
+    auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/Triangle/triangle.json");
     PipelineStates colorPipelineStates = {
         .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},

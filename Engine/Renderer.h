@@ -39,7 +39,8 @@ public:
 
     bool Stopped();
 
-    void RegisterUpdateCallback(UpdateCallback callback) {
+    void RegisterUpdateCallback(UpdateCallback callback)
+    {
         updateCallbacks.push_back(callback);
     }
 
@@ -61,4 +62,6 @@ private:
     void InitWindow();
     void ReCreateSwapChain(uint32_t width, uint32_t height);
     void EventCallback(Event event);
+
+    std::chrono::steady_clock::time_point frameStartTime;
 };

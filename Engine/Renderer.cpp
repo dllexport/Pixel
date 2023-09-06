@@ -61,8 +61,9 @@ void Renderer::PostFrame()
 
 void Renderer::Update()
 {
-    // TODO: opt resource update with frame overlap
-    renderPassExecutor->WaitIdle();
+    frameStartTime = std::chrono::high_resolution_clock::now();
+
+    auto imageIndex = renderPassExecutor->Acquire();
 
     window->Update();
 
@@ -85,10 +86,9 @@ void Renderer::Frame()
     {
         return;
     }
-    auto lastFrameTime = std::chrono::high_resolution_clock::now();
     auto executeResult = renderPassExecutor->Execute();
     auto now = std::chrono::high_resolution_clock::now();
-    this->deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastFrameTime).count();
+    this->deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - frameStartTime).count();
 }
 
 void Renderer::EventCallback(Event event)
@@ -96,7 +96,8 @@ void Renderer::EventCallback(Event event)
     this->ioState.Update(event);
     UpdateInput updateInput = {.event = event,
                                .deltaTime = deltaTime,
-                               .ioState = ioState};
+                               .ioState = ioState,
+                               .currentImageIndex = renderPassExecutor->CurrentImage()};
 
     std::vector<UpdateCallback> groupCallbacks;
     for (auto &drawState : drawStates)
@@ -131,7 +132,6 @@ IntrusivePtr<Camera> Renderer::GetCamera()
         camera->setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
         camera->setRotation(glm::vec3(0.0f));
         camera->setPerspective(60.0f, (float)1024 / (float)768, 0.1f, 256.0f);
-        camera->Sync();
 
         this->RegisterUpdateCallback({GENERAL, std::bind(&Camera::EventCallback, camera.get(), std::placeholders::_1)});
     }

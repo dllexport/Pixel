@@ -24,12 +24,15 @@ find_package(Boost COMPONENTS date_time filesystem system)
 set(SPIRV_REFLECT_EXECUTABLE OFF)
 set(SPIRV_REFLECT_EXAMPLES OFF)
 set(SPIRV_REFLECT_STATIC_LIB ON)
-set(SPIRV_REFLECT_EXAMPLES OFF)
 add_subdirectory(3rd/SPIRV-Reflect)
 
 add_subdirectory(3rd/json_struct)
 add_subdirectory(3rd/spdlog)
 add_subdirectory(3rd/glm)
+
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
+set(TINYGLTF_INSTALL OFF)
+add_subdirectory(3rd/tinygltf)
 
 set(KTX_FEATURE_TESTS OFF)
 add_subdirectory(3rd/KTX-Software)
@@ -76,6 +79,7 @@ target_link_libraries(Pixel PUBLIC
     ${VULKAN_SDK}/lib/vulkan-1.lib
     spirv-reflect-static
     ktx
+    tinygltf
 )
 
 if (WINDOW_USE_GLFW)

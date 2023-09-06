@@ -16,6 +16,11 @@ public:
 
     virtual ~RenderPassExecutor() = default;
 
+    virtual uint32_t CurrentImage() = 0;
+
+    // get swapchain image index
+    virtual uint32_t Acquire() = 0;
+
     // allocate resource, attachments, framebuffer etc.
     virtual void Prepare() = 0;
 

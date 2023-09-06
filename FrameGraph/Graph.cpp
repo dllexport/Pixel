@@ -210,7 +210,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         for (int i = 0; i < passNode->inputs.size(); i++)
         {
             auto resNode = (ResourceNode *)passNode->inputs[i].get();
-            passNode->bindingSets[name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding, resNode->type};
+            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding, resNode->type};
         }
         // TODO, handle outputs (BUFFER SSBO)
     }

@@ -296,6 +296,7 @@ struct UpdateInput
     Event event;
     uint64_t deltaTime;
     IOState &ioState;
+    uint32_t currentImageIndex;
 };
 
 using UpdateCallbackPriority = uint32_t;

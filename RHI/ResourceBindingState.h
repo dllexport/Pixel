@@ -8,7 +8,6 @@
 #include <Core/IntrusivePtr.h>
 #include <RHI/Pipeline.h>
 #include <RHI/ResourceHandle.h>
-#include <RHI/Buffer.h>
 
 #include <Engine/Event.h>
 
@@ -16,6 +15,9 @@
 class ResourceBindingState : public IntrusiveCounter<ResourceBindingState>
 {
 public:
+    // for debug
+    std::string name;
+
     ResourceBindingState(IntrusivePtr<Pipeline> pipeline) : pipeline(pipeline) {}
     virtual ~ResourceBindingState() {}
 
@@ -41,6 +43,7 @@ public:
         int32_t vertexOffset;
         uint32_t firstInstance;
     };
+
     void BindDrawOp(std::vector<DrawOP> drawOps)
     {
         this->drawOps = drawOps;
@@ -58,23 +61,23 @@ public:
         INDEX_TYPE_UINT8 = 1000265000,
     };
 
-    void BindVertexBuffer(IntrusivePtr<Buffer> buffer)
+    void BindVertexBuffer(IntrusivePtr<ResourceHandle> buffer)
     {
         vertexBuffer = buffer;
     }
 
-    void BindIndexBuffer(IntrusivePtr<Buffer> buffer, IndexType type)
+    void BindIndexBuffer(IntrusivePtr<ResourceHandle> buffer, IndexType type)
     {
         indexBuffer = buffer;
         indexType = type;
     }
 
-    IntrusivePtr<Buffer> &GetVertexBuffer()
+    IntrusivePtr<ResourceHandle> &GetVertexBuffers()
     {
         return vertexBuffer;
     }
 
-    IntrusivePtr<Buffer> &GetIndexBuffer()
+    IntrusivePtr<ResourceHandle> &GetIndexBuffers()
     {
         return indexBuffer;
     }
@@ -87,9 +90,10 @@ public:
 protected:
     friend class std::hash<ResourceBindingState>;
     friend class Renderer;
+
     IntrusivePtr<Pipeline> pipeline;
-    IntrusivePtr<Buffer> vertexBuffer;
-    IntrusivePtr<Buffer> indexBuffer;
+    IntrusivePtr<ResourceHandle> vertexBuffer;
+    IntrusivePtr<ResourceHandle> indexBuffer;
     IndexType indexType;
 
     // define how renderer will draw the buffer

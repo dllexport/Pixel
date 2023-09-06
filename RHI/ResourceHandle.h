@@ -18,4 +18,16 @@ public:
 
     ResourceHandle(ResourceHandleType type) : type(type) {}
     virtual ~ResourceHandle() = default;
+
+    template <class T>
+    T *As()
+    {
+#ifndef NDEBUG
+        return static_cast<T *>(this);
+#else
+        auto p = dynamic_cast<T *>(this);
+        assert(p);
+        return p;
+#endif
+    }
 };

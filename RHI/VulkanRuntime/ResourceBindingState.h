@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include <RHI/ResourceBindingState.h>
+#include <RHI/MutableBuffer.h>
 
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/Buffer.h>
@@ -19,14 +20,35 @@ public:
     virtual void Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource) override;
     virtual void Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources) override;
 
-    IntrusivePtr<VulkanBuffer> GetVertexBuffer()
+    IntrusivePtr<VulkanBuffer> GetVertexBuffer(uint32_t frameIndex)
     {
-        return static_cast<VulkanBuffer *>(this->vertexBuffer.get());
+        if (!vertexBuffer)
+            return nullptr;
+
+        if (this->vertexBuffer->type == ResourceHandle::BUFFER_ARRAY)
+        {
+            auto mutableMuffer = static_cast<MutableBuffer *>(this->vertexBuffer.get());
+            return static_cast<VulkanBuffer *>(mutableMuffer->GetBuffer(frameIndex).get());
+        }
+        else
+        {
+            return static_cast<VulkanBuffer *>(this->vertexBuffer.get());
+        }
     }
 
-    IntrusivePtr<VulkanBuffer> GetIndexBuffer()
+    IntrusivePtr<VulkanBuffer> GetIndexBuffer(uint32_t frameIndex)
     {
-        return static_cast<VulkanBuffer *>(this->indexBuffer.get());
+        if (!indexBuffer)
+            return nullptr;
+        if (this->indexBuffer->type == ResourceHandle::BUFFER_ARRAY)
+        {
+            auto mutableMuffer = static_cast<MutableBuffer *>(this->indexBuffer.get());
+            return static_cast<VulkanBuffer *>(mutableMuffer->GetBuffer(frameIndex).get());
+        }
+        else
+        {
+            return static_cast<VulkanBuffer *>(this->indexBuffer.get());
+        }
     }
 
     std::vector<VkDescriptorSet> &GetDescriptorSets(uint32_t frameIndex)
@@ -85,8 +107,6 @@ private:
     IntrusivePtr<Context> context;
 
     IntrusivePtr<VulkanDescriptorSet> descriptorSet;
-
-    void AllocateDescriptors(IntrusivePtr<Pipeline> pipeline, uint32_t frameOverlapped);
 
     std::vector<UpdateRequest> updateRequests;
 };

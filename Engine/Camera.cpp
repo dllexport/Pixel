@@ -7,12 +7,7 @@ Camera::Camera(IntrusivePtr<RHIRuntime> rhiRuntime) : rhiRuntime(rhiRuntime)
 
 void Camera::Allocate()
 {
-    this->uniformBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(UBO));
-}
-
-void Camera::Sync()
-{
-    memcpy(uniformBuffer->Map(), &ubo, sizeof(ubo));
+    this->uniformBuffer = rhiRuntime->CreateMutableBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(UBO));
 }
 
 bool Camera::EventCallback(UpdateInput inputs)
@@ -78,7 +73,10 @@ bool Camera::EventCallback(UpdateInput inputs)
     }
 
     this->update(deltaTime / 100.f);
-    this->Sync();
+
+    auto frameUniformBuffer = static_cast<MutableBuffer*>(uniformBuffer.get());
+
+    memcpy(frameUniformBuffer->GetBuffer(inputs.currentImageIndex)->Map(), &ubo, sizeof(ubo));
 
     return false;
 }

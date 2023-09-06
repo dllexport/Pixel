@@ -15,13 +15,14 @@
 
 #include <Core/IntrusivePtr.h>
 #include <RHI/Buffer.h>
+#include <RHI/MutableBuffer.h>
 #include <RHI/RHIRuntime.h>
 
 class Camera : public IntrusiveCounter<Camera>
 {
 private:
 	// uniform Buffer for camera matrix
-	IntrusivePtr<Buffer> uniformBuffer;
+	IntrusivePtr<MutableBuffer> uniformBuffer;
 	IntrusivePtr<RHIRuntime> rhiRuntime;
 	glm::vec2 mousePos = {};
 
@@ -69,14 +70,13 @@ public:
 
 	UBO ubo;
 
-	IntrusivePtr<Buffer> GetUBOBuffer()
+	IntrusivePtr<MutableBuffer> GetUBOBuffer()
 	{
 		return this->uniformBuffer;
 	}
 
 	Camera(IntrusivePtr<RHIRuntime> rhiRuntime);
 	void Allocate();
-	void Sync();
 
 	bool EventCallback(UpdateInput inputs);
 

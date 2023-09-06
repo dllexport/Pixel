@@ -14,7 +14,9 @@ class VulkanRenderPassExecutor : public RenderPassExecutor
 public:
     VulkanRenderPassExecutor(IntrusivePtr<Context> context);
     virtual ~VulkanRenderPassExecutor() override;
-
+    
+    virtual uint32_t CurrentImage() override;
+    virtual uint32_t Acquire() override;
     virtual void Prepare() override;
     virtual bool Execute() override;
     // rebuild command buffer
@@ -48,4 +50,5 @@ private:
     void resolveDrawStatesDescriptors();
 
     uint64_t currentFrame = 0;
+    int32_t currentImage = 0;
 };

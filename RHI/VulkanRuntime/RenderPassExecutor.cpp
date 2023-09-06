@@ -29,34 +29,36 @@ VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
     vkDestroyCommandPool(context->GetVkDevice(), computeCommandPool, nullptr);
 }
 
-// TODO
 void VulkanRenderPassExecutor::Reset()
 {
-    // attachmentImages.clear();
+    for (auto [_, resource] : renderPassResourceMap)
+    {
+        resource.attachmentImages.clear();
 
-    // for (auto &[_, frameBuffer] : frameBuffers)
-    // {
-    //     for (auto &fb : frameBuffer)
-    //     {
-    //         vkDestroyFramebuffer(context->GetVkDevice(), fb, nullptr);
-    //     }
+        for (auto &fb : resource.frameBuffers)
+        {
+            vkDestroyFramebuffer(context->GetVkDevice(), fb, nullptr);
+        }
 
-    //     frameBuffer.clear();
-    // }
+        resource.frameBuffers.clear();
 
-    // for (auto &[_, graphicCommandBuffer] : graphicCommandBuffers)
-    // {
-    //     graphicCommandBuffer.clear();
-    // }
+        for (auto &graphicCommandBuffer : resource.graphicCommandBuffers)
+        {
+            vkResetCommandBuffer(graphicCommandBuffer, VkCommandPoolResetFlagBits::VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+        }
+        resource.graphicCommandBuffers.clear();
+    }
 
-    // for (auto &fence : queueCompleteFences)
-    // {
-    //     vkDestroyFence(context->GetVkDevice(), fence, nullptr);
-    // }
+    renderPassResourceMap.clear();
 
-    // queueCompleteFences.clear();
+    for (auto &fence : queueCompleteFences)
+    {
+        vkDestroyFence(context->GetVkDevice(), fence, nullptr);
+    }
 
-    // currentFrame = 0;
+    queueCompleteFences.clear();
+
+    currentFrame = 0;
 }
 
 void VulkanRenderPassExecutor::prepareFences()
@@ -168,7 +170,7 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                     auto &descriptorSets = vulkanRBS->GetDescriptorSets(imageIndex);
                     auto constantBuffer = static_cast<ConstantBuffer *>(vulkanRBS->GetConstantBuffer().get());
 
-                    if (vrb->GetDrawOps().empty() && (!vulkanRBS->GetVertexBuffer() || !vulkanRBS->GetIndexBuffer()))
+                    if (vrb->GetDrawOps().empty() && (!vulkanRBS->GetVertexBuffers() || !vulkanRBS->GetIndexBuffers()))
                     {
                         continue;
                     }
@@ -188,10 +190,16 @@ void VulkanRenderPassExecutor::buildCommandBuffer(uint32_t imageIndex)
                     }
 
                     const VkDeviceSize offsets[1] = {0};
-                    if (vulkanRBS->GetVertexBuffer())
-                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkanRBS->GetVertexBuffer()->GetBuffer(), offsets);
-                    if (vulkanRBS->GetIndexBuffer())
-                        vkCmdBindIndexBuffer(commandBuffer, vulkanRBS->GetIndexBuffer()->GetBuffer(), 0, vulkanRBS->GetIndexType());
+                    auto vertexBuffer = vulkanRBS->GetVertexBuffer(imageIndex);
+                    if (vertexBuffer)
+                    {
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer->GetBuffer(), offsets);
+                    }
+                    auto indexBuffer = vulkanRBS->GetIndexBuffer(imageIndex);
+                    if (indexBuffer)
+                    {
+                        vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetBuffer(), 0, vulkanRBS->GetIndexType());
+                    }
 
                     // default scissor
                     VkRect2D scissor = {};
@@ -377,10 +385,10 @@ void VulkanRenderPassExecutor::Prepare()
     // fill dummy or internal data if slot is empty
     resolveDrawStatesDescriptors();
 
-    for (int i = 0; i < swapChainImageSize; i++)
-    {
-        buildCommandBuffer(i);
-    }
+    // for (int i = 0; i < swapChainImageSize; i++)
+    // {
+    //     buildCommandBuffer(i);
+    // }
 }
 
 void VulkanRenderPassExecutor::resolveDrawStatesDescriptors()
@@ -435,22 +443,12 @@ bool VulkanRenderPassExecutor::Execute()
 {
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
 
-    vkWaitForFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame]);
-
-    auto imageIndex = vulkanSC->Acquire(currentFrame);
-    if (imageIndex == -1)
-    {
-        spdlog::info("acquire failed");
-        return false;
-    }
-
     std::vector<VkCommandBuffer> commandBuffers;
 
     // aggregate command buffers
     for (auto [_, cbs] : renderPassResourceMap)
     {
-        commandBuffers.push_back(cbs.graphicCommandBuffers[imageIndex]);
+        commandBuffers.push_back(cbs.graphicCommandBuffers[currentImage]);
     }
 
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -476,7 +474,7 @@ bool VulkanRenderPassExecutor::Execute()
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
-    bool presentResult = swapChain->Present(imageIndex, currentFrame);
+    bool presentResult = swapChain->Present(currentImage, currentFrame);
     if (!presentResult)
     {
         return false;
@@ -486,24 +484,38 @@ bool VulkanRenderPassExecutor::Execute()
     return true;
 }
 
-void VulkanRenderPassExecutor::Update()
+uint32_t VulkanRenderPassExecutor::CurrentImage()
+{
+    return currentImage;
+}
+
+uint32_t VulkanRenderPassExecutor::Acquire()
 {
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
 
+    vkWaitForFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(context->GetVkDevice(), 1, &queueCompleteFences[currentFrame]);
+
+    currentImage = vulkanSC->Acquire(currentFrame);
+    if (currentImage == -1)
+    {
+        spdlog::info("acquire failed");
+        return -1;
+    }
+
+    return currentImage;
+}
+
+void VulkanRenderPassExecutor::Update()
+{
     // aggregate command buffers
     for (auto [_, cbs] : this->renderPassResourceMap)
     {
-        for (auto &cb : cbs.graphicCommandBuffers)
-        {
-            vkResetCommandBuffer(cb, 0);
-        }
+        vkResetCommandBuffer(cbs.graphicCommandBuffers[currentImage], 0);
     }
 
     // rebuild the command buffer at lastFrame index
-    for (int i = 0; i < vulkanSC->GetTextures().size(); i++)
-    {
-        buildCommandBuffer(i);
-    }
+    buildCommandBuffer(currentImage);
 }
 
 void VulkanRenderPassExecutor::WaitIdle()

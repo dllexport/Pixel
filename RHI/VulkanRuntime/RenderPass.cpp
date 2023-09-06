@@ -70,7 +70,7 @@ std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t 
         dependency.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         dependency.srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         dependency.dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+        dependency.dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
     }
 
     if (waw)
@@ -89,7 +89,7 @@ std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t 
         dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     }
 
-    dependency.dependencyFlags = 0;
+    dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     return dependency;
 }
@@ -118,8 +118,9 @@ void VulkanRenderPass::Build()
                 if (n->type == GraphNode::ATTACHMENT)
                 {
                     auto agn = static_cast<AttachmentGraphNode *>(n.get());
-                    agn->input = true;
-                    int attachmentRefIndex = std::find(attachmentNodes.begin(), attachmentNodes.end(), agn) - attachmentNodes.begin();
+                    int attachmentRefIndex = std::find_if(attachmentNodes.begin(), attachmentNodes.end(), [&](IntrusivePtr<AttachmentGraphNode> &node)
+                                                          { return node->name == agn->name; }) -
+                                             attachmentNodes.begin();
                     if (attachmentRefIndex >= attachmentNodes.size())
                     {
                         attachmentRefIndex = attachmentCounter++;
@@ -178,7 +179,7 @@ void VulkanRenderPass::Build()
                     desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                     desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                     desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    desc.finalLayout = attachmentNode->swapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 }
                 attachmentsDescriptions.push_back(desc);
             }
@@ -219,6 +220,15 @@ void VulkanRenderPass::Build()
                     dependencies.push_back(dependency.value());
                 }
             }
+
+            VkSubpassDependency dependency = {};
+            dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+            dependency.dstSubpass = 0;
+            dependency.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependency.srcAccessMask |= 0;
+            dependency.dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dependency.dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
+            dependencies.push_back(dependency);
         }
     }
 

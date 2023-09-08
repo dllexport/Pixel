@@ -90,5 +90,5 @@ void main()
 		}	
 	}    	
    
-  outFragcolor = albedo;	
+  outFragcolor = vec4(fragcolor, 1.0);	
 }

@@ -22,7 +22,7 @@ struct TextureUBO
 
 struct Light
 {
-    glm::vec3 position;
+    glm::vec4 position;
     glm::vec3 color;
     float radius;
 };
@@ -30,7 +30,7 @@ struct Light
 struct LightsUBO
 {
     Light lights[6];
-    glm::vec3 viewPos;
+    glm::vec4 viewPos;
     int debugDisplayTarget = 0;
 };
 
@@ -362,14 +362,71 @@ void CreateComposeDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer,
     auto rbs = rhiRuntime->CreateResourceBindingState(pipeline);
 
     LightsUBO lightsUBO = {};
-    auto uBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(TextureUBO));
-    memcpy(uBuffer->Map(), &lightsUBO, sizeof(lightsUBO));
+    // White
+    lightsUBO.lights[0].position = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    lightsUBO.lights[0].color = glm::vec3(1.5f);
+    lightsUBO.lights[0].radius = 15.0f * 0.25f;
+    // Red
+    lightsUBO.lights[1].position = glm::vec4(-2.0f, 0.0f, 0.0f, 0.0f);
+    lightsUBO.lights[1].color = glm::vec3(1.0f, 0.0f, 0.0f);
+    lightsUBO.lights[1].radius = 15.0f;
+    // Blue
+    lightsUBO.lights[2].position = glm::vec4(2.0f, -1.0f, 0.0f, 0.0f);
+    lightsUBO.lights[2].color = glm::vec3(0.0f, 0.0f, 2.5f);
+    lightsUBO.lights[2].radius = 5.0f;
+    // Yellow
+    lightsUBO.lights[3].position = glm::vec4(0.0f, -0.9f, 0.5f, 0.0f);
+    lightsUBO.lights[3].color = glm::vec3(1.0f, 1.0f, 0.0f);
+    lightsUBO.lights[3].radius = 2.0f;
+    // Green
+    lightsUBO.lights[4].position = glm::vec4(0.0f, -0.5f, 0.0f, 0.0f);
+    lightsUBO.lights[4].color = glm::vec3(0.0f, 1.0f, 0.2f);
+    lightsUBO.lights[4].radius = 5.0f;
+    // Yellow
+    lightsUBO.lights[5].position = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+    lightsUBO.lights[5].color = glm::vec3(1.0f, 0.7f, 0.3f);
+    lightsUBO.lights[5].radius = 25.0f;
+
+    double timer = 0;
+
+    lightsUBO.lights[0].position.x = sin(glm::radians(360.0f * timer)) * 5.0f;
+    lightsUBO.lights[0].position.z = cos(glm::radians(360.0f * timer)) * 5.0f;
+
+    lightsUBO.lights[1].position.x = -4.0f + sin(glm::radians(360.0f * timer) + 45.0f) * 2.0f;
+    lightsUBO.lights[1].position.z = 0.0f + cos(glm::radians(360.0f * timer) + 45.0f) * 2.0f;
+
+    lightsUBO.lights[2].position.x = 4.0f + sin(glm::radians(360.0f * timer)) * 2.0f;
+    lightsUBO.lights[2].position.z = 0.0f + cos(glm::radians(360.0f * timer)) * 2.0f;
+
+    lightsUBO.lights[4].position.x = 0.0f + sin(glm::radians(360.0f * timer + 90.0f)) * 5.0f;
+    lightsUBO.lights[4].position.z = 0.0f - cos(glm::radians(360.0f * timer + 45.0f)) * 5.0f;
+
+    lightsUBO.lights[5].position.x = 0.0f + sin(glm::radians(-360.0f * timer + 135.0f)) * 10.0f;
+    lightsUBO.lights[5].position.z = 0.0f - cos(glm::radians(-360.0f * timer - 45.0f)) * 10.0f;
+
+    lightsUBO.viewPos = glm::vec4(renderer->GetCamera()->position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+
+    auto siz = sizeof(LightsUBO);
+    auto uBuffer = rhiRuntime->CreateMutableBuffer(Buffer::BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(LightsUBO));
+
+    memcpy(uBuffer->GetBuffer(0)->Map(), &lightsUBO, sizeof(lightsUBO));
 
     rbs->Bind(0, 0, uBuffer);
     ResourceBindingState::DrawOP drawOP = {};
     drawOP.vertexCount = 3;
     drawOP.instanceCount = 1;
     rbs->BindDrawOp({drawOP});
+
+    UpdateCallback updateCallback = {
+        .priority = GENERAL,
+        .callback = [uBuffer, renderer](UpdateInput input)
+        {
+            auto ubo = (LightsUBO *)uBuffer->GetBuffer(input.currentImageIndex)->Map();
+            ubo->viewPos = renderer->GetCamera()->viewPos;
+            return false;
+        }};
+
+    rbs->RegisterUpdateCallback(updateCallback);
 
     renderer->AddDrawState(rbs);
 }

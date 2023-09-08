@@ -59,6 +59,12 @@ void VulkanRenderPassExecutor::Reset()
     queueCompleteFences.clear();
 
     currentFrame = 0;
+    currentImage = 0;
+}
+
+void VulkanRenderPassExecutor::ResetSwapChainImages()
+{
+    // TODO
 }
 
 void VulkanRenderPassExecutor::prepareFences()
@@ -67,8 +73,6 @@ void VulkanRenderPassExecutor::prepareFences()
 
     VkFenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    // Create in signaled state so we don't wait on first render of each command buffer
-    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     queueCompleteFences.resize(vulkanSC->GetTextures().size());
     for (auto &fence : queueCompleteFences)
     {
@@ -293,6 +297,7 @@ void VulkanRenderPassExecutor::prepareFrameBuffer(IntrusivePtr<RenderPass> &rend
             {
                 attachmentImages[attachment->name].push_back({vulkanSC->GetTextures()[i], vulkanSC->GetTextureViews()[i], nullptr});
                 attachmentViews.push_back(vulkanSC->GetTextureViews()[i]->GetImageView());
+                renderPassResource.resetEntries.insert(attachment->name);
                 continue;
             }
 
@@ -318,6 +323,8 @@ void VulkanRenderPassExecutor::prepareFrameBuffer(IntrusivePtr<RenderPass> &rend
             if (textureUsage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
             {
                 imageAspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
+                // need to recreate depth texture when swapchain change
+                renderPassResource.resetEntries.insert(attachment->name);
             }
             if (textureUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             {
@@ -384,11 +391,6 @@ void VulkanRenderPassExecutor::Prepare()
     // make sure all descriptor set in layout is valid
     // fill dummy or internal data if slot is empty
     resolveDrawStatesDescriptors();
-
-    // for (int i = 0; i < swapChainImageSize; i++)
-    // {
-    //     buildCommandBuffer(i);
-    // }
 }
 
 void VulkanRenderPassExecutor::resolveDrawStatesDescriptors()

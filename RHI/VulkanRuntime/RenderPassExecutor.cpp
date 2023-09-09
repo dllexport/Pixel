@@ -33,7 +33,10 @@ void VulkanRenderPassExecutor::Reset()
 {
     for (auto [_, resource] : renderPassResourceMap)
     {
-        resource.attachmentImages.clear();
+        for (auto resetEntry : resource.resetEntries)
+        {
+            resource.attachmentImages.erase(resetEntry);
+        }
 
         for (auto &fb : resource.frameBuffers)
         {
@@ -292,6 +295,7 @@ void VulkanRenderPassExecutor::prepareFrameBuffer(IntrusivePtr<RenderPass> &rend
 
         for (auto attachment : vulkanRP->attachmentNodes)
         {
+            // TODO: skip if image already exist
             // if attachment is swapchain, use reference instead of creating one
             if (attachment->swapChain)
             {

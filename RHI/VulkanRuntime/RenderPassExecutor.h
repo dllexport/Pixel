@@ -51,6 +51,7 @@ private:
     void buildCommandBuffer(uint32_t imageIndex);
     void prepareRenderPassResource(IntrusivePtr<RenderPass>& renderPass);
     void prepareCommandBuffer(IntrusivePtr<RenderPass>& renderPass);
+    // allocate all texture resource
     void prepareFrameBuffer(IntrusivePtr<RenderPass>& renderPass);
 
     void resolveDrawStatesDescriptors();

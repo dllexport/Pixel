@@ -22,47 +22,18 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
         SAMPLER
     };
 
-    explicit GraphNode(std::string name, Type type) : name(name), type(type) {}
+    explicit GraphNode(std::string name, Type type);
+
+    void AddInput(GraphNode *from);
+
+    void AddOutput(GraphNode *to);
+
+    // get all outputs of outputs, filtered by type
+    std::vector<IntrusivePtr<GraphNode>> TraceAllOutputs(Type type, uint32_t traceLevel);
+
     std::string name;
     Type type;
     uint16_t inputDegree = 0;
-
-    void AddInput(GraphNode *from)
-    {
-        inputs.push_back(from);
-        from->outputs.push_back(this);
-    }
-
-    void AddOutput(GraphNode *to)
-    {
-        outputs.push_back(to);
-        to->inputs.push_back(this);
-    }
-
-    // get all outputs of outputs, filtered by type
-    std::vector<IntrusivePtr<GraphNode>> TraceAllOutputs(Type type, uint32_t traceLevel)
-    {
-        if (traceLevel == 0)
-        {
-            return {};
-        }
-
-        std::vector<IntrusivePtr<GraphNode>> result;
-        for (auto &output : outputs)
-        {
-            if (output->type == type)
-            {
-                result.push_back(output);
-            }
-
-            for (auto output2 : output->outputs)
-            {
-                auto nestedResult = output2->TraceAllOutputs(type, traceLevel - 1);
-                result.insert(result.end(), nestedResult.begin(), nestedResult.end());
-            }
-        }
-        return result;
-    }
 
     friend class Graph;
     std::vector<IntrusivePtr<GraphNode>> inputs;
@@ -105,7 +76,8 @@ struct GraphicRenderPassGraphNode : public GraphNode
     std::string framgmentShader;
 
     // node -> (set, binding)
-    struct ResourceBindingPack {
+    struct ResourceBindingPack
+    {
         uint32_t set;
         uint32_t binding;
         Type type;

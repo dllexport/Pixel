@@ -7,6 +7,7 @@
 #include <Engine/PixelEngine.h>
 #include <Engine/Renderable.h>
 #include <Engine/Camera.h>
+#include <Engine/ImguiOverlay.h>
 
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
@@ -419,10 +420,10 @@ void CreateComposeDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer,
 
     UpdateCallback updateCallback = {
         .priority = GENERAL,
-        .callback = [uBuffer, renderer](UpdateInput input)
+        .callback = [uBuffer, camera = renderer->GetCamera()](UpdateInput input)
         {
             auto ubo = (LightsUBO *)uBuffer->GetBuffer(input.currentImageIndex)->Map();
-            ubo->viewPos = renderer->GetCamera()->viewPos;
+            ubo->viewPos = camera->viewPos;
             return false;
         }};
 
@@ -437,29 +438,6 @@ int main()
 
     auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/Deferred/deferred.json");
 
-    ColorBlendAttachmentState imguiColorBlendState = {
-        .blendEnable = true,
-        .srcColorBlendFactor = BLEND_FACTOR_SRC_ALPHA,
-        .dstColorBlendFactor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .colorBlendOp = BLEND_OP_ADD,
-        .srcAlphaBlendFactor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .dstAlphaBlendFactor = BLEND_FACTOR_ZERO,
-        .alphaBlendOp = BLEND_OP_ADD,
-        .colorWriteMask = COLOR_COMPONENT_ALL_BIT};
-
-    std::vector<VertexInputState> imguiInputStates{
-        {0, 0, TextureFormat::FORMAT_R32G32_SFLOAT},
-        {0, 1, TextureFormat::FORMAT_R32G32_SFLOAT},
-        {0, 2, TextureFormat::FORMAT_R8G8B8A8_UNORM},
-    };
-
-    PipelineStates imguiPipelineStates = {
-        .vertexInputStates = imguiInputStates,
-        .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
-        .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
-        .colorBlendAttachmentStates = {imguiColorBlendState},
-        .depthStencilState = {.depthTestEnable = false, .depthWriteEnable = false}};
-
     PipelineStates colorPipelineStates = {
         .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
@@ -469,16 +447,23 @@ int main()
     auto renderPass = engine->RegisterRenderPass(graph);
     auto colorPipeline = engine->RegisterPipeline("singlePass", "deferred", colorPipelineStates);
     auto composePipeline = engine->RegisterPipeline("singlePass", "compose", colorPipelineStates);
-    auto imguiPipeline = engine->RegisterPipeline("singlePass", "imgui", imguiPipelineStates);
 
     auto rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();
 
-    CreateImguiDrawable(engine.get(), renderer, imguiPipeline);
+    IntrusivePtr<ImguiOverlay> ui = new ImguiOverlay(engine.get());
+    ui->BuildPipeline();
+    ui->BuildDrawable();
+
+    renderer->AddDrawState(ui->drawState);
+
     CreateTextureDrawable(engine.get(), renderer, colorPipeline);
     CreateComposeDrawable(engine.get(), renderer, composePipeline);
 
     engine->Frame();
+
+    renderer.reset();
+    engine.reset();
 
     return 0;
 }

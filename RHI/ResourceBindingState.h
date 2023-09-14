@@ -87,6 +87,11 @@ public:
         updateCallbacks.push_back(callback);
     }
 
+    void ClearUpdateCallbacks()
+    {
+        updateCallbacks.clear();
+    }
+
 protected:
     friend class std::hash<ResourceBindingState>;
     friend class Renderer;

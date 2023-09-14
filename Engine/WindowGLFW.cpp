@@ -120,6 +120,7 @@ Window::Window()
 
 Window::~Window()
 {
+    glfwDestroyWindow((GLFWwindow *)this->hwnd);
 }
 
 void Window::Build(uint32_t width, uint32_t height)

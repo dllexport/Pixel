@@ -14,6 +14,7 @@ PixelEngine::PixelEngine()
 
 PixelEngine::~PixelEngine()
 {
+    assert(auxExecutor->use_count() == 1);
 }
 
 IntrusivePtr<RenderPass> PixelEngine::RegisterRenderPass(IntrusivePtr<Graph> graph)

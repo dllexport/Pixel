@@ -12,6 +12,25 @@ Renderer::Renderer(PixelEngine *engine) : engine(engine)
 
 Renderer::~Renderer()
 {
+    renderPassExecutor->WaitIdle();
+    renderPassExecutor->Reset();
+
+    assert(renderPassExecutor->use_count() == 1);
+    renderPassExecutor.reset();
+
+    updateCallbacks.clear();
+
+    for (auto &drawState : drawStates)
+    {
+        drawState->ClearUpdateCallbacks();
+        drawState.reset();
+    }
+    
+    drawStates.clear();
+
+    this->window.reset();
+    this->swapChain.reset();
+    this->camera.reset();
 }
 
 void Renderer::InitWindow()

@@ -45,7 +45,7 @@ public:
     }
 
 private:
-    IntrusivePtr<PixelEngine> engine;
+    PixelEngine* engine;
     IntrusivePtr<SwapChain> swapChain;
     IntrusivePtr<Window> window;
     IntrusivePtr<Camera> camera;

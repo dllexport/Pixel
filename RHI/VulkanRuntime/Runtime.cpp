@@ -38,8 +38,6 @@ VulkanRuntime::VulkanRuntime()
                   .SetInstanceLayers({"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"})
                   .SetDeviceExtensions({VK_KHR_SWAPCHAIN_EXTENSION_NAME})
                   .Build();
-
-    context->runtime = this;
 }
 
 VulkanRuntime::~VulkanRuntime()

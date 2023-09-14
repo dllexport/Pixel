@@ -22,7 +22,7 @@ public:
 
     IntrusivePtr<Renderer> CreateRenderer();
 
-    IntrusivePtr<RHIRuntime> GetRHIRuntime();
+    IntrusivePtr<RHIRuntime>& GetRHIRuntime();
 
     void Frame();
 

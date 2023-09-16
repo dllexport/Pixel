@@ -45,9 +45,16 @@ public:
 
     struct FrameDescriptor
     {
+        // different set of descriptors may be bind
         std::vector<VkDescriptorSet> descriptorSets;
+        // hold resource's ref
         ResourceHandleMap resourceHandlesMaps;
     };
+
+    ResourceHandleMap &GetResourceHandlesMap(uint32_t frameIndex)
+    {
+        return this->frameDescriptor[frameIndex].resourceHandlesMaps;
+    }
 
     std::unordered_map<uint32_t, FrameDescriptor> frameDescriptor;
     IntrusivePtr<ResourceHandle> constantBuffer;

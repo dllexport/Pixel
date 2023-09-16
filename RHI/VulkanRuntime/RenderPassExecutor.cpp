@@ -403,17 +403,13 @@ void VulkanRenderPassExecutor::resolveDrawStatesDescriptors()
     {
         auto vulkanRP = static_cast<VulkanRenderPass *>(pipeline->GetRenderPass().get());
         auto vulkanPL = static_cast<VulkanPipeline *>(pipeline.get());
-        auto pipelineName = vulkanPL->GetSubPassName();
-        auto subPassNode = vulkanRP->GetGraphicRenderPassGraphNode(vulkanRP->GetSubPassIndex(pipelineName));
+        auto subPassNode = vulkanRP->GetGraphicRenderPassGraphNode(vulkanPL->GetSubPassName());
 
-        auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
-        auto swapChainImageSize = vulkanSC->GetTextures().size();
-
-        // check every set binding of pipeline
-        // if the resourceName is in attachmentImages, then it's the internal one
-
+        // check every drawState's set binding of pipeline
+        // if the resourceName is in attachmentImages, then it's the internal resource
         for (auto &drawState : drawStates)
         {
+            // check each set binding in subpass
             for (auto &[resourceName, bindingSet] : subPassNode->bindingSets)
             {
                 spdlog::info("checking resource {} at {} {}", resourceName, bindingSet.set, bindingSet.binding);
@@ -421,23 +417,25 @@ void VulkanRenderPassExecutor::resolveDrawStatesDescriptors()
                 auto vulkanDrawState = static_cast<VulkanResourceBindingState *>(drawState.get());
 
                 // for each frame, bind internal resource
-                for (auto frameIndex = 0; frameIndex < swapChainImageSize; frameIndex++)
+                for (auto frameIndex = 0; frameIndex < swapChain->ImageSize(); frameIndex++)
                 {
-                    auto resourceHandleMap = vulkanDrawState->GetResourceHandlesMap(frameIndex);
+                    auto &resourceHandleMap = vulkanDrawState->GetDescriptorSet()->GetResourceHandlesMap(frameIndex);
                     // set empty slot only, no override
-                    if (resourceHandleMap[bindingSet.set][bindingSet.binding].empty())
-                    {
-                        spdlog::info("frame index {} is empty", frameIndex);
+                    if (!resourceHandleMap[bindingSet.set][bindingSet.binding].empty())
+                        continue;
 
-                        if (frameIndex == 0 || bindingSet.type == GraphNode::ATTACHMENT)
-                        {
-                            auto &attachmentImages = renderPassResourceMap[vulkanRP].attachmentImages[resourceName];
-                            vulkanDrawState->BindInternal(frameIndex, bindingSet.set, bindingSet.binding, attachmentImages[frameIndex].sampler);
-                        }
-                        else
-                        {
-                            vulkanDrawState->Copy(frameIndex, bindingSet.set, bindingSet.binding);
-                        }
+                    spdlog::info("frame index {} is empty", frameIndex);
+                    // default resource (immutable) bind at frameIndex == 0
+                    // per frame attachmentImages is prepared in prepareFrameBuffer
+                    if (frameIndex == 0 || bindingSet.type == GraphNode::ATTACHMENT)
+                    {
+                        auto &attachmentImages = renderPassResourceMap[vulkanRP].attachmentImages[resourceName];
+                        vulkanDrawState->BindInternal(frameIndex, bindingSet.set, bindingSet.binding, attachmentImages[frameIndex].sampler);
+                    }
+                    else
+                    {
+                        // copy default (immutable) resource from frameIndex == 0
+                        vulkanDrawState->Copy(frameIndex, bindingSet.set, bindingSet.binding);
                     }
                 }
             }

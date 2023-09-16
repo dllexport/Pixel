@@ -91,9 +91,8 @@ public:
         return updateRequests;
     }
 
-    auto &GetResourceHandlesMap(uint32_t frameIndex)
-    {
-        return descriptorSet->frameDescriptor[frameIndex].resourceHandlesMaps;
+    IntrusivePtr<VulkanDescriptorSet>& GetDescriptorSet() {
+        return descriptorSet;
     }
 
     // bind internal resources

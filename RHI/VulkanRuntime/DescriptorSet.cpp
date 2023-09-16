@@ -18,6 +18,9 @@ VulkanDescriptorSet::VulkanDescriptorSet(IntrusivePtr<Context> context, Intrusiv
 
 VulkanDescriptorSet::~VulkanDescriptorSet()
 {
+    vkDestroyDescriptorPool(context->GetVkDevice(), descriptorPool, nullptr);
+    frameDescriptor.clear();
+    constantBuffer.reset();
 }
 
 void VulkanDescriptorSet::AllocateExtraDescriptorSets(uint32_t frameIndex)

@@ -448,7 +448,7 @@ int main()
     auto colorPipeline = engine->RegisterPipeline("singlePass", "deferred", colorPipelineStates);
     auto composePipeline = engine->RegisterPipeline("singlePass", "compose", colorPipelineStates);
 
-    auto rhiRuntime = engine->GetRHIRuntime();
+    auto& rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();
 
     IntrusivePtr<ImguiOverlay> ui = new ImguiOverlay(engine.get());

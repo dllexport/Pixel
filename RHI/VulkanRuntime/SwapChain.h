@@ -17,6 +17,10 @@ public:
 
     virtual uint32_t Acquire(uint32_t currentFrame) override;
     virtual bool Present(uint32_t index, uint32_t currentFrame) override;
+    virtual uint32_t ImageSize() override
+    {
+        return this->swapChainTextures.size();
+    }
 
     std::vector<IntrusivePtr<VulkanTextureView>> &GetTextureViews()
     {

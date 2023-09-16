@@ -58,6 +58,10 @@ public:
         return graphicRenderPasses[subPassIndex];
     }
     
+    IntrusivePtr<GraphicRenderPassGraphNode> GetGraphicRenderPassGraphNode(std::string subPassName) {
+        return graphicRenderPasses[GetSubPassIndex(subPassName)];
+    }
+
 private:
     friend class VulkanPipeline;
     friend class VulkanRenderPassExecutor;

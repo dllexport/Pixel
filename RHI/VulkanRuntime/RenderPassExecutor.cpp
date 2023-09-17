@@ -31,12 +31,9 @@ VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
 
 void VulkanRenderPassExecutor::Reset()
 {
-    for (auto [_, resource] : renderPassResourceMap)
+    for (auto& [_, resource] : renderPassResourceMap)
     {
-        for (auto resetEntry : resource.resetEntries)
-        {
-            resource.attachmentImages.erase(resetEntry);
-        }
+        resource.attachmentImages.clear();
 
         for (auto &fb : resource.frameBuffers)
         {
@@ -52,8 +49,6 @@ void VulkanRenderPassExecutor::Reset()
         resource.graphicCommandBuffers.clear();
     }
 
-    renderPassResourceMap.clear();
-
     for (auto &fence : queueCompleteFences)
     {
         vkDestroyFence(context->GetVkDevice(), fence, nullptr);
@@ -63,11 +58,6 @@ void VulkanRenderPassExecutor::Reset()
 
     currentFrame = 0;
     currentImage = 0;
-}
-
-void VulkanRenderPassExecutor::ResetSwapChainImages()
-{
-    // TODO
 }
 
 void VulkanRenderPassExecutor::prepareFences()
@@ -295,13 +285,11 @@ void VulkanRenderPassExecutor::prepareFrameBuffer(IntrusivePtr<RenderPass> &rend
 
         for (auto attachment : vulkanRP->attachmentNodes)
         {
-            // TODO: skip if image already exist
             // if attachment is swapchain, use reference instead of creating one
             if (attachment->swapChain)
             {
                 attachmentImages[attachment->name].push_back({vulkanSC->GetTextures()[i], vulkanSC->GetTextureViews()[i], nullptr});
                 attachmentViews.push_back(vulkanSC->GetTextureViews()[i]->GetImageView());
-                renderPassResource.resetEntries.insert(attachment->name);
                 continue;
             }
 
@@ -327,8 +315,6 @@ void VulkanRenderPassExecutor::prepareFrameBuffer(IntrusivePtr<RenderPass> &rend
             if (textureUsage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
             {
                 imageAspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
-                // need to recreate depth texture when swapchain change
-                renderPassResource.resetEntries.insert(attachment->name);
             }
             if (textureUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             {
@@ -374,12 +360,6 @@ void VulkanRenderPassExecutor::prepareFrameBuffer(IntrusivePtr<RenderPass> &rend
     }
 }
 
-void VulkanRenderPassExecutor::prepareRenderPassResource(IntrusivePtr<RenderPass> &renderPass)
-{
-    prepareCommandBuffer(renderPass);
-    prepareFrameBuffer(renderPass);
-}
-
 void VulkanRenderPassExecutor::Prepare()
 {
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
@@ -389,7 +369,8 @@ void VulkanRenderPassExecutor::Prepare()
 
     for (auto renderPass : renderPasses)
     {
-        prepareRenderPassResource(renderPass);
+        prepareCommandBuffer(renderPass);
+        prepareFrameBuffer(renderPass);
     }
 
     // make sure all descriptor set in layout is valid

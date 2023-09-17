@@ -24,9 +24,6 @@ public:
     virtual void WaitIdle() override;
     virtual void Reset() override;
 
-    // recreate swapchain images and rebuild framebuffer
-    void ResetSwapChainImages();
-
 private:
     IntrusivePtr<Context> context;
     VkCommandPool graphicCommandPool;
@@ -38,9 +35,6 @@ private:
         std::unordered_map<std::string, std::vector<VulkanImage>> attachmentImages;
         std::vector<VkFramebuffer> frameBuffers;
         std::vector<VkCommandBuffer> graphicCommandBuffers;
-
-        // recored which image to replace
-        std::unordered_set<std::string> resetEntries;
     };
 
     std::unordered_map<IntrusivePtr<RenderPass>, RenderPassFrameResource> renderPassResourceMap;
@@ -49,14 +43,14 @@ private:
     void prepareFences();
     void prepareCommandPool();
 
-    void prepareRenderPassResource(IntrusivePtr<RenderPass> &renderPass);
     // create VkCommandBuffer and VkFramebuffer
+    // 1 per frame
     void prepareCommandBuffer(IntrusivePtr<RenderPass> &renderPass);
     void prepareFrameBuffer(IntrusivePtr<RenderPass> &renderPass);
 
     // record command buffer at imageIndex
     void buildCommandBuffer(uint32_t imageIndex);
-    
+
     // allocate all texture resource
     void resolveDrawStatesDescriptors();
 

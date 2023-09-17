@@ -60,6 +60,7 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
     renderPassExecutor->Reset();
     renderPassExecutor->SetSwapChain(swapChain);
     renderPassExecutor->Prepare();
+    renderPassExecutor->Acquire();
 }
 
 void Renderer::Build()
@@ -82,7 +83,8 @@ void Renderer::Update()
 {
     frameStartTime = std::chrono::high_resolution_clock::now();
 
-    auto imageIndex = renderPassExecutor->Acquire();
+    // acquire image so that it's save to update resource at imageIndex
+    renderPassExecutor->Acquire();
 
     window->Update();
 

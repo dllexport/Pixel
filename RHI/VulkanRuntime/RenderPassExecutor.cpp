@@ -31,7 +31,7 @@ VulkanRenderPassExecutor::~VulkanRenderPassExecutor()
 
 void VulkanRenderPassExecutor::Reset()
 {
-    for (auto& [_, resource] : renderPassResourceMap)
+    for (auto &[_, resource] : renderPassResourceMap)
     {
         resource.attachmentImages.clear();
 
@@ -55,6 +55,14 @@ void VulkanRenderPassExecutor::Reset()
     }
 
     queueCompleteFences.clear();
+
+    for (auto &[pipeline, drawStates] : resourceBindingStates)
+    {
+        for (auto &drawState : drawStates)
+        {
+            static_cast<VulkanResourceBindingState *>(drawState.get())->GetDescriptorSet()->ClearInternal();
+        }
+    }
 
     currentFrame = 0;
     currentImage = 0;
@@ -402,7 +410,7 @@ void VulkanRenderPassExecutor::resolveDrawStatesDescriptors()
                 {
                     auto &resourceHandleMap = vulkanDrawState->GetDescriptorSet()->GetResourceHandlesMap(frameIndex);
                     // set empty slot only, no override
-                    if (!resourceHandleMap[bindingSet.set][bindingSet.binding].empty())
+                    if (!resourceHandleMap[bindingSet.set][bindingSet.binding].Empty())
                         continue;
 
                     spdlog::info("frame index {} is empty", frameIndex);

@@ -31,17 +31,30 @@ public:
     void WriteDescriptorSampler(uint32_t frameIndex, uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> &resources);
 
     // bind internal resources
-    void BindInternal(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource);
+    void Bind(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource, bool internal);
 
     void Copy(uint32_t targetFrameIndex, uint32_t set, uint32_t binding);
+
+    // clear all internal resource in resourceMap
+    void ClearInternal();
 
     IntrusivePtr<Context> context;
     IntrusivePtr<Pipeline> pipeline;
 
     VkDescriptorPool descriptorPool;
 
+    struct ResourceHandleMeta
+    {
+        std::vector<IntrusivePtr<ResourceHandle>> resourceHandles;
+        bool internal;
+
+        bool Empty()
+        {
+            return resourceHandles.empty();
+        }
+    };
     // sets -> bindings -> resource handles
-    using ResourceHandleMap = std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<IntrusivePtr<ResourceHandle>>>>;
+    using ResourceHandleMap = std::unordered_map<uint32_t, std::unordered_map<uint32_t, ResourceHandleMeta>>;
 
     struct FrameDescriptor
     {

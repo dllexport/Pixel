@@ -47,23 +47,36 @@ void VulkanDescriptorSet::Bind(IntrusivePtr<ResourceHandle> resource)
 
 void VulkanDescriptorSet::Bind(uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
 {
-    auto &resourceHandlesMaps = this->frameDescriptor[0].resourceHandlesMaps;
-    resourceHandlesMaps[set][binding] = {resource};
-    WriteDescriptor(0, set, binding, resource);
+    Bind(set, binding, std::vector<IntrusivePtr<ResourceHandle>>{resource});
 }
 
 void VulkanDescriptorSet::Bind(uint32_t set, uint32_t binding, std::vector<IntrusivePtr<ResourceHandle>> resources)
 {
     auto &resourceHandlesMaps = this->frameDescriptor[0].resourceHandlesMaps;
-    resourceHandlesMaps[set][binding] = resources;
+    resourceHandlesMaps[set][binding] = {resources, false};
     WriteDescriptor(0, set, binding, resources);
 }
 
-void VulkanDescriptorSet::BindInternal(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
+void VulkanDescriptorSet::Bind(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource, bool internal)
 {
     auto &resourceHandlesMaps = this->frameDescriptor[frameIndex].resourceHandlesMaps;
-    resourceHandlesMaps[set][binding] = {resource};
+    resourceHandlesMaps[set][binding] = {{resource}, internal};
     WriteDescriptor(frameIndex, set, binding, resource);
+}
+
+void VulkanDescriptorSet::ClearInternal()
+{
+    for (auto &[index, fd] : this->frameDescriptor)
+    {
+        for (auto &[set, bindings] : fd.resourceHandlesMaps)
+        {
+            for (auto &[binding, desc] : bindings)
+            {
+                if (desc.internal)
+                    desc.resourceHandles.clear();
+            }
+        }
+    }
 }
 
 void VulkanDescriptorSet::AllocateDescriptorPool(IntrusivePtr<Pipeline> &pipeline)
@@ -264,20 +277,21 @@ void VulkanDescriptorSet::WriteDescriptorSampler(uint32_t frameIndex, uint32_t s
 
 void VulkanDescriptorSet::Copy(uint32_t targetFrameIndex, uint32_t set, uint32_t binding)
 {
-    auto originalResource = frameDescriptor[0].resourceHandlesMaps[set][binding][0];
+    auto &originalResourceMeta = frameDescriptor[0].resourceHandlesMaps[set][binding];
+    auto &originalResource = originalResourceMeta.resourceHandles[0];
     switch (originalResource->type)
     {
     case ResourceHandle::ResourceHandleType::SAMPLER:
     case ResourceHandle::ResourceHandleType::BUFFER:
     {
-        this->BindInternal(targetFrameIndex, set, binding, originalResource);
+        this->Bind(targetFrameIndex, set, binding, originalResource, originalResourceMeta.internal);
         break;
     }
     case ResourceHandle::ResourceHandleType::BUFFER_ARRAY:
     {
         auto bufferArray = static_cast<MutableBuffer *>(originalResource.get());
         bufferArray->ReSize(targetFrameIndex);
-        this->BindInternal(targetFrameIndex, set, binding, bufferArray->GetBuffer(targetFrameIndex));
+        this->Bind(targetFrameIndex, set, binding, bufferArray->GetBuffer(targetFrameIndex), originalResourceMeta.internal);
         break;
     }
     default:

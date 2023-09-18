@@ -36,7 +36,7 @@ void VulkanResourceBindingState::Bind(uint32_t set, uint32_t binding, std::vecto
 
 void VulkanResourceBindingState::BindInternal(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource)
 {
-    descriptorSet->BindInternal(frameIndex, set, binding, resource);
+    descriptorSet->Bind(frameIndex, set, binding, resource, true);
 }
 
 void VulkanResourceBindingState::Copy(uint32_t targetFrameIndex, uint32_t set, uint32_t binding)

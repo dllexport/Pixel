@@ -15,7 +15,7 @@
 class ImguiOverlay : public IntrusiveCounter<ImguiOverlay>
 {
 public:
-    ImguiOverlay(PixelEngine* engine) : engine(engine)
+    ImguiOverlay(PixelEngine *engine) : engine(engine)
     {
     }
 
@@ -25,7 +25,7 @@ public:
         assert(drawState->use_count() == 1);
     }
 
-    PixelEngine* engine;
+    PixelEngine *engine;
 
     virtual void ImGUINewFrame()
     {

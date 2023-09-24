@@ -140,6 +140,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 attachment->depthStencil = input.depthStencil;
                 attachment->swapChain = input.swapChain;
                 attachment->shared = input.shared;
+                attachment->clear = input.clear;
                 attachment->format = TranslateFormat(input.format);
                 inputNode = attachment;
             }
@@ -174,6 +175,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 attachment->depthStencil = output.depthStencil;
                 attachment->swapChain = output.swapChain;
                 attachment->shared = output.shared;
+                attachment->clear = output.clear;
                 attachment->color = attachment->depthStencil ? false : true;
                 attachment->format = TranslateFormat(output.format);
                 outputNode = attachment;

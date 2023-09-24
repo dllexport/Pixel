@@ -59,6 +59,7 @@ struct AttachmentGraphNode : public ResourceNode
     bool swapChain = false;
     bool shared = false;
     bool color = false;
+    bool clear = false;
 };
 
 struct DescriptorGraphNode : public ResourceNode

@@ -11,7 +11,7 @@ IntrusivePtr<Texture> KTXReader::ReadFile(PixelEngine *engine, std::string file)
     ktxResult result;
     ktxTexture *ktxTexture;
     result = ktxTexture_CreateFromNamedFile(file.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
-    auto config = Texture::Configuration();
+    auto config = Texture::Configuration::Default();
     config.mipLevels = ktxTexture->numLevels;
     config.arrayLayers = ktxTexture->numLayers;
     auto ktxTextureData = ktxTexture_GetData(ktxTexture);
@@ -34,6 +34,6 @@ IntrusivePtr<Texture> KTXReader::ReadFile(PixelEngine *engine, std::string file)
     }
 
     engine->GetAuxiliaryExecutor()->TransferResource(texture, uploadBuffer, transferConfigs);
-    
+
     return texture;
 }

@@ -45,11 +45,19 @@ public:
 
     struct Configuration
     {
-        uint32_t mipLevels = 1;
-        uint32_t arrayLayers = 1;
-        uint32_t samples = 1;
-        Tiling tiling = IMAGE_TILING_OPTIMAL;
+        uint32_t mipLevels;
+        uint32_t arrayLayers;
+        uint32_t samples;
+        Tiling tiling;
 
+        static Configuration Default()
+        {
+            return {
+                .mipLevels = 1,
+                .arrayLayers = 1,
+                .samples = 1,
+                .tiling = IMAGE_TILING_OPTIMAL};
+        }
         // VkSharingMode sharingMode;
         // uint32_t queueFamilyIndexCount;
         // const uint32_t *pQueueFamilyIndices;
@@ -83,7 +91,7 @@ public:
     }
 
 protected:
-    virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config = Configuration()) = 0;
+    virtual bool Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config = Configuration::Default()) = 0;
 
     uint16_t layers;
     uint16_t mimapLevel;

@@ -97,10 +97,7 @@ public:
         auto imguiFontHostBuffer = rhiRuntime->CreateBuffer(Buffer::BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryProperty::MEMORY_PROPERTY_HOST_VISIBLE_BIT | MemoryProperty::MEMORY_PROPERTY_HOST_COHERENT_BIT, uploadSize);
         memcpy(imguiFontHostBuffer->Map(), fontData, uploadSize);
 
-        Texture::Configuration config;
-        config.tiling = Texture::IMAGE_TILING_OPTIMAL;
-        spdlog::info("imguiFontTexture");
-        auto imguiFontTexture = rhiRuntime->CreateTexture(TextureFormat::FORMAT_R8G8B8A8_UNORM, Texture::Usage::IMAGE_USAGE_SAMPLED_BIT | Texture::Usage::IMAGE_USAGE_TRANSFER_DST_BIT, MemoryProperty::MEMORY_PROPERTY_DEVICE_LOCAL_BIT, {uint32_t(texWidth), uint32_t(texHeight), 1}, config);
+        auto imguiFontTexture = rhiRuntime->CreateTexture(TextureFormat::FORMAT_R8G8B8A8_UNORM, Texture::Usage::IMAGE_USAGE_SAMPLED_BIT | Texture::Usage::IMAGE_USAGE_TRANSFER_DST_BIT, MemoryProperty::MEMORY_PROPERTY_DEVICE_LOCAL_BIT, {uint32_t(texWidth), uint32_t(texHeight), 1});
         auto imguiFontSampler = rhiRuntime->CreateSampler(imguiFontTexture);
         imguiDrawable->Bind(0, 0, imguiFontSampler);
 

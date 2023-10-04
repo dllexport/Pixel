@@ -63,6 +63,19 @@ private:
         return &m_Nodes.back();
     }
 
+    Node *SpawnShaderNode()
+    {
+        m_Nodes.emplace_back(GetNextId(), "Shader Node", ImColor(255, 255, 128));
+        m_Nodes.back().Outputs.emplace_back(GetNextId(), "", PinType::Flow);
+        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Vertex Shader", PinType::String);
+        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Fragment Shader", PinType::String);
+        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Compute Shader", PinType::String);
+
+        BuildNode(&m_Nodes.back());
+
+        return &m_Nodes.back();
+    }
+
     Node *FindNode(ed::NodeId id)
     {
         for (auto &node : m_Nodes)

@@ -140,7 +140,7 @@ void EditorView::Setup()
     m_Editor = ed::CreateEditor(&config);
     ed::SetCurrentEditor(m_Editor);
     SpawnInputActionNode();
-
+    SpawnShaderNode();
     BuildNodes();
 }
 

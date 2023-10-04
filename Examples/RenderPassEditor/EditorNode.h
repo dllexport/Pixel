@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -37,7 +39,8 @@ enum class NodeType
     Simple,
     Tree,
     Comment,
-    Houdini
+    Houdini,
+    ShaderNode
 };
 
 struct Node;

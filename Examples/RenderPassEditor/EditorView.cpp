@@ -121,7 +121,7 @@ void EditorView::SetupFont()
     config.OversampleV = 8;
     config.PixelSnapH = false;
 
-    io.Fonts->AddFontFromFileTTF("/Users/mario/Documents/GitHub/Pixel/Examples/RenderPassEditor/font/SF-Pro-Text-Regular.otf", 18.0f, &config);
+    io.Fonts->AddFontFromFileTTF("fonts/Play-Regular.ttf", 18.0f, &config);
 
     io.Fonts->Build();
 }

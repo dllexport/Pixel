@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 
-#include <Engine/ImguiOverlay.h>
+#include "EditorView.h"
 
 int main()
 {
@@ -27,7 +27,7 @@ int main()
     auto &rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();
 
-    IntrusivePtr<ImguiOverlay> ui = new ImguiOverlay(engine.get());
+    IntrusivePtr<ImguiOverlay> ui = new EditorView(engine.get());
     ui->BuildPipeline();
     ui->BuildDrawable();
 

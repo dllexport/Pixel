@@ -1,7 +1,17 @@
 #pragma once
 
-#include <imgui_node_editor.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui.h>
 #include <imgui_internal.h>
+#undef IMGUI_DEFINE_MATH_OPERATORS
+
+#include <imgui_node_editor.h>
+
+#include "utilities/builders.h"
+#include "utilities/widgets.h"
+
+namespace ed = ax::NodeEditor;
+namespace util = ax::NodeEditor::Utilities;
 
 enum class PinType
 {

@@ -110,8 +110,6 @@ void *CreateGLFWWindow(void *window, uint32_t width, uint32_t height)
 
 Window::Window()
 {
-    glfwInit();
-
     if (!glfwVulkanSupported())
     {
         throw std::runtime_error("!glfwVulkanSupported");

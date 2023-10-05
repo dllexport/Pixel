@@ -74,6 +74,7 @@ void VulkanRenderPassExecutor::prepareFences()
 
     VkFenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     queueCompleteFences.resize(vulkanSC->GetTextures().size());
     for (auto &fence : queueCompleteFences)
     {

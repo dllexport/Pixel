@@ -50,7 +50,7 @@ IntrusivePtr<Pipeline> PixelEngine::RegisterPipeline(std::string renderPassName,
     return pipeline;
 }
 
-IntrusivePtr<RHIRuntime>& PixelEngine::GetRHIRuntime()
+IntrusivePtr<RHIRuntime> &PixelEngine::GetRHIRuntime()
 {
     return rhiRuntime;
 }

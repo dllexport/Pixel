@@ -34,6 +34,7 @@ set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
 set(TINYGLTF_INSTALL OFF)
 add_subdirectory(3rd/tinygltf)
 
+set(KTX_FEATURE_TOOLS OFF)
 set(KTX_FEATURE_TESTS OFF)
 add_subdirectory(3rd/KTX-Software)
 

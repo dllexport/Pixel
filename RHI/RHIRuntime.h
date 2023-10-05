@@ -23,7 +23,7 @@ public:
     virtual IntrusivePtr<Pipeline> CreatePipeline(IntrusivePtr<RenderPass>, std::string subPassName, PipelineStates pipelineStates) = 0;
     virtual IntrusivePtr<Buffer> CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
     virtual IntrusivePtr<MutableBuffer> CreateMutableBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
-    virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config = Texture::Configuration()) = 0;
+    virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config = Texture::Configuration::Default()) = 0;
     virtual IntrusivePtr<Sampler> CreateSampler(IntrusivePtr<Texture> texture, Sampler::Configuration config = Sampler::Configuration()) = 0;
     virtual IntrusivePtr<RenderPassExecutor> CreateRenderPassExecutor() = 0;
     virtual IntrusivePtr<ResourceBindingState> CreateResourceBindingState(IntrusivePtr<Pipeline> pipeline) = 0;

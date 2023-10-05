@@ -17,13 +17,17 @@
 #include <RHI/VulkanRuntime/SwapChainBuilder.h>
 #include <RHI/VulkanRuntime/AuxiliaryExecutor.h>
 
+#ifdef WINDOW_USE_GLFW
+#include <GLFW/glfw3.h>
+#endif
+
 VulkanRuntime::VulkanRuntime()
 {
     std::vector<const char *> instanceExts;
-#ifdef _WIN32
-    instanceExts.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-    instanceExts.push_back("VK_KHR_win32_surface");
-#elif __linux__
+
+#ifdef WINDOW_USE_GLFW
+    glfwInit();
+
     uint32_t count;
     const char **extensions = glfwGetRequiredInstanceExtensions(&count);
     for (int i = 0; i < count; i++)
@@ -32,10 +36,17 @@ VulkanRuntime::VulkanRuntime()
     }
 #endif
 
+    std::vector<const char *> enableLayers = {"VK_LAYER_KHRONOS_validation"};
+
+// VK_LAYER_LUNARG_monitor not support on mac
+#ifndef __APPLE__
+    enableLayers.push_back("VK_LAYER_LUNARG_monitor");
+#endif
+
     context = ContextBuilder()
                   .SetInstanceExtensions(std::move(instanceExts))
                   .EnableValidationLayer()
-                  .SetInstanceLayers({"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"})
+                  .SetInstanceLayers(std::move(enableLayers))
                   .SetDeviceExtensions({VK_KHR_SWAPCHAIN_EXTENSION_NAME})
                   .Build();
 }

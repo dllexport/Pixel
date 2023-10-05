@@ -2,7 +2,7 @@
 
 #include <Engine/ImguiOverlay.h>
 
-#include "EditorNode.h"
+#include "FrameGraphEditorNode.h"
 
 class EditorView : public ImguiOverlay
 {
@@ -16,7 +16,7 @@ public:
 
 private:
     ax::NodeEditor::EditorContext *m_Editor = nullptr;
-    std::vector<Node> m_Nodes;
+    std::vector<IntrusivePtr<Node>> m_Nodes;
     std::vector<Link> m_Links;
     int m_NextId = 1;
     const int m_PinIconSize = 24;
@@ -28,59 +28,23 @@ private:
         return m_NextId++;
     }
 
-    void BuildNode(Node *node)
-    {
-        for (auto &input : node->Inputs)
-        {
-            input.Node = node;
-            input.Kind = PinKind::Input;
-        }
-
-        for (auto &output : node->Outputs)
-        {
-            output.Node = node;
-            output.Kind = PinKind::Output;
-        }
-    }
-
-    void BuildNodes()
-    {
-        for (auto &node : m_Nodes)
-            BuildNode(&node);
-    }
-
     Node *SpawnInputActionNode()
     {
-        m_Nodes.emplace_back(GetNextId(), "Pipeline 0", ImColor(255, 128, 128));
-        m_Nodes.back().Inputs.emplace_back(GetNextId(), "", PinType::Flow);
-        m_Nodes.back().Outputs.emplace_back(GetNextId(), "", PinType::Flow);
-        m_Nodes.back().Outputs.emplace_back(GetNextId(), "Attachments", PinType::Object);
-        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Descriptors", PinType::Object);
-        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Shaders", PinType::Object);
-
-        BuildNode(&m_Nodes.back());
-
-        return &m_Nodes.back();
+        m_Nodes.push_back(new PipelineNode("Pipeline 0", ImColor(255, 128, 128)));
+        return m_Nodes.back().get();
     }
 
     Node *SpawnShaderNode()
     {
-        m_Nodes.emplace_back(GetNextId(), "Shader Node", ImColor(255, 255, 128));
-        m_Nodes.back().Outputs.emplace_back(GetNextId(), "", PinType::Flow);
-        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Vertex Shader", PinType::String);
-        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Fragment Shader", PinType::String);
-        m_Nodes.back().Inputs.emplace_back(GetNextId(), "Compute Shader", PinType::String);
-
-        BuildNode(&m_Nodes.back());
-
-        return &m_Nodes.back();
+        m_Nodes.push_back(new ShaderNode("Shader Node", ImColor(255, 255, 128)));
+        return m_Nodes.back().get();
     }
 
     Node *FindNode(ed::NodeId id)
     {
         for (auto &node : m_Nodes)
-            if (node.ID == id)
-                return &node;
+            if (node->ID == id)
+                return node.get();
 
         return nullptr;
     }
@@ -94,6 +58,18 @@ private:
         return nullptr;
     }
 
+    bool IsLinkExist(ed::PinId from, ed::PinId to)
+    {
+        for (auto &link : m_Links)
+        {
+            if (link.StartPinID == from && link.EndPinID == to)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     Pin *FindPin(ed::PinId id)
     {
         if (!id)
@@ -101,11 +77,11 @@ private:
 
         for (auto &node : m_Nodes)
         {
-            for (auto &pin : node.Inputs)
+            for (auto &pin : node->Inputs)
                 if (pin.ID == id)
                     return &pin;
 
-            for (auto &pin : node.Outputs)
+            for (auto &pin : node->Outputs)
                 if (pin.ID == id)
                     return &pin;
         }

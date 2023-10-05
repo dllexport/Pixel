@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <Core/IntrusivePtr.h>
+
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -25,6 +27,7 @@ enum class PinType
     Object,
     Function,
     Delegate,
+    ShaderNodeIn
 };
 
 enum class PinKind
@@ -40,6 +43,7 @@ enum class NodeType
     Tree,
     Comment,
     Houdini,
+    PipelineNode,
     ShaderNode
 };
 
@@ -48,7 +52,7 @@ struct Node;
 struct Pin
 {
     ed::PinId ID;
-    ::Node *Node;
+    IntrusivePtr<Node> Node;
     std::string Name;
     PinType Type;
     PinKind Kind;
@@ -58,8 +62,15 @@ struct Pin
     }
 };
 
-struct Node
+struct Node : public IntrusiveCounter<Node>
 {
+    inline static int m_NextId = 1;
+
+    static int GetNextId()
+    {
+        return m_NextId++;
+    }
+
     ed::NodeId ID;
     std::string Name;
     std::vector<Pin> Inputs;
@@ -71,8 +82,28 @@ struct Node
     std::string State;
     std::string SavedState;
 
-    Node(int id, const char *name, ImColor color = ImColor(255, 255, 255)) : ID(id), Name(name), Color(color), Type(NodeType::Blueprint), Size(0, 0)
+    Node(const char *name, ImColor color = ImColor(255, 255, 255)) : ID(GetNextId()), Name(name), Color(color), Type(NodeType::Blueprint), Size(0, 0)
     {
+    }
+
+    void BuildNode()
+    {
+        for (auto &input : this->Inputs)
+        {
+            input.Node = this;
+            input.Kind = PinKind::Input;
+        }
+
+        for (auto &output : this->Outputs)
+        {
+            output.Node = this;
+            output.Kind = PinKind::Output;
+        }
+    }
+
+    virtual bool IsLinkValid(Pin *from, Pin *to)
+    {
+        return false;
     }
 };
 

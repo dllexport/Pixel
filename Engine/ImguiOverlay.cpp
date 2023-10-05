@@ -1,6 +1,7 @@
 #include <Engine/ImguiOverlay.h>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 ImguiOverlay::ImguiOverlay(PixelEngine *engine) : engine(engine)
 {

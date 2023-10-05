@@ -88,7 +88,8 @@ void DrawPinIcon(const Pin &pin, bool connected, int alpha)
         iconType = IconType::Square;
         break;
     default:
-        return;
+        iconType = IconType::Circle;
+        break;
     }
 
     ax::Widgets::Icon(ImVec2(static_cast<float>(m_PinIconSize), static_cast<float>(m_PinIconSize)), iconType, connected, color, ImColor(32, 32, 32, alpha));
@@ -141,7 +142,6 @@ void EditorView::Setup()
     ed::SetCurrentEditor(m_Editor);
     SpawnInputActionNode();
     SpawnShaderNode();
-    BuildNodes();
 }
 
 void EditorView::ImGUINewFrame()
@@ -153,8 +153,6 @@ void EditorView::ImGUINewFrame()
     ImGui::SetNextWindowSize(io.DisplaySize);
 
     ImGui::Begin("Content", nullptr, GetWindowFlags());
-
-    ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 
     ed::SetCurrentEditor(m_Editor);
 
@@ -170,29 +168,29 @@ void EditorView::ImGUINewFrame()
 
         for (auto &node : m_Nodes)
         {
-            if (node.Type != NodeType::Blueprint && node.Type != NodeType::Simple)
+            if (node->Type != NodeType::PipelineNode && node->Type != NodeType::ShaderNode)
                 continue;
 
-            const auto isSimple = node.Type == NodeType::Simple;
+            const auto isSimple = node->Type == NodeType::Simple;
 
             bool hasOutputDelegates = false;
-            for (auto &output : node.Outputs)
+            for (auto &output : node->Outputs)
                 if (output.Type == PinType::Delegate)
                     hasOutputDelegates = true;
 
-            builder.Begin(node.ID);
+            builder.Begin(node->ID);
             if (!isSimple)
             {
-                builder.Header(node.Color);
+                builder.Header(node->Color);
                 ImGui::Spring(0);
-                ImGui::TextUnformatted(node.Name.c_str());
+                ImGui::TextUnformatted(node->Name.c_str());
                 ImGui::Spring(1);
                 ImGui::Dummy(ImVec2(0, 28));
                 if (hasOutputDelegates)
                 {
                     ImGui::BeginVertical("delegates", ImVec2(0, 28));
                     ImGui::Spring(1, 0);
-                    for (auto &output : node.Outputs)
+                    for (auto &output : node->Outputs)
                     {
                         if (output.Type != PinType::Delegate)
                             continue;
@@ -228,7 +226,7 @@ void EditorView::ImGUINewFrame()
                 builder.EndHeader();
             }
 
-            for (auto &input : node.Inputs)
+            for (auto &input : node->Inputs)
             {
                 auto alpha = ImGui::GetStyle().Alpha;
                 if (newLinkPin && !CanCreateLink(newLinkPin, &input) && &input != newLinkPin)
@@ -257,11 +255,11 @@ void EditorView::ImGUINewFrame()
                 builder.Middle();
 
                 ImGui::Spring(1, 0);
-                ImGui::TextUnformatted(node.Name.c_str());
+                ImGui::TextUnformatted(node->Name.c_str());
                 ImGui::Spring(1, 0);
             }
 
-            for (auto &output : node.Outputs)
+            for (auto &output : node->Outputs)
             {
                 if (!isSimple && output.Type == PinType::Delegate)
                     continue;
@@ -308,7 +306,7 @@ void EditorView::ImGUINewFrame()
 
         for (auto &node : m_Nodes)
         {
-            if (node.Type != NodeType::Comment)
+            if (node->Type != NodeType::Comment)
                 continue;
 
             const float commentAlpha = 0.75f;
@@ -316,22 +314,22 @@ void EditorView::ImGUINewFrame()
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, commentAlpha);
             ed::PushStyleColor(ed::StyleColor_NodeBg, ImColor(255, 255, 255, 64));
             ed::PushStyleColor(ed::StyleColor_NodeBorder, ImColor(255, 255, 255, 64));
-            ed::BeginNode(node.ID);
-            ImGui::PushID(node.ID.AsPointer());
+            ed::BeginNode(node->ID);
+            ImGui::PushID(node->ID.AsPointer());
             ImGui::BeginVertical("content");
             ImGui::BeginHorizontal("horizontal");
             ImGui::Spring(1);
-            ImGui::TextUnformatted(node.Name.c_str());
+            ImGui::TextUnformatted(node->Name.c_str());
             ImGui::Spring(1);
             ImGui::EndHorizontal();
-            ed::Group(node.Size);
+            ed::Group(node->Size);
             ImGui::EndVertical();
             ImGui::PopID();
             ed::EndNode();
             ed::PopStyleColor(2);
             ImGui::PopStyleVar();
 
-            if (ed::BeginGroupHint(node.ID))
+            if (ed::BeginGroupHint(node->ID))
             {
                 // auto alpha   = static_cast<int>(commentAlpha * ImGui::GetStyle().Alpha * 255);
                 auto bgAlpha = static_cast<int>(ImGui::GetStyle().Alpha * 255);
@@ -343,7 +341,7 @@ void EditorView::ImGUINewFrame()
 
                 ImGui::SetCursorScreenPos(min - ImVec2(-8, ImGui::GetTextLineHeightWithSpacing() + 4));
                 ImGui::BeginGroup();
-                ImGui::TextUnformatted(node.Name.c_str());
+                ImGui::TextUnformatted(node->Name.c_str());
                 ImGui::EndGroup();
 
                 auto drawList = ed::GetHintBackgroundDrawList();
@@ -416,14 +414,19 @@ void EditorView::ImGUINewFrame()
                             showLabel("x Incompatible Pin Kind", ImColor(45, 32, 32, 180));
                             ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
                         }
-                        // else if (endPin->Node == startPin->Node)
-                        //{
-                        //     showLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
-                        //     ed::RejectNewItem(ImColor(255, 0, 0), 1.0f);
-                        // }
-                        else if (endPin->Type != startPin->Type)
+                        else if (endPin->Node == startPin->Node)
+                        {
+                            showLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
+                            ed::RejectNewItem(ImColor(255, 0, 0), 1.0f);
+                        }
+                        else if (!endPin->Node->IsLinkValid(startPin, endPin))
                         {
                             showLabel("x Incompatible Pin Type", ImColor(45, 32, 32, 180));
+                            ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
+                        }
+                        else if (IsLinkExist(startPinId, endPinId))
+                        {
+                            showLabel("x Link Already Exist", ImColor(45, 32, 32, 180));
                             ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
                         }
                         else
@@ -469,7 +472,7 @@ void EditorView::ImGUINewFrame()
                     if (ed::AcceptDeletedItem())
                     {
                         auto id = std::find_if(m_Nodes.begin(), m_Nodes.end(), [nodeId](auto &node)
-                                               { return node.ID == nodeId; });
+                                               { return node->ID == nodeId; });
                         if (id != m_Nodes.end())
                             m_Nodes.erase(id);
                     }

@@ -19,7 +19,8 @@
                     "name": "color",
                     "type": "attachment",
                     "format": "FORMAT_B8G8R8A8_UNORM",
-                    "swapChain": true
+                    "swapChain": true,
+                    "clear": true
                 }
             ]
         }

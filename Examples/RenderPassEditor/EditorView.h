@@ -21,6 +21,12 @@ private:
     int m_NextId = 1;
     const int m_PinIconSize = 24;
 
+    ed::NodeId contextNodeId = 0;
+
+    ed::LinkId contextLinkId = 0;
+
+    ed::PinId contextPinId = 0;
+
     bool firstFrame = true;
 
     int GetNextId()
@@ -37,6 +43,18 @@ private:
     Node *SpawnShaderNode()
     {
         m_Nodes.push_back(new ShaderNode("Shader Node", ImColor(255, 255, 128)));
+        return m_Nodes.back().get();
+    }
+
+    Node *SpawnFilePathNode()
+    {
+        m_Nodes.push_back(new FilePathNode("", ImColor(255, 255, 128)));
+        return m_Nodes.back().get();
+    }
+
+    Node *SpawnAttachmentTable()
+    {
+        m_Nodes.push_back(new AttachmentNode("Attachment Table", ImColor(255, 255, 128)));
         return m_Nodes.back().get();
     }
 
@@ -78,34 +96,14 @@ private:
         for (auto &node : m_Nodes)
         {
             for (auto &pin : node->Inputs)
-                if (pin.ID == id)
-                    return &pin;
+                if (pin->ID == id)
+                    return pin.get();
 
             for (auto &pin : node->Outputs)
-                if (pin.ID == id)
-                    return &pin;
+                if (pin->ID == id)
+                    return pin.get();
         }
 
         return nullptr;
-    }
-
-    bool IsPinLinked(ed::PinId id)
-    {
-        if (!id)
-            return false;
-
-        for (auto &link : m_Links)
-            if (link.StartPinID == id || link.EndPinID == id)
-                return true;
-
-        return false;
-    }
-
-    bool CanCreateLink(Pin *a, Pin *b)
-    {
-        if (!a || !b || a == b || a->Kind == b->Kind || a->Type != b->Type || a->Node == b->Node)
-            return false;
-
-        return true;
     }
 };

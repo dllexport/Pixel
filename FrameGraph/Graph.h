@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_set>
 #include <map>
 #include <queue>
 #include <optional>
@@ -12,6 +13,8 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
     static IntrusivePtr<Graph> ParseRenderPassJson(std::string path);
 
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> graphNodesMap;
+
+    std::unordered_set<std::string> sharedAttachments;
 
     struct TopoResult
     {

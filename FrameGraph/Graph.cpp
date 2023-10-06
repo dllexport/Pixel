@@ -113,6 +113,8 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> resolvedMap;
     std::vector<IntrusivePtr<GraphNode>> resourceNodes;
 
+    auto graph = new Graph;
+
     for (auto subpass : json.subpasses)
     {
         IntrusivePtr<GraphNode> node;
@@ -140,6 +142,8 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 attachment->depthStencil = input.depthStencil;
                 attachment->swapChain = input.swapChain;
                 attachment->shared = input.shared;
+                if (attachment->shared) 
+                    graph->sharedAttachments.insert(attachment->name);
                 attachment->clear = input.clear;
                 attachment->format = TranslateFormat(input.format);
                 inputNode = attachment;
@@ -175,6 +179,8 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 attachment->depthStencil = output.depthStencil;
                 attachment->swapChain = output.swapChain;
                 attachment->shared = output.shared;
+                if (attachment->shared) 
+                    graph->sharedAttachments.insert(attachment->name);
                 attachment->clear = output.clear;
                 attachment->color = attachment->depthStencil ? false : true;
                 attachment->format = TranslateFormat(output.format);
@@ -229,7 +235,6 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         }
     }
 
-    auto graph = new Graph;
     graph->name = json.name;
     graph->graphNodesMap = resolvedMap;
     return graph;

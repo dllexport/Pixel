@@ -199,7 +199,8 @@ public:
         WINDOW_FOCUS_IN = 1 << 8,
         WINDOW_FOCUS_OUT = 1 << 9,
         FRAME = 1 << 10,
-        RESIZE = 1 << 11
+        RESIZE = 1 << 11,
+        CHARACTER = 1 << 12
     };
 
     using TypeBits = uint16_t;

@@ -18,7 +18,7 @@ ImguiOverlay::~ImguiOverlay()
 void ImguiOverlay::ImGUINewFrame()
 {
     ImGui::NewFrame();
-
+    
     ImGui::ShowDemoWindow();
 
     ImGui::Render();
@@ -124,6 +124,12 @@ void ImguiOverlay::BuildDrawable()
         {
             io.MouseWheel = event.scrollEvent.offsetY;
             io.MouseWheelH = event.scrollEvent.offsetX;
+        }
+
+        if (event.type == Event::CHARACTER)
+        {
+            io.AddInputCharacter(event.keyEvent.keyCode);
+            return false;
         }
 
         if (event.type & Event::KEY_DOWN || event.type & Event::KEY_REPEAT || event.type & Event::KEY_UP)

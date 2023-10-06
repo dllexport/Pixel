@@ -108,16 +108,16 @@ void ImguiOverlay::BuildDrawable()
         {
             io.MousePos = ImVec2(event.keyEvent.mouseX, event.keyEvent.mouseY);
             io.MouseDown[0] = event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_LEFT;
-            io.MouseDown[1] = event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_MIDDLE;
-            io.MouseDown[2] = event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_RIGHT;
+            io.MouseDown[1] = event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_RIGHT;
+            io.MouseDown[2] = event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_MIDDLE;
         }
 
         if (event.type & Event::MOUSE_UP)
         {
             io.MousePos = ImVec2(event.keyEvent.mouseX, event.keyEvent.mouseY);
             event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_LEFT ? io.MouseDown[0] = 0 : 0;
-            event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_MIDDLE ? io.MouseDown[1] = 0 : 0;
-            event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_RIGHT ? io.MouseDown[2] = 0 : 0;
+            event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_RIGHT ? io.MouseDown[1] = 0 : 0;
+            event.keyEvent.keyCode == EVENT_MOUSE_BUTTON_MIDDLE ? io.MouseDown[2] = 0 : 0;
         }
 
         if (event.type == Event::MOUSE_SCROLL)

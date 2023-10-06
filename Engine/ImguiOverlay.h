@@ -37,4 +37,8 @@ public:
 
 protected:
     ImGuiContext *imguiContext;
+
+    // ui event handler might recursively call ImGUINewFrame
+    // call only frameEnd == true
+    bool frameEnd = true;
 };

@@ -52,9 +52,15 @@ private:
         return m_Nodes.back().get();
     }
 
-    Node *SpawnAttachmentTable()
+    Node *SpawnAttachmentTableNode()
     {
-        m_Nodes.push_back(new AttachmentNode("Attachment Table", ImColor(255, 255, 128)));
+        m_Nodes.push_back(new AttachmentTableNode("Attachment Table", ImColor(255, 255, 128)));
+        return m_Nodes.back().get();
+    }
+
+    Node *SpawnAttachmentNode()
+    {
+        m_Nodes.push_back(new AttachmentNode("Attachment", ImColor(255, 255, 128)));
         return m_Nodes.back().get();
     }
 

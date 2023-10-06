@@ -48,6 +48,7 @@ enum class NodeType
     Houdini,
     PipelineNode,
     ShaderNode,
+    AttachmentTableNode,
     AttachmentNode
 };
 

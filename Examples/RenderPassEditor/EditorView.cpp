@@ -76,7 +76,8 @@ void EditorView::Setup()
     SpawnInputActionNode();
     SpawnShaderNode();
     SpawnFilePathNode();
-    SpawnAttachmentTable();
+    SpawnAttachmentTableNode();
+    SpawnAttachmentNode();
 }
 
 void EditorView::ImGUINewFrame()
@@ -417,8 +418,11 @@ void EditorView::ImGUINewFrame()
             node = SpawnShaderNode();
         if (ImGui::MenuItem("FilePath Node"))
             node = SpawnFilePathNode();
-        if (ImGui::MenuItem("Attachment Table"))
-            node = SpawnAttachmentTable();
+        if (ImGui::MenuItem("Attachment Table Node"))
+            node = SpawnAttachmentTableNode();
+        if (ImGui::MenuItem("Attachment Node"))
+            node = SpawnAttachmentNode();
+
         if (node)
         {
             createNewNode = false;

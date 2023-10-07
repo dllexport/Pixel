@@ -249,22 +249,24 @@ struct AttachmentNode : public Node
             builder.EndInput();
         }
 
-        ImGui::PushItemWidth(96);
-
+        ImGui::BeginHorizontal("example_h1", ImVec2(0, 0));
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Name");
-        ImGui::SameLine();
+        ImGui::TextUnformatted("Name:");
+        ImGui::Spring(1);
         if (ImGui::Button("Node 0"))
         {
         }
+        ImGui::EndHorizontal();
 
+        ImGui::BeginHorizontal("example_h2", ImVec2(0, 0));
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Format");
-        ImGui::SameLine();
+        ImGui::TextUnformatted("Format:");
+        ImGui::Spring(1);
         if (ImGui::Button(popup_text.c_str()))
         {
             do_popup = true; // Instead of saying OpenPopup() here, we set this bool, which is used later in the Deferred Pop-up Section
         }
+        ImGui::EndHorizontal();
 
         static bool check = false;
         ImGui::Checkbox("Clear", &check);
@@ -308,7 +310,6 @@ struct AttachmentNode : public Node
                 }
             }
 
-            ImGui::PopItemWidth();
 
             ImGui::EndPopup(); // Note this does not do anything to the popup open/close state. It just terminates the content declaration.
         }

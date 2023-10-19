@@ -2,6 +2,27 @@
     "name": "singlePass",
     "subpasses": [
         {
+            "name": "compute 0",
+            "type": "compute",
+            "shaders": {
+                "vertex": "C:/Users/Mario/Desktop/Pixel/Examples/Deferred/gbuffer.vert.spv",
+                "fragment": "C:/Users/Mario/Desktop/Pixel/Examples/Deferred/gbuffer.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "ubo",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "position",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                }
+            ]
+        },
+        {
             "name": "deferred",
             "type": "graphic",
             "shaders": {
@@ -68,21 +89,26 @@
                 },
                 {
                     "name": "position",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
                 },
                 {
                     "name": "normal",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
                 },
                 {
                     "name": "albedo",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
                 }
             ],
             "outputs": [
                 {
                     "name": "color",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "swapChain": true
                 }
             ]
         },

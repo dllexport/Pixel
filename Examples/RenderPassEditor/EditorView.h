@@ -13,6 +13,9 @@ public:
 
     void Setup();
     void SetupFont();
+    void LoadJson();
+    void BuildInputNode(IntrusivePtr<GraphNode> node, DescriptorTableNode *dtn);
+    void BuildOutputNode(IntrusivePtr<GraphNode> node, AttachmentTableNode *dtn);
 
 private:
     ax::NodeEditor::EditorContext *m_Editor = nullptr;
@@ -34,34 +37,60 @@ private:
         return m_NextId++;
     }
 
-    Node *SpawnInputActionNode()
+    PipelineNode *SpawnPipelineNode()
     {
-        m_Nodes.push_back(new PipelineNode("Pipeline 0", ImColor(255, 128, 128)));
-        return m_Nodes.back().get();
+        auto node = new PipelineNode("Pipeline 0", ImColor(255, 128, 128));
+        m_Nodes.push_back(node);
+        return node;
     }
 
-    Node *SpawnShaderNode()
+    ShaderNode *SpawnShaderNode()
     {
-        m_Nodes.push_back(new ShaderNode("Shader Node", ImColor(255, 255, 128)));
-        return m_Nodes.back().get();
+        auto node = new ShaderNode("Shader Node", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
     }
 
-    Node *SpawnFilePathNode()
+    FilePathNode *SpawnFilePathNode()
     {
-        m_Nodes.push_back(new FilePathNode("", ImColor(255, 255, 128)));
-        return m_Nodes.back().get();
+        auto node = new FilePathNode("", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
     }
 
-    Node *SpawnAttachmentTableNode()
+    AttachmentTableNode *SpawnAttachmentTableNode()
     {
-        m_Nodes.push_back(new AttachmentTableNode("Attachment Table", ImColor(255, 255, 128)));
-        return m_Nodes.back().get();
+        auto node = new AttachmentTableNode("Attachment Table", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
     }
 
-    Node *SpawnAttachmentNode()
+    TextureNode *SpawnTextureNode()
     {
-        m_Nodes.push_back(new AttachmentNode("Attachment", ImColor(255, 255, 128)));
-        return m_Nodes.back().get();
+        auto node = new TextureNode("Texture Node", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
+    }
+
+    DescriptorTableNode *SpawnDescriptorTableNode()
+    {
+        auto node = new DescriptorTableNode("Descriptor Table", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
+    }
+
+    MutableBufferNode *SpawnMutableBufferNode()
+    {
+        auto node = new MutableBufferNode("MutableBuffer", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
+    }
+
+    AttachmentReferenceNode *SpawnAttachmentReferenceNode()
+    {
+        auto node = new AttachmentReferenceNode("Attachment Ref", ImColor(255, 255, 128));
+        m_Nodes.push_back(node);
+        return node;
     }
 
     Node *FindNode(ed::NodeId id)

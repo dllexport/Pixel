@@ -5,9 +5,10 @@
 #include <RHI/ConstantBuffer.h>
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/ContextBuilder.h>
-#include <RHI/VulkanRuntime/RenderPass.h>
-#include <RHI/VulkanRuntime/RenderPassExecutor.h>
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/RenderGroup.h>
+#include <RHI/VulkanRuntime/RenderGroupExecutor.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
+#include <RHI/VulkanRuntime/ComputePipeline.h>
 #include <RHI/VulkanRuntime/Buffer.h>
 #include <RHI/VulkanRuntime/Texture.h>
 #include <RHI/VulkanRuntime/Sampler.h>
@@ -61,19 +62,26 @@ IntrusivePtr<Context> VulkanRuntime::GetContext()
     return context;
 }
 
-IntrusivePtr<RenderPass> VulkanRuntime::CreateRenderPass(IntrusivePtr<Graph> graph)
+IntrusivePtr<RenderGroup> VulkanRuntime::CreateRenderGroup(IntrusivePtr<Graph> graph)
 {
-    return new VulkanRenderPass(context, graph);
+    return new VulkanRenderGroup(context, graph);
 }
 
-IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates)
+IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderGroup> renderGroup, std::string subPassName, PipelineStates pipelineStates)
 {
-    if (static_cast<VulkanRenderPass *>(renderPass.get())->GetSubPassIndex(subPassName) == -1)
+    auto vrg = static_cast<VulkanRenderGroup *>(renderGroup.get());
+    auto rp = vrg->GetRenderPass(subPassName);
+    if (!rp)
     {
-        spdlog::info("subPass: {} not exist in renderPass {}", subPassName, renderPass->GetGraph()->name);
+        spdlog::info("subPass: {} not exist in renderPass {}", subPassName, vrg->GetGraph()->name);
         return nullptr;
     }
-    return new VulkanPipeline(context, renderPass, subPassName, pipelineStates);
+    return new VulkanGraphicsPipeline(context, rp, subPassName, pipelineStates);
+}
+
+IntrusivePtr<Pipeline> VulkanRuntime::CreateComputePipeline(IntrusivePtr<RenderGroup> renderPass, std::string subPassName)
+{
+    return new VulkanComputePipeline(context, renderPass, subPassName);
 }
 
 IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
@@ -109,9 +117,9 @@ IntrusivePtr<Sampler> VulkanRuntime::CreateSampler(IntrusivePtr<Texture> texture
     return sampler;
 }
 
-IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor()
+IntrusivePtr<RenderGroupExecutor> VulkanRuntime::CreateRenderGroupExecutor()
 {
-    auto rpe = new VulkanRenderPassExecutor(context);
+    auto rpe = new VulkanGroupExecutor(context);
     return rpe;
 }
 

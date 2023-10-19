@@ -65,10 +65,13 @@ int main()
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
         .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
 
+    auto imguiRenderPass = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/RenderPassEditor/imgui.json");
+
     IntrusivePtr<PixelEngine> engine = new PixelEngine;
 
+    auto renderPass2 = engine->RegisterRenderPass(imguiRenderPass);
     auto renderPass = engine->RegisterRenderPass(graph);
-    auto colorPipeline = engine->RegisterPipeline("singlePass", "single", colorPipelineStates);
+    auto colorPipeline = engine->RegisterPipeline("TrianglePass", "single", colorPipelineStates);
 
     auto &rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();

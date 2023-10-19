@@ -1,4 +1,4 @@
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
 #include <RHI/VulkanRuntime/Texture.h>
 
@@ -208,7 +208,17 @@ VkPipelineDynamicStateCreateInfo TranslateDynamicState(std::vector<VkDynamicStat
     return pipelineDynamicStateCreateInfo;
 }
 
-VkShaderModule VulkanPipeline::loadShader(std::string path, VkShaderStageFlagBits stage)
+VkPipeline VulkanGraphicsPipeline::GetPipeline()
+{
+    return pipeline;
+}
+
+IntrusivePtr<VulkanRenderPass> VulkanGraphicsPipeline::GetRenderPass()
+{
+    return renderPass;
+}
+
+VkShaderModule VulkanGraphicsPipeline::loadShader(std::string path, VkShaderStageFlagBits stage)
 {
     auto shaderCode = ReadBinaryFile(path);
 
@@ -232,7 +242,7 @@ VkShaderModule VulkanPipeline::loadShader(std::string path, VkShaderStageFlagBit
     }
 }
 
-std::vector<VkPipelineShaderStageCreateInfo> VulkanPipeline::TranslateShaderState(ShaderState state)
+std::vector<VkPipelineShaderStageCreateInfo> VulkanGraphicsPipeline::TranslateShaderState(ShaderState state)
 {
     std::vector<VkPipelineShaderStageCreateInfo> result;
     {
@@ -271,12 +281,13 @@ VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::I
     return vertexInputStateCI;
 }
 
-VulkanPipeline::VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates) : Pipeline(pipelineStates), context(context), subPassName(subPassName)
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string name, PipelineStates pipelineStates) : Pipeline(), context(context), pipelineStates(pipelineStates)
 {
+    this->name = name;
     this->renderPass = renderPass;
 }
 
-VulkanPipeline::~VulkanPipeline()
+VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
     auto device = context->GetVkDevice();
     for (auto &shaderModule : shaderModules)
@@ -287,19 +298,19 @@ VulkanPipeline::~VulkanPipeline()
     vkDestroyPipeline(device, pipeline, nullptr);
 }
 
-IntrusivePtr<VulkanPipelineLayout> &VulkanPipeline::GetPipelineLayout()
+IntrusivePtr<VulkanPipelineLayout> &VulkanGraphicsPipeline::GetPipelineLayout()
 {
     return pipelineLayout;
 }
 
-void VulkanPipeline::Build()
+void VulkanGraphicsPipeline::Build()
 {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = TranslateInputAssemblyState(pipelineStates.inputAssembleState);
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = TranslateRasterizationState(pipelineStates.rasterizationState);
 
     // apply default blending state
     auto vulkanRenderPass = static_cast<VulkanRenderPass *>(renderPass.get());
-    auto colorRefsSize = vulkanRenderPass->referencesMap[this->subPassName].colorRefs.size();
+    auto colorRefsSize = vulkanRenderPass->attachmentReferencesMap[this->name].colorRefs.size();
     auto colorBlendAttachmentStates = TranslateColorBlendAttachmentState(pipelineStates.colorBlendAttachmentStates, colorRefsSize);
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = BuildColorBlendAttachmentState(colorBlendAttachmentStates);
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = TranslateDepthStencilState(pipelineStates.depthStencilState);
@@ -309,7 +320,7 @@ void VulkanPipeline::Build()
     std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicStateCI = TranslateDynamicState(dynamicStateEnables);
 
-    auto subPassIndex = vulkanRenderPass->GetSubPassIndex(this->subPassName);
+    auto subPassIndex = vulkanRenderPass->GetSubPassIndex(this->name);
 
     if (pipelineStates.shaderState.Empty())
     {

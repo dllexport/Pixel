@@ -1,18 +1,17 @@
 #pragma once
 
-#include <RHI/RenderPass.h>
+#include <RHI/Pipeline.h>
 #include <RHI/VulkanRuntime/Context.h>
-
+#include <FrameGraph/Graph.h>
 #include <vulkan/vulkan.h>
 
-class VulkanPipeline;
-class VulkanRenderPass : public RenderPass
+class VulkanRenderPass : public IntrusiveCounter<VulkanRenderPass>
 {
 public:
     VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
-    virtual ~VulkanRenderPass() override;
+    ~VulkanRenderPass();
 
-    virtual void Build() override;
+    void Build();
 
     struct SubPassAttachmentReferences
     {
@@ -26,53 +25,29 @@ public:
         }
     };
 
-    VkRenderPass GetRenderPass()
-    {
-        return renderPass;
-    }
+    VkRenderPass GetRenderPass();
 
-    int32_t GetSubPassIndex(std::string subPassName)
-    {
-        for (int32_t i = 0; i < graphicRenderPasses.size(); i++)
-        {
-            if (graphicRenderPasses[i]->name == subPassName)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-    
-    void RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline);
+    int32_t GetSubPassIndex(std::string subPassName);
 
-    SubPassAttachmentReferences GetSubPassReference(std::string name)
-    {
-        if (referencesMap.count(name))
-        {
-            return referencesMap[name];
-        }
-        return {};
-    }
+    SubPassAttachmentReferences GetSubPassReference(std::string name);
 
-    IntrusivePtr<GraphicRenderPassGraphNode> GetGraphicRenderPassGraphNode(uint32_t subPassIndex) {
-        return graphicRenderPasses[subPassIndex];
-    }
-    
-    IntrusivePtr<GraphicRenderPassGraphNode> GetGraphicRenderPassGraphNode(std::string subPassName) {
-        return graphicRenderPasses[GetSubPassIndex(subPassName)];
-    }
+    IntrusivePtr<GraphicRenderPassGraphNode> GetGraphicRenderPassGraphNode(uint32_t subPassIndex);
+    IntrusivePtr<GraphicRenderPassGraphNode> GetGraphicRenderPassGraphNode(std::string subPassName);
 
 private:
-    friend class VulkanPipeline;
-    friend class VulkanRenderPassExecutor;
+    friend class VulkanGraphicsPipeline;
+    friend class VulkanRenderGroup;
     IntrusivePtr<Context> context;
-    VkRenderPass renderPass;
-    std::vector<IntrusivePtr<GraphicRenderPassGraphNode>> graphicRenderPasses;
+    IntrusivePtr<Graph> graph;
 
+    // ordered subpass node from 0 to n
+    std::vector<IntrusivePtr<GraphicRenderPassGraphNode>> graphicRenderPasses;
+    // for building command buffer in render group
     std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentNodes;
+
+    VkRenderPass renderPass;
+
     // subpass name -> references
     // storing input color VkAttachmentReference for each subpass
-    std::unordered_map<std::string, SubPassAttachmentReferences> referencesMap;
-
-    std::unordered_map<std::string, IntrusivePtr<VulkanPipeline>> pipelineMap;
+    std::unordered_map<std::string, SubPassAttachmentReferences> attachmentReferencesMap;
 };

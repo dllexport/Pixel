@@ -7,9 +7,6 @@
 
 #include <Core/ReadFile.h>
 
-#include <FrameGraph/GraphNodeJson.h>
-#include <FrameGraph/GraphNode.h>
-
 static TextureFormat TranslateFormat(std::string formatStr)
 {
 #define STRINGIFY2(X) #X
@@ -34,7 +31,7 @@ static TextureFormat TranslateFormat(std::string formatStr)
 }
 
 // replace reference node with instance
-static void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<GraphNode>> &resolvedMap, std::vector<IntrusivePtr<GraphNode>> &resourceNodes)
+static void ResolveReferenceNodeDeprecate(std::unordered_map<std::string, IntrusivePtr<GraphNode>> &resolvedMap, std::vector<IntrusivePtr<GraphNode>> &resourceNodes)
 {
     // merge ref source to target, including all inputs && outputs
     auto mergeGraphNode = [](GraphNode *source, GraphNode *target)
@@ -102,18 +99,23 @@ static void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<Gr
     }
 }
 
+bool isPipelineNode(IntrusivePtr<GraphNode> node)
+{
+    return node->type == GraphNode::Type::GRAPHIC_PASS || node->type == GraphNode::Type::COMPUTE_PASS;
+}
+
 IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 {
+    IntrusivePtr<Graph> graph = new Graph;
+
     auto jsonStr = ReadStringFile(path);
     JS::ParseContext context(jsonStr);
-    RenderPassJson json;
+    auto &json = graph->json;
     auto error = context.parseTo(json);
 
     // none reference node save here
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> resolvedMap;
     std::vector<IntrusivePtr<GraphNode>> resourceNodes;
-
-    auto graph = new Graph;
 
     for (auto subpass : json.subpasses)
     {
@@ -136,13 +138,15 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         for (auto input : subpass.inputs)
         {
             GraphNode *inputNode;
-            if (input.type == "attachment")
+            if (resolvedMap.count(input.name))
+                inputNode = resolvedMap[input.name].get();
+            else if (input.type == "attachment")
             {
                 auto attachment = new AttachmentGraphNode(input.name, GraphNode::ATTACHMENT);
                 attachment->depthStencil = input.depthStencil;
                 attachment->swapChain = input.swapChain;
                 attachment->shared = input.shared;
-                if (attachment->shared) 
+                if (attachment->shared)
                     graph->sharedAttachments.insert(attachment->name);
                 attachment->clear = input.clear;
                 attachment->format = TranslateFormat(input.format);
@@ -152,19 +156,12 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             {
                 inputNode = new DescriptorGraphNode(input.name, input.type == "sampler" ? GraphNode::SAMPLER : GraphNode::BUFFER);
             }
-            else if (input.type == "reference")
-            {
-                inputNode = new GraphNode(input.name, GraphNode::REFERENCE);
-            }
-
-            if (input.type != "reference")
-            {
-                resolvedMap[input.name] = inputNode;
-            }
 
             // save which subpass use this node as input
             inputNode->inputSubPassNames.insert(subpass.name);
 
+            if (!resolvedMap.count(inputNode->name))
+                resolvedMap[inputNode->name] = inputNode;
             resourceNodes.push_back(inputNode);
             node->inputs.push_back(inputNode);
             inputNode->outputs.push_back(node);
@@ -173,13 +170,15 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
         for (auto output : subpass.outputs)
         {
             GraphNode *outputNode;
-            if (output.type == "attachment")
+            if (resolvedMap.count(output.name))
+                outputNode = resolvedMap[output.name].get();
+            else if (output.type == "attachment")
             {
                 auto attachment = new AttachmentGraphNode(output.name, GraphNode::ATTACHMENT);
                 attachment->depthStencil = output.depthStencil;
                 attachment->swapChain = output.swapChain;
                 attachment->shared = output.shared;
-                if (attachment->shared) 
+                if (attachment->shared)
                     graph->sharedAttachments.insert(attachment->name);
                 attachment->clear = output.clear;
                 attachment->color = attachment->depthStencil ? false : true;
@@ -190,35 +189,29 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             {
                 outputNode = new DescriptorGraphNode(output.name, GraphNode::BUFFER);
             }
-            else if (output.type == "reference")
-            {
-                outputNode = new GraphNode(output.name, GraphNode::REFERENCE);
-            }
 
-            if (output.type != "reference")
-            {
-                resolvedMap[output.name] = outputNode;
-            }
-
+            if (!resolvedMap.count(outputNode->name))
+                resolvedMap[outputNode->name] = outputNode;
             resourceNodes.push_back(outputNode);
             node->outputs.push_back(outputNode);
             outputNode->inputs.push_back(node);
         }
     }
 
-    ResolveReferenceNode(resolvedMap, resourceNodes);
-
     for (auto [name, node] : resolvedMap)
     {
-        if (node->type != GraphNode::GRAPHIC_PASS)
-        {
+        if (!isPipelineNode(node))
             continue;
-        }
-        auto passNode = (GraphicRenderPassGraphNode *)node.get();
+
+        auto passNode = (RenderPassGraphNode *)node.get();
         for (int i = 0; i < passNode->inputs.size(); i++)
         {
             auto resNode = (ResourceNode *)passNode->inputs[i].get();
-            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding, resNode->type};
+            if (resNode->binding == UINT32_MAX)
+            {
+                resNode->binding = i;
+            }
+            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding, resNode->type};
         }
         // TODO, handle outputs (BUFFER SSBO)
     }
@@ -289,7 +282,7 @@ Graph::TopoResult &Graph::Topo()
     {
         for (auto &node : nodes)
         {
-            spdlog::info("{}", node->name);
+            spdlog::info("{} {}", level, node->name);
         }
     }
 

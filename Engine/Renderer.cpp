@@ -1,7 +1,7 @@
 #include <Engine/Renderer.h>
 #include <Engine/PixelEngine.h>
 
-#include <RHI/RenderPassExecutor.h>
+#include <RHI/RenderGroupExecutor.h>
 
 #include <spdlog/spdlog.h>
 
@@ -65,7 +65,7 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
 
 void Renderer::Build()
 {
-    renderPassExecutor = engine->GetRHIRuntime()->CreateRenderPassExecutor();
+    renderPassExecutor = engine->GetRHIRuntime()->CreateRenderGroupExecutor();
     for (auto &drawState : drawStates)
     {
         renderPassExecutor->AddBindingState(drawState);

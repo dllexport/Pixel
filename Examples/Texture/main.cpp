@@ -84,6 +84,10 @@ void CreateTextureDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer,
 int main()
 {
     spdlog::set_level(spdlog::level::debug);
+    IntrusivePtr<PixelEngine> engine = new PixelEngine;
+
+    auto imguiPass = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/Texture/imgui.json");
+    engine->RegisterRenderPass(imguiPass);
 
     auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/Texture/texture.json");
     PipelineStates colorPipelineStates = {
@@ -91,9 +95,7 @@ int main()
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
         .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
 
-    IntrusivePtr<PixelEngine> engine = new PixelEngine;
-
-    auto renderPass = engine->RegisterRenderPass(graph);
+    engine->RegisterRenderPass(graph);
     auto colorPipeline = engine->RegisterPipeline("singlePass", "texture", colorPipelineStates);
 
     auto &rhiRuntime = engine->GetRHIRuntime();

@@ -2,6 +2,11 @@
 
 #include <imgui_node_editor_internal.h>
 
+#include <FrameGraph/Graph.h>
+#include <FrameGraph/GraphNodeJson.h>
+
+#include <spdlog/spdlog.h>
+
 static inline ImRect ImGui_GetItemRect()
 {
     return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
@@ -28,8 +33,180 @@ ImGuiWindowFlags GetWindowFlags()
            ImGuiWindowFlags_NoBringToFrontOnFocus;
 }
 
+void EditorView::BuildInputNode(IntrusivePtr<GraphNode> node, DescriptorTableNode *dtn)
+{
+    if (node->type == GraphNode::Type::BUFFER)
+    {
+        auto dn = static_cast<DescriptorGraphNode *>(node.get());
+
+        auto mutableBufferNode = SpawnMutableBufferNode();
+        mutableBufferNode->Name = dn->name;
+
+        this->m_Links.push_back(Link(Node::GetNextId(), mutableBufferNode->LinkPin()->ID, dtn->BindingPin(dn->binding)->ID));
+    }
+}
+
+void EditorView::BuildOutputNode(IntrusivePtr<GraphNode> node, AttachmentTableNode *dtn)
+{
+    if (node->type == GraphNode::Type::ATTACHMENT)
+    {
+        auto an = static_cast<AttachmentGraphNode *>(node.get());
+
+        auto attachmentNode = SpawnTextureNode();
+        attachmentNode->Name = an->name;
+        attachmentNode->swapChain = an->swapChain;
+        attachmentNode->depthStencil = an->depthStencil;
+
+        this->m_Links.push_back(Link(Node::GetNextId(), dtn->BindingPin(0)->ID, attachmentNode->LinkPin()->ID));
+    }
+}
+
+void EditorView::LoadJson()
+{
+    auto graph = Graph::ParseRenderPassJson("deferred.json");
+
+    for (auto [level, nodes] : graph->Topo().levelsRenderPassOnly)
+    {
+        for (auto node : nodes)
+        {
+            if (node->type == GraphNode::Type::GRAPHIC_PASS)
+            {
+                auto gn = static_cast<GraphicRenderPassGraphNode *>(node);
+                auto pipelineNode = SpawnPipelineNode();
+                pipelineNode->Name = gn->name;
+
+                auto shaderNode = SpawnShaderNode();
+                FilePathNode *vertexFilePathNode = nullptr;
+                FilePathNode *fragmentFilePathNode = nullptr;
+
+                if (!gn->vertexShader.empty())
+                {
+                    vertexFilePathNode = SpawnFilePathNode();
+                    vertexFilePathNode->SelectPin()->Name = gn->vertexShader;
+                }
+
+                if (!gn->framgmentShader.empty())
+                {
+                    fragmentFilePathNode = SpawnFilePathNode();
+                    fragmentFilePathNode->SelectPin()->Name = gn->framgmentShader;
+                }
+
+                this->m_Links.push_back(Link(Node::GetNextId(), vertexFilePathNode->SelectPin()->ID, shaderNode->VertexShaderPin()->ID));
+                this->m_Links.push_back(Link(Node::GetNextId(), fragmentFilePathNode->SelectPin()->ID, shaderNode->FragmentShaderPin()->ID));
+                this->m_Links.push_back(Link(Node::GetNextId(), shaderNode->FlowOutPin()->ID, pipelineNode->ShaderPin()->ID));
+
+                auto attachmentTableNode = SpawnAttachmentTableNode();
+                auto descriptorTableNode = SpawnDescriptorTableNode();
+
+                this->m_Links.push_back(Link(Node::GetNextId(), descriptorTableNode->LinkPin()->ID, pipelineNode->DescriptorPin()->ID));
+                this->m_Links.push_back(Link(Node::GetNextId(), pipelineNode->AttachmentPin()->ID, attachmentTableNode->LinkOutPin()->ID));
+
+                for (auto input : gn->inputs)
+                {
+                    BuildInputNode(input, descriptorTableNode);
+                }
+
+                for (auto output : gn->outputs)
+                {
+                    BuildOutputNode(output, attachmentTableNode);
+                }
+            }
+        }
+    }
+
+    // for (auto [level, nodes] : graph->Topo().levels)
+    // {
+    //     for (auto node : nodes)
+    //     {
+    //         spdlog::info("{}, {}, {}", level, node->name, node->type);
+
+    //         if (node->type == GraphNode::Type::GRAPHIC_PASS)
+    //         {
+    //             auto gn = static_cast<GraphicRenderPassGraphNode *>(node);
+    //             auto pipelineNode = SpawnPipelineNode();
+    //             pipelineNode->Name = gn->name;
+
+    //             auto shaderNode = SpawnShaderNode();
+    //             FilePathNode *vertexFilePathNode = nullptr;
+    //             FilePathNode *fragmentFilePathNode = nullptr;
+
+    //             if (!gn->vertexShader.empty())
+    //             {
+    //                 vertexFilePathNode = SpawnFilePathNode();
+    //                 vertexFilePathNode->SelectPin()->Name = gn->vertexShader;
+    //             }
+
+    //             if (!gn->framgmentShader.empty())
+    //             {
+    //                 fragmentFilePathNode = SpawnFilePathNode();
+    //                 fragmentFilePathNode->SelectPin()->Name = gn->framgmentShader;
+    //             }
+
+    //             this->m_Links.push_back(Link(Node::GetNextId(), vertexFilePathNode->SelectPin()->ID, shaderNode->VertexShaderPin()->ID));
+    //             this->m_Links.push_back(Link(Node::GetNextId(), fragmentFilePathNode->SelectPin()->ID, shaderNode->FragmentShaderPin()->ID));
+    //             this->m_Links.push_back(Link(Node::GetNextId(), shaderNode->FlowOutPin()->ID, pipelineNode->ShaderPin()->ID));
+    //         }
+
+    //         if (node->type == GraphNode::Type::ATTACHMENT)
+    //         {
+    //             auto an = static_cast<AttachmentGraphNode *>(node);
+    //             auto attachmentTableNode = SpawnAttachmentTableNode();
+
+    //             auto attachmentNode = SpawnAttachmentNode();
+    //             attachmentNode->clear = an->clear;
+    //             attachmentNode->swapchain = an->swapChain;
+    //             attachmentNode->shared = an->swapChain;
+    //             this->m_Links.push_back(Link(Node::GetNextId(), attachmentTableNode->BindingPin(0)->ID, attachmentNode->LinkPin()->ID));
+    //         }
+
+    //         if (node->type == GraphNode::Type::BUFFER)
+    //         {
+    //             auto dn = static_cast<DescriptorGraphNode *>(node);
+    //             auto descriptorTableNode = SpawnDescriptorTableNode();
+
+    //             auto mutableBufferNode = SpawnMutableBufferNode();
+    //             mutableBufferNode->Name = dn->name;
+
+    //             this->m_Links.push_back(Link(Node::GetNextId(), mutableBufferNode->LinkPin()->ID, descriptorTableNode->BindingPin(dn->binding)->ID));
+    //         }
+    //     }
+    // }
+
+    // for (auto subpassJson : graph->GetJson().subpasses)
+    // {
+    //     auto pipelineNode = SpawnPipelineNode();
+    //     pipelineNode->Name = subpassJson.name;
+
+    //     auto shaderNode = SpawnShaderNode();
+    //     // ed::SetNodePosition(header_id, ImVec2(420, 20));
+
+    //     FilePathNode *vertexFilePathNode = nullptr;
+    //     FilePathNode *fragmentFilePathNode = nullptr;
+
+    //     if (!subpassJson.shaders.vertex.empty())
+    //     {
+    //         vertexFilePathNode = SpawnFilePathNode();
+    //         vertexFilePathNode->Outputs[0]->Name = subpassJson.shaders.vertex;
+    //     }
+
+    //     if (!subpassJson.shaders.fragment.empty())
+    //     {
+    //         fragmentFilePathNode = SpawnFilePathNode();
+    //         fragmentFilePathNode->Outputs[0]->Name = subpassJson.shaders.fragment;
+    //     }
+
+    //     for (auto output : subpassJson.outputs)
+    //     {
+    //         if (output.type == "attachment")
+    //         {
+    //         }
+    //     }
+    // }
+}
+
 EditorView::EditorView(PixelEngine *engine) : ImguiOverlay(engine)
 {
+    LoadJson();
     Setup();
 }
 
@@ -66,18 +243,13 @@ void EditorView::Setup()
     ed::Config config;
 
     const float zoomLevels[] =
-        {0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f};
+        {0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f};
 
     for (auto &level : zoomLevels)
         config.CustomZoomLevels.push_back(level);
 
     m_Editor = ed::CreateEditor(&config);
     ed::SetCurrentEditor(m_Editor);
-    SpawnInputActionNode();
-    SpawnShaderNode();
-    SpawnFilePathNode();
-    SpawnAttachmentTableNode();
-    SpawnAttachmentNode();
 }
 
 void EditorView::ImGUINewFrame()
@@ -130,66 +302,6 @@ void EditorView::ImGUINewFrame()
         for (auto &node : m_Nodes)
         {
             node->Draw(dc);
-        }
-
-        for (auto &node : m_Nodes)
-        {
-            if (node->Type != NodeType::Comment)
-                continue;
-
-            const float commentAlpha = 0.75f;
-
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, commentAlpha);
-            ed::PushStyleColor(ed::StyleColor_NodeBg, ImColor(255, 255, 255, 64));
-            ed::PushStyleColor(ed::StyleColor_NodeBorder, ImColor(255, 255, 255, 64));
-            ed::BeginNode(node->ID);
-            ImGui::PushID(node->ID.AsPointer());
-            ImGui::BeginVertical("content");
-            ImGui::BeginHorizontal("horizontal");
-            ImGui::Spring(1);
-            ImGui::TextUnformatted(node->Name.c_str());
-            ImGui::Spring(1);
-            ImGui::EndHorizontal();
-            ed::Group(node->Size);
-            ImGui::EndVertical();
-            ImGui::PopID();
-            ed::EndNode();
-            ed::PopStyleColor(2);
-            ImGui::PopStyleVar();
-
-            if (ed::BeginGroupHint(node->ID))
-            {
-                // auto alpha   = static_cast<int>(commentAlpha * ImGui::GetStyle().Alpha * 255);
-                auto bgAlpha = static_cast<int>(ImGui::GetStyle().Alpha * 255);
-
-                // ImGui::PushStyleVar(ImGuiStyleVar_Alpha, commentAlpha * ImGui::GetStyle().Alpha);
-
-                auto min = ed::GetGroupMin();
-                // auto max = ed::GetGroupMax();
-
-                ImGui::SetCursorScreenPos(min - ImVec2(-8, ImGui::GetTextLineHeightWithSpacing() + 4));
-                ImGui::BeginGroup();
-                ImGui::TextUnformatted(node->Name.c_str());
-                ImGui::EndGroup();
-
-                auto drawList = ed::GetHintBackgroundDrawList();
-
-                auto hintBounds = ImGui_GetItemRect();
-                auto hintFrameBounds = ImRect_Expanded(hintBounds, 8, 4);
-
-                drawList->AddRectFilled(
-                    hintFrameBounds.GetTL(),
-                    hintFrameBounds.GetBR(),
-                    IM_COL32(255, 255, 255, 64 * bgAlpha / 255), 4.0f);
-
-                drawList->AddRect(
-                    hintFrameBounds.GetTL(),
-                    hintFrameBounds.GetBR(),
-                    IM_COL32(255, 255, 255, 128 * bgAlpha / 255), 4.0f);
-
-                // ImGui::PopStyleVar();
-            }
-            ed::EndGroupHint();
         }
 
         for (auto &link : m_Links)
@@ -351,7 +463,6 @@ void EditorView::ImGUINewFrame()
         if (node)
         {
             ImGui::Text("ID: %p", node->ID.AsPointer());
-            ImGui::Text("Type: %s", node->Type == NodeType::Blueprint ? "Blueprint" : (node->Type == NodeType::Tree ? "Tree" : "Comment"));
             ImGui::Text("Inputs: %d", (int)node->Inputs.size());
             ImGui::Text("Outputs: %d", (int)node->Outputs.size());
         }
@@ -413,7 +524,7 @@ void EditorView::ImGUINewFrame()
 
         Node *node = nullptr;
         if (ImGui::MenuItem("Pipeline Node"))
-            node = SpawnInputActionNode();
+            node = SpawnPipelineNode();
         if (ImGui::MenuItem("Shader Node"))
             node = SpawnShaderNode();
         if (ImGui::MenuItem("FilePath Node"))
@@ -421,7 +532,9 @@ void EditorView::ImGUINewFrame()
         if (ImGui::MenuItem("Attachment Table Node"))
             node = SpawnAttachmentTableNode();
         if (ImGui::MenuItem("Attachment Node"))
-            node = SpawnAttachmentNode();
+            node = SpawnTextureNode();
+        if (ImGui::MenuItem("Attachment Ref Node"))
+            node = SpawnAttachmentReferenceNode();
 
         if (node)
         {

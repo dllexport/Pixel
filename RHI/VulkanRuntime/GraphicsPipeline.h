@@ -1,33 +1,32 @@
 #pragma once
 
 #include <RHI/Pipeline.h>
+#include <RHI/PipelineStates.h>
+
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/RenderPass.h>
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
 class VulkanPipelineLayout;
-class VulkanPipeline : public Pipeline
+class VulkanGraphicsPipeline : public Pipeline
 {
 public:
-    VulkanPipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates);
-    virtual ~VulkanPipeline() override;
+    VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string name, PipelineStates pipelineStates);
+    virtual ~VulkanGraphicsPipeline() override;
     virtual void Build() override;
 
     IntrusivePtr<VulkanPipelineLayout> &GetPipelineLayout();
 
-    std::string GetSubPassName()
-    {
-        return subPassName;
-    }
+    VkPipeline GetPipeline();
 
-    VkPipeline GetPipeline()
-    {
-        return pipeline;
-    }
+    IntrusivePtr<VulkanRenderPass> GetRenderPass();
 
 private:
     IntrusivePtr<Context> context;
-    std::string subPassName;
+
+    IntrusivePtr<VulkanRenderPass> renderPass;
+
+    PipelineStates pipelineStates;
 
     std::vector<VkShaderModule> shaderModules;
     std::unordered_map<VkShaderStageFlagBits, std::vector<char>> shaderCode;

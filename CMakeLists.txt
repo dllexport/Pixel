@@ -17,6 +17,7 @@ include_directories(3rd/imgui)
 
 file(GLOB IMGUI_SOURCE_FILES
     "3rd/imgui/*.cpp"
+    "3rd/imgui/*.h"
 )
 
 find_package(Boost COMPONENTS date_time filesystem system)

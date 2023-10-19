@@ -65,17 +65,12 @@ struct AttachmentGraphNode : public ResourceNode
 struct DescriptorGraphNode : public ResourceNode
 {
     DescriptorGraphNode(std::string name, Type type) : ResourceNode(name, type) {}
-    uint32_t set = 0;
-    uint32_t binding = UINT32_MAX;
     bool sampler = false;
 };
 
-struct GraphicRenderPassGraphNode : public GraphNode
+struct RenderPassGraphNode : public GraphNode
 {
-    GraphicRenderPassGraphNode(std::string name, Type type) : GraphNode(name, type) {}
-    std::string vertexShader;
-    std::string framgmentShader;
-
+    using GraphNode::GraphNode;
     // node -> (set, binding)
     struct ResourceBindingPack
     {
@@ -86,7 +81,15 @@ struct GraphicRenderPassGraphNode : public GraphNode
     std::unordered_map<std::string, ResourceBindingPack> bindingSets;
 };
 
-struct ComputeRenderPassGraphNode : public GraphNode
+struct GraphicRenderPassGraphNode : public RenderPassGraphNode
 {
-    ComputeRenderPassGraphNode(std::string name, Type type) : GraphNode(name, type) {}
+    GraphicRenderPassGraphNode(std::string name, Type type) : RenderPassGraphNode(name, type) {}
+    std::string vertexShader;
+    std::string framgmentShader;
+};
+
+struct ComputeRenderPassGraphNode : public RenderPassGraphNode
+{
+    ComputeRenderPassGraphNode(std::string name, Type type) : RenderPassGraphNode(name, type) {}
+    std::string computeShader;
 };

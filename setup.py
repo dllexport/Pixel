@@ -36,6 +36,7 @@ def GitClone(path: str, url: str):
 
 
 def GitCheck(path: str, url: str, branch: str, finishCallback: callable = None):
+    print("GitCheck: ", path)
     repo = None
     try:
         repo = git.Repo(path)
@@ -48,22 +49,31 @@ def GitCheck(path: str, url: str, branch: str, finishCallback: callable = None):
     except git.exc.GitCommandError:
         traceback.print_exc()
         sys.exit(-1)
-    
+
     if finishCallback != None:
         finishCallback()
 
+
 def CheckOutImGuiNodeEditor():
     repo = git.Repo("3rd/imgui")
-    thedmd: git.Remote = repo.remotes["thedmd"]
-    if thedmd == None:
-        thedmd = repo.create_remote('thedmd', "https://github.com/thedmd/imgui.git")
+    thedmd: git.Remote = None
+    try:
+        thedmd = repo.remotes["thedmd"]
+    except:
+        thedmd = repo.create_remote("thedmd", "https://github.com/thedmd/imgui.git")
     thedmd.fetch("feature/layout")
     repo.git.checkout("feature/layout")
+
 
 GitCheck("3rd/glfw", "https://github.com/glfw/glfw.git", "3.3.8")
 GitCheck("3rd/glm", "https://github.com/g-truc/glm.git", "0.9.9.8")
 
-GitCheck("3rd/imgui", "https://github.com/ocornut/imgui.git", "v1.89.9", CheckOutImGuiNodeEditor)
+GitCheck(
+    "3rd/imgui",
+    "https://github.com/ocornut/imgui.git",
+    "v1.89.9",
+    CheckOutImGuiNodeEditor,
+)
 
 GitCheck("3rd/json_struct", "https://github.com/jorgen/json_struct.git", "master")
 GitCheck(
@@ -81,3 +91,4 @@ GitCheck(
     "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git",
     "v3.0.1",
 )
+GitCheck("3rd/googletest", "https://github.com/google/googletest.git", "v1.14.0")

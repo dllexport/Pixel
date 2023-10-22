@@ -10,9 +10,9 @@
 #include <Engine/Event.h>
 #include <Engine/Camera.h>
 
-#include <RHI/RenderPass.h>
+#include <RHI/RenderGroup.h>
 #include <RHI/ResourceBindingState.h>
-#include <RHI/RenderPassExecutor.h>
+#include <RHI/RenderGroupExecutor.h>
 #include <RHI/SwapChain.h>
 
 class PixelEngine;
@@ -22,10 +22,7 @@ public:
     Renderer(PixelEngine *engine);
     ~Renderer();
 
-    void AddDrawState(IntrusivePtr<ResourceBindingState> state)
-    {
-        drawStates.push_back(state);
-    }
+    void AddDrawState(IntrusivePtr<ResourceBindingState> state);
 
     IntrusivePtr<Camera> GetCamera();
 
@@ -51,7 +48,7 @@ private:
     IntrusivePtr<Camera> camera;
     std::vector<IntrusivePtr<ResourceBindingState>> drawStates;
 
-    IntrusivePtr<RenderPassExecutor> renderPassExecutor;
+    IntrusivePtr<RenderGroupExecutor> renderGroupExecutor;
 
     IOState ioState;
 

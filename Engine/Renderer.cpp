@@ -1,7 +1,7 @@
 #include <Engine/Renderer.h>
 #include <Engine/PixelEngine.h>
 
-#include <RHI/RenderPassExecutor.h>
+#include <RHI/RenderGroupExecutor.h>
 
 #include <spdlog/spdlog.h>
 
@@ -12,11 +12,11 @@ Renderer::Renderer(PixelEngine *engine) : engine(engine)
 
 Renderer::~Renderer()
 {
-    renderPassExecutor->WaitIdle();
-    renderPassExecutor->Reset();
+    renderGroupExecutor->WaitIdle();
+    renderGroupExecutor->Reset();
 
-    assert(renderPassExecutor->use_count() == 1);
-    renderPassExecutor.reset();
+    assert(renderGroupExecutor->use_count() == 1);
+    renderGroupExecutor.reset();
 
     updateCallbacks.clear();
 
@@ -25,7 +25,7 @@ Renderer::~Renderer()
         drawState->ClearUpdateCallbacks();
         drawState.reset();
     }
-    
+
     drawStates.clear();
 
     this->window.reset();
@@ -48,7 +48,7 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
     {
         return;
     }
-    renderPassExecutor->WaitIdle();
+    renderGroupExecutor->WaitIdle();
 
     Event event = {};
     event.type = Event::RESIZE;
@@ -57,22 +57,30 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
     EventCallback(event);
 
     swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, width, height);
-    renderPassExecutor->Reset();
-    renderPassExecutor->SetSwapChain(swapChain);
-    renderPassExecutor->Prepare();
-    renderPassExecutor->Acquire();
+    renderGroupExecutor->Reset();
+    renderGroupExecutor->SetSwapChain(swapChain);
+    renderGroupExecutor->Prepare();
+    renderGroupExecutor->Acquire();
 }
 
 void Renderer::Build()
 {
-    renderPassExecutor = engine->GetRHIRuntime()->CreateRenderPassExecutor();
+    renderGroupExecutor = engine->GetRHIRuntime()->CreateRenderGroupExecutor();
     for (auto &drawState : drawStates)
     {
-        renderPassExecutor->AddBindingState(drawState);
+        auto renderGroup = engine->renderGroupTemplates[drawState->GetPipeline()->groupName];
+        renderGroup->AddBindingState(drawState);
+        renderGroupExecutor->AddRenderGroup(renderGroup);
     }
 
-    renderPassExecutor->SetSwapChain(swapChain);
-    renderPassExecutor->Prepare();
+    renderGroupExecutor->SetSwapChain(swapChain);
+    renderGroupExecutor->Prepare();
+}
+
+void Renderer::AddDrawState(IntrusivePtr<ResourceBindingState> state)
+{
+    drawStates.push_back(state);
+    
 }
 
 void Renderer::PostFrame()
@@ -84,7 +92,7 @@ void Renderer::Update()
     frameStartTime = std::chrono::high_resolution_clock::now();
 
     // acquire image so that it's save to update resource at imageIndex
-    renderPassExecutor->Acquire();
+    renderGroupExecutor->Acquire();
 
     window->Update();
 
@@ -93,7 +101,7 @@ void Renderer::Update()
     event.type = Event::FRAME;
     EventCallback(event);
 
-    renderPassExecutor->Update();
+    renderGroupExecutor->Update();
 }
 
 bool Renderer::Stopped()
@@ -107,7 +115,7 @@ void Renderer::Frame()
     {
         return;
     }
-    auto executeResult = renderPassExecutor->Execute();
+    auto executeResult = renderGroupExecutor->Execute();
     auto now = std::chrono::high_resolution_clock::now();
     this->deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - frameStartTime).count();
 }
@@ -118,7 +126,7 @@ void Renderer::EventCallback(Event event)
     UpdateInput updateInput = {.event = event,
                                .deltaTime = deltaTime,
                                .ioState = ioState,
-                               .currentImageIndex = renderPassExecutor->CurrentImage()};
+                               .currentImageIndex = renderGroupExecutor->CurrentImage()};
 
     std::vector<UpdateCallback> groupCallbacks;
     for (auto &drawState : drawStates)

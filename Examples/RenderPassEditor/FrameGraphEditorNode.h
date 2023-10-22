@@ -11,16 +11,43 @@
 
 struct PipelineNode : public Node
 {
-    PipelineNode(const char *name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    PipelineNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
     {
         this->Type = NodeType::PipelineNode;
         this->Inputs.push_back(new Pin(Node::GetNextId(), "", PinType::Flow));
-        this->Outputs.push_back(new Pin(Node::GetNextId(), "", PinType::Flow));
-        this->Outputs.push_back(new Pin(Node::GetNextId(), "Attachments", PinType::Object));
         this->Inputs.push_back(new Pin(Node::GetNextId(), "Descriptors", PinType::Object));
         this->Inputs.push_back(new Pin(Node::GetNextId(), "Shaders", PinType::ShaderNodeIn));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Attachments", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "AttachmentsRefs", PinType::Object));
+
+        this->Outputs.push_back(new Pin(Node::GetNextId(), "", PinType::Flow));
 
         this->BuildNode();
+    }
+
+    Pin *FlowInPin()
+    {
+        return Inputs[0].get();
+    }
+
+    Pin *FlowOutPin()
+    {
+        return Outputs[0].get();
+    }
+
+    Pin *AttachmentPin()
+    {
+        return Inputs[3].get();
+    }
+
+    Pin *DescriptorPin()
+    {
+        return Inputs[1].get();
+    }
+
+    Pin *ShaderPin()
+    {
+        return Inputs[2].get();
     }
 
     virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
@@ -34,8 +61,15 @@ struct PipelineNode : public Node
         {
             return true;
         }
+
         // connect from shaderNode
         if (from->Node->Type == NodeType::ShaderNode && from->Type == PinType::Flow && to->Type == PinType::ShaderNodeIn)
+        {
+            return true;
+        }
+
+        // connect from descriptor table
+        if (from->Node->Type == NodeType::DescriptorTableNode && from->Type == PinType::Flow && to->Type == PinType::Object)
         {
             return true;
         }
@@ -46,7 +80,7 @@ struct PipelineNode : public Node
 
 struct ShaderNode : public Node
 {
-    ShaderNode(const char *name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    ShaderNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
     {
         this->Type = NodeType::ShaderNode;
         this->Outputs.push_back(new Pin(Node::GetNextId(), "", PinType::Flow));
@@ -55,6 +89,26 @@ struct ShaderNode : public Node
         this->Inputs.push_back(new Pin(Node::GetNextId(), "Compute Shader", PinType::String));
 
         this->BuildNode();
+    }
+
+    Pin *FlowOutPin()
+    {
+        return Outputs[0].get();
+    }
+
+    Pin *VertexShaderPin()
+    {
+        return Inputs[0].get();
+    }
+
+    Pin *FragmentShaderPin()
+    {
+        return Inputs[1].get();
+    }
+
+    Pin *ComputerShaderPin()
+    {
+        return Inputs[2].get();
     }
 
     virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
@@ -77,7 +131,7 @@ struct ShaderNode : public Node
 
 struct FilePathNode : public Node
 {
-    FilePathNode(const char *name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    FilePathNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
     {
         this->Type = NodeType::Simple;
         IntrusivePtr<Pin> pin = new Pin(Node::GetNextId(), "Select", PinType::StringButton);
@@ -91,6 +145,11 @@ struct FilePathNode : public Node
         };
         this->Outputs.emplace_back(pin);
         this->BuildNode();
+    }
+
+    Pin *SelectPin()
+    {
+        return Outputs[0].get();
     }
 
     virtual void Draw(DrawContext &dc) override
@@ -150,16 +209,29 @@ struct FilePathNode : public Node
 
 struct AttachmentTableNode : public Node
 {
-    AttachmentTableNode(const char *name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    AttachmentTableNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
     {
         this->Type = NodeType::AttachmentTableNode;
-        this->Inputs.push_back(new Pin(Node::GetNextId(), "Link", PinType::PipelineNodeIn));
-        this->Outputs.push_back(new Pin(Node::GetNextId(), "Binding 0", PinType::Object));
-        this->Outputs.push_back(new Pin(Node::GetNextId(), "Binding 1", PinType::Object));
-        this->Outputs.push_back(new Pin(Node::GetNextId(), "Binding 2", PinType::Object));
-        this->Outputs.push_back(new Pin(Node::GetNextId(), "Binding 3", PinType::Object));
-
+        this->Outputs.push_back(new Pin(Node::GetNextId(), "Link", PinType::PipelineNodeIn));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 0", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 1", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 2", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 3", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 4", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 4", PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding 4", PinType::Object));
         this->BuildNode();
+    }
+
+    Pin *LinkOutPin()
+    {
+        return Outputs[0].get();
+    }
+
+    Pin *BindingPin(uint32_t binding)
+    {
+        static uint32_t auxCounter = 0;
+        return Inputs[auxCounter++].get();
     }
 
     virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
@@ -170,33 +242,32 @@ struct AttachmentTableNode : public Node
             return true;
         }
 
+        if (from->Node->Type == NodeType::PipelineNode && from->Type == PinType::Object && to->Type == PinType::Object)
+        {
+            return true;
+        }
+
         return false;
     }
 };
 
-static std::string _labelPrefix(const char *const label)
+struct TextureNode : public Node
 {
-    float width = ImGui::CalcItemWidth();
-
-    float x = ImGui::GetCursorPosX();
-    ImGui::Text(label);
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(x + width * 0.5f + ImGui::GetStyle().ItemInnerSpacing.x);
-    ImGui::SetNextItemWidth(-1);
-
-    std::string labelID = "##";
-    labelID += label;
-
-    return labelID;
-}
-
-struct AttachmentNode : public Node
-{
-    AttachmentNode(const char *name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    TextureNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
     {
-        this->Type = NodeType::PipelineNode;
+        this->Type = NodeType::AttachmentNode;
+        this->Outputs.push_back(new Pin(Node::GetNextId(), "Link", PinType::Object));
         this->Inputs.push_back(new Pin(Node::GetNextId(), "Link", PinType::Object));
         this->BuildNode();
+    }
+
+    bool shared = false;
+    bool swapChain = false;
+    bool depthStencil = false;
+
+    Pin *LinkPin()
+    {
+        return Outputs[0].get();
     }
 
     virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
@@ -230,36 +301,18 @@ struct AttachmentNode : public Node
 
         DrawHeader(dc, builder, node);
 
-        for (auto &input : node->Inputs)
-        {
-            auto alpha = ImGui::GetStyle().Alpha;
-            if (newLinkPin && !CanCreateLink(newLinkPin, input.get()) && input.get() != newLinkPin)
-                alpha = alpha * (48.0f / 255.0f);
+        DrawInputs(dc, builder, node);
+        DrawOutputs(dc, builder, node);
 
-            builder.Input(input->ID);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-            DrawPinIcon(*input, dc.IsPinLinked(input->ID), (int)(alpha * 255));
-            ImGui::Spring(0);
-            if (!input->Name.empty())
-            {
-                ImGui::Text(input->Name.c_str());
-                ImGui::Spring(0);
-            }
-            ImGui::PopStyleVar();
-            builder.EndInput();
-        }
-
-        ImGui::BeginHorizontal("example_h1", ImVec2(0, 0));
-        ImGui::AlignTextToFramePadding();
+        ImGui::BeginHorizontal("example_h12", ImVec2(0, 0));
         ImGui::TextUnformatted("Name:");
         ImGui::Spring(1);
-        if (ImGui::Button("Node 0"))
+        if (ImGui::Button(Name.c_str()))
         {
         }
         ImGui::EndHorizontal();
 
         ImGui::BeginHorizontal("example_h2", ImVec2(0, 0));
-        ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Format:");
         ImGui::Spring(1);
         if (ImGui::Button(popup_text.c_str()))
@@ -268,12 +321,11 @@ struct AttachmentNode : public Node
         }
         ImGui::EndHorizontal();
 
-        static bool check = false;
-        ImGui::Checkbox("Clear", &check);
-        ImGui::Checkbox("SwapChain", &check);
-        ImGui::Checkbox("Shared", &check);
-
+        ImGui::Checkbox("Shared", &shared);
+        ImGui::Checkbox("SwapChain", &swapChain);
+        ImGui::Checkbox("DepthStencil", &depthStencil);
         builder.End();
+
 
         ed::Suspend();
 
@@ -310,6 +362,232 @@ struct AttachmentNode : public Node
                 }
             }
 
+            ImGui::EndPopup(); // Note this does not do anything to the popup open/close state. It just terminates the content declaration.
+        }
+        ed::Resume();
+    }
+};
+
+struct DescriptorTableNode : public Node
+{
+    DescriptorTableNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    {
+        this->Type = NodeType::DescriptorTableNode;
+        this->Outputs.push_back(new Pin(Node::GetNextId(), "", PinType::Flow));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding " + std::to_string(this->Inputs.size()), PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding " + std::to_string(this->Inputs.size()), PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding " + std::to_string(this->Inputs.size()), PinType::Object));
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding " + std::to_string(this->Inputs.size()), PinType::Object));
+
+        this->BuildNode();
+    }
+
+    int bindingSize = 4;
+    bool swapchain = false;
+    bool clear = false;
+
+    Pin *LinkPin()
+    {
+        return Outputs[0].get();
+    }
+
+    Pin *BindingPin(int binding)
+    {
+        return Inputs[binding].get();
+    }
+
+    virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
+    {
+        // connect from shaderNode
+        if (from->Node->Type == NodeType::MutableBuffer && from->Type == PinType::Flow && to->Type == PinType::Object)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    virtual void Draw(DrawContext &dc)
+    {
+        util::BlueprintNodeBuilder builder;
+
+        auto node = this;
+
+        auto &newLinkPin = dc.newLinkPin;
+
+        builder.Begin(node->ID);
+
+        DrawHeader(dc, builder, node);
+
+        DrawInputs(dc, builder, node);
+
+        if (Inputs.size() < bindingSize)
+        {
+            this->Inputs.push_back(new Pin(Node::GetNextId(), "Binding " + std::to_string(this->Inputs.size()), PinType::Object));
+            BuildNode();
+        }
+
+        DrawOutputs(dc, builder, node);
+
+        builder.End();
+
+        ed::Suspend();
+
+        ed::Resume();
+    }
+};
+
+struct MutableBufferNode : public Node
+{
+    MutableBufferNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    {
+        this->Type = NodeType::MutableBuffer;
+        this->Outputs.push_back(new Pin(Node::GetNextId(), "", PinType::Flow));
+
+        this->BuildNode();
+    }
+
+    Pin *LinkPin()
+    {
+        return Outputs[0].get();
+    }
+
+    virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
+    {
+        // connect from shaderNode
+        if (from->Node->Type == NodeType::AttachmentTableNode && from->Type == PinType::Object && to->Type == PinType::Object)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    virtual void Draw(DrawContext &dc)
+    {
+        util::BlueprintNodeBuilder builder;
+
+        auto node = this;
+
+        auto &newLinkPin = dc.newLinkPin;
+
+        builder.Begin(node->ID);
+
+        DrawHeader(dc, builder, node);
+
+        ImGui::BeginVertical("id2", ImVec2(0, 28));
+        ImGui::BeginHorizontal("BF1", ImVec2(0, 0));
+        ImGui::TextUnformatted("Name:");
+        ImGui::Spring(1);
+        if (ImGui::Button("Buffer"))
+        {
+        }
+        ImGui::EndHorizontal();
+
+        ImGui::EndVertical();
+
+        DrawOutputs(dc, builder, node);
+
+        builder.End();
+
+        ed::Suspend();
+
+        ed::Resume();
+    }
+};
+
+struct AttachmentReferenceNode : public Node
+{
+    AttachmentReferenceNode(std::string name, ImColor color = ImColor(255, 255, 255)) : Node(name, color)
+    {
+        this->Type = NodeType::PipelineNode;
+        this->Inputs.push_back(new Pin(Node::GetNextId(), "Link", PinType::Object));
+        this->BuildNode();
+    }
+
+    bool clear = false;
+
+    Pin *LinkPin()
+    {
+        return Inputs[0].get();
+    }
+
+    virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to) override
+    {
+        // connect from shaderNode
+        if (from->Node->Type == NodeType::AttachmentTableNode && from->Type == PinType::Object && to->Type == PinType::Object)
+        {
+            return true;
+        }
+
+        if (from->Node->Type == NodeType::PipelineNode && from->Type == PinType::Object && to->Type == PinType::Object)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    virtual void Draw(DrawContext &dc)
+    {
+        util::BlueprintNodeBuilder builder;
+
+        auto node = this;
+
+        auto &newLinkPin = dc.newLinkPin;
+        static bool do_popup = false;
+
+        static std::set<std::string> formats = {
+            "Binding 1 +",
+            "Binding 2 +",
+            "Binding 3 +"};
+
+        static std::string popup_text = *formats.begin();
+
+        builder.Begin(node->ID);
+
+        DrawHeader(dc, builder, node);
+
+        DrawInputs(dc, builder, node);
+        DrawOutputs(dc, builder, node);
+
+        ImGui::BeginHorizontal("example_h22", ImVec2(0, 0));
+        ImGui::TextUnformatted("Binding:");
+        ImGui::Spring(1);
+        if (ImGui::Button(popup_text.c_str()))
+        {
+            do_popup = true; // Instead of saying OpenPopup() here, we set this bool, which is used later in the Deferred Pop-up Section
+        }
+        ImGui::EndHorizontal();
+
+        ImGui::Checkbox("Clear", &clear);
+
+        builder.End();
+
+        ed::Suspend();
+
+        if (do_popup)
+        {
+            ImGui::OpenPopup("popup_button2"); // Cause openpopup to stick open.
+            do_popup = false;                  // disable bool so that if we click off the popup, it doesn't open the next frame.
+        }
+
+        if (ImGui::BeginPopup("popup_button2"))
+        {
+            ImGui::PushItemWidth(200.0f);
+
+            // Note: if it weren't for the child window, we would have to PushItemWidth() here to avoid a crash!
+            static char str1[128] = "";
+            std::set<std::string> filteredFormats = formats;
+
+            for (auto &format : formats)
+            {
+                if (ImGui::Button(format.c_str()))
+                {
+                    popup_text = format;
+                    ImGui::CloseCurrentPopup(); // These calls revoke the popup open state, which was set by OpenPopup above.
+                }
+            }
 
             ImGui::EndPopup(); // Note this does not do anything to the popup open/close state. It just terminates the content declaration.
         }

@@ -7,6 +7,7 @@
 #include <optional>
 
 #include <FrameGraph/GraphNode.h>
+#include <FrameGraph/GraphNodeJson.h>
 
 struct Graph : IntrusiveUnsafeCounter<Graph>
 {
@@ -27,6 +28,12 @@ struct Graph : IntrusiveUnsafeCounter<Graph>
 
     std::string name;
 
+    RenderPassJson &GetJson()
+    {
+        return json;
+    }
+
 private:
     std::optional<TopoResult> topoResultCache;
+    RenderPassJson json;
 };

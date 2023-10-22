@@ -1,5 +1,5 @@
 #include <RHI/VulkanRuntime/RenderPass.h>
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/Texture.h>
 
 #include <spdlog/spdlog.h>
@@ -7,13 +7,49 @@
 #include <optional>
 #include <iterator>
 
-VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : RenderPass(graph), context(context)
+VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : context(context), graph(graph)
 {
 }
 
 VulkanRenderPass::~VulkanRenderPass()
 {
     vkDestroyRenderPass(context->GetVkDevice(), renderPass, nullptr);
+}
+
+VkRenderPass VulkanRenderPass::GetRenderPass()
+{
+    return renderPass;
+}
+
+int32_t VulkanRenderPass::GetSubPassIndex(std::string subPassName)
+{
+    for (int32_t i = 0; i < graphicRenderPasses.size(); i++)
+    {
+        if (graphicRenderPasses[i]->name == subPassName)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+VulkanRenderPass::SubPassAttachmentReferences VulkanRenderPass::GetSubPassReference(std::string name)
+{
+    if (attachmentReferencesMap.count(name))
+    {
+        return attachmentReferencesMap[name];
+    }
+    return {};
+}
+
+IntrusivePtr<GraphicRenderPassGraphNode> VulkanRenderPass::GetGraphicRenderPassGraphNode(uint32_t subPassIndex)
+{
+    return graphicRenderPasses[subPassIndex];
+}
+
+IntrusivePtr<GraphicRenderPassGraphNode> VulkanRenderPass::GetGraphicRenderPassGraphNode(std::string subPassName)
+{
+    return graphicRenderPasses[GetSubPassIndex(subPassName)];
 }
 
 std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t toIndex, VulkanRenderPass::SubPassAttachmentReferences from, VulkanRenderPass::SubPassAttachmentReferences to)
@@ -94,7 +130,7 @@ std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t 
     return dependency;
 }
 
-void VulkanRenderPass::Build()
+void VulkanRenderPass::Build(std::vector<std::string> subPasses)
 {
     // todo: handle multisubpassed
     std::vector<VkAttachmentDescription> attachmentsDescriptions;
@@ -111,7 +147,7 @@ void VulkanRenderPass::Build()
             // store the newly created attachment node in this pass
             std::vector<IntrusivePtr<AttachmentGraphNode>> subPassAttachmentNodes;
 
-            auto &referencesGroup = this->referencesMap[subPassNode->name];
+            auto &referencesGroup = this->attachmentReferencesMap[subPassNode->name];
 
             for (auto n : subPassNode->inputs)
             {
@@ -214,7 +250,7 @@ void VulkanRenderPass::Build()
             for (auto dependencee : dependencees)
             {
                 auto dependenceeIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), dependencee) - graphicRenderPasses.begin();
-                auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, referencesMap[subPassNode->name], referencesMap[dependencee->name]);
+                auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, attachmentReferencesMap[subPassNode->name], attachmentReferencesMap[dependencee->name]);
                 if (dependency.has_value())
                 {
                     dependencies.push_back(dependency.value());
@@ -242,9 +278,4 @@ void VulkanRenderPass::Build()
     renderPassInfoCI.pDependencies = dependencies.data();
 
     auto result = vkCreateRenderPass(context->GetVkDevice(), &renderPassInfoCI, nullptr, &this->renderPass);
-}
-
-void VulkanRenderPass::RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline)
-{
-    pipelineMap[name] = pipeline;
 }

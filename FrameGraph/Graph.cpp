@@ -1,14 +1,13 @@
 #include "Graph.h"
 
 #include <string>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string_regex.hpp>
 #include <unordered_set>
 
 #include <spdlog/spdlog.h>
 
 #include <Core/ReadFile.h>
-
-#include <FrameGraph/GraphNodeJson.h>
-#include <FrameGraph/GraphNode.h>
 
 static TextureFormat TranslateFormat(std::string formatStr)
 {
@@ -33,87 +32,23 @@ static TextureFormat TranslateFormat(std::string formatStr)
 #undef STRINGIFY
 }
 
-// replace reference node with instance
-static void ResolveReferenceNode(std::unordered_map<std::string, IntrusivePtr<GraphNode>> &resolvedMap, std::vector<IntrusivePtr<GraphNode>> &resourceNodes)
+bool isPipelineNode(IntrusivePtr<GraphNode> node)
 {
-    // merge ref source to target, including all inputs && outputs
-    auto mergeGraphNode = [](GraphNode *source, GraphNode *target)
-    {
-        {
-            std::unordered_set<IntrusivePtr<GraphNode>> set;
-            for (auto n : source->inputs)
-            {
-                set.insert(n);
-            }
-            for (auto n : target->inputs)
-            {
-                set.insert(n);
-            }
-
-            std::vector<IntrusivePtr<GraphNode>> inputs(set.size());
-            std::copy(set.begin(), set.end(), inputs.begin());
-            target->inputs.swap(inputs);
-        }
-
-        {
-            std::unordered_set<IntrusivePtr<GraphNode>> set;
-            for (auto n : source->outputs)
-            {
-                set.insert(n);
-            }
-            for (auto n : target->outputs)
-            {
-                set.insert(n);
-            }
-
-            std::vector<IntrusivePtr<GraphNode>> outputs(set.size());
-            std::copy(set.begin(), set.end(), outputs.begin());
-            target->outputs.swap(outputs);
-        }
-
-        for (auto subPassName : source->inputSubPassNames)
-        {
-            target->inputSubPassNames.insert(subPassName);
-        }
-    };
-
-    // handle reference
-    for (auto &node : resourceNodes)
-    {
-        for (auto &n : node->inputs)
-        {
-            if (n->type == GraphNode::REFERENCE)
-            {
-                auto target = resolvedMap[n->name];
-                mergeGraphNode(n.get(), target.get());
-                n = target;
-            }
-        }
-
-        for (auto &n : node->outputs)
-        {
-            if (n->type == GraphNode::REFERENCE)
-            {
-                auto target = resolvedMap[n->name];
-                mergeGraphNode(n.get(), target.get());
-                n = target;
-            }
-        }
-    }
+    return node->type == GraphNode::Type::GRAPHIC_PASS || node->type == GraphNode::Type::COMPUTE_PASS;
 }
 
 IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 {
+    IntrusivePtr<Graph> graph = new Graph;
+
     auto jsonStr = ReadStringFile(path);
     JS::ParseContext context(jsonStr);
-    RenderPassJson json;
+    auto &json = graph->json;
     auto error = context.parseTo(json);
 
     // none reference node save here
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> resolvedMap;
     std::vector<IntrusivePtr<GraphNode>> resourceNodes;
-
-    auto graph = new Graph;
 
     for (auto subpass : json.subpasses)
     {
@@ -142,29 +77,23 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 attachment->depthStencil = input.depthStencil;
                 attachment->swapChain = input.swapChain;
                 attachment->shared = input.shared;
-                if (attachment->shared) 
+                if (attachment->shared)
                     graph->sharedAttachments.insert(attachment->name);
                 attachment->clear = input.clear;
                 attachment->format = TranslateFormat(input.format);
                 inputNode = attachment;
             }
-            else if (input.type == "buffer" || input.type == "sampler")
+            else if (input.type == "buffer" || input.type == "sampler" || input.type == "ssbo")
             {
                 inputNode = new DescriptorGraphNode(input.name, input.type == "sampler" ? GraphNode::SAMPLER : GraphNode::BUFFER);
             }
-            else if (input.type == "reference")
-            {
-                inputNode = new GraphNode(input.name, GraphNode::REFERENCE);
-            }
 
-            if (input.type != "reference")
-            {
-                resolvedMap[input.name] = inputNode;
-            }
-
+            inputNode->passName = node->name;
             // save which subpass use this node as input
             inputNode->inputSubPassNames.insert(subpass.name);
 
+            if (!resolvedMap.count(inputNode->name))
+                resolvedMap[node->name + "::" + inputNode->name] = inputNode;
             resourceNodes.push_back(inputNode);
             node->inputs.push_back(inputNode);
             inputNode->outputs.push_back(node);
@@ -179,46 +108,38 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 attachment->depthStencil = output.depthStencil;
                 attachment->swapChain = output.swapChain;
                 attachment->shared = output.shared;
-                if (attachment->shared) 
+                if (attachment->shared)
                     graph->sharedAttachments.insert(attachment->name);
                 attachment->clear = output.clear;
                 attachment->color = attachment->depthStencil ? false : true;
                 attachment->format = TranslateFormat(output.format);
                 outputNode = attachment;
             }
-            else if (output.type == "buffer")
+            else if (output.type == "buffer" || output.type == "ssbo")
             {
                 outputNode = new DescriptorGraphNode(output.name, GraphNode::BUFFER);
             }
-            else if (output.type == "reference")
-            {
-                outputNode = new GraphNode(output.name, GraphNode::REFERENCE);
-            }
 
-            if (output.type != "reference")
-            {
-                resolvedMap[output.name] = outputNode;
-            }
+            outputNode->passName = node->name;
 
+            if (!resolvedMap.count(outputNode->name))
+                resolvedMap[node->name + "::" + outputNode->name] = outputNode;
             resourceNodes.push_back(outputNode);
             node->outputs.push_back(outputNode);
             outputNode->inputs.push_back(node);
         }
     }
 
-    ResolveReferenceNode(resolvedMap, resourceNodes);
-
     for (auto [name, node] : resolvedMap)
     {
-        if (node->type != GraphNode::GRAPHIC_PASS)
-        {
+        if (!isPipelineNode(node))
             continue;
-        }
-        auto passNode = (GraphicRenderPassGraphNode *)node.get();
-        for (int i = 0; i < passNode->inputs.size(); i++)
+
+        auto passNode = (RenderPassGraphNode *)node.get();
+        for (unsigned i = 0; i < passNode->inputs.size(); i++)
         {
             auto resNode = (ResourceNode *)passNode->inputs[i].get();
-            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding == UINT32_MAX ? i : resNode->binding, resNode->type};
+            passNode->bindingSets[resNode->name] = {0, i, passNode->inputs[i]->type};
         }
         // TODO, handle outputs (BUFFER SSBO)
     }
@@ -240,6 +161,13 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     return graph;
 }
 
+template <typename Iter, typename Q>
+void push_range(Q &q, Iter begin, Iter end)
+{
+    for (; begin != end; ++begin)
+        q.push(*begin);
+}
+
 Graph::TopoResult &Graph::Topo()
 {
     if (topoResultCache.has_value())
@@ -249,11 +177,42 @@ Graph::TopoResult &Graph::Topo()
 
     std::map<uint16_t, std::vector<GraphNode *>> result;
 
+    auto getLocalName = [](const std::string &str)
+    {
+        std::vector<std::string> splitted;
+        boost::algorithm::split_regex(splitted, str, boost::regex("::"));
+        return splitted.back();
+    };
+
+    auto getSameNodes = [&](const std::string &name)
+    {
+        std::vector<GraphNode *> nodes;
+        for (auto &[k, v] : this->graphNodesMap)
+        {
+            if (v->name == name)
+            {
+                nodes.push_back(v.get());
+            }
+        }
+        return nodes;
+    };
+
+    std::unordered_map<std::string, uint32_t> indegreeMap;
+    for (auto &[k, v] : graphNodesMap)
+    {
+        indegreeMap[v->name] += v->inputs.size();
+    }
+
+    for (auto &[level, nodes] : graphNodesMap)
+    {
+        spdlog::info("{} {}", level, nodes->name);
+    }
+
     std::queue<GraphNode *> topoQueue;
     for (auto &[k, v] : graphNodesMap)
     {
-        v->inputDegree = v->inputs.size();
-        if (v->inputs.empty())
+        auto localName = getLocalName(k);
+        if (indegreeMap[localName] == 0)
         {
             topoQueue.push(v.get());
         }
@@ -273,10 +232,14 @@ Graph::TopoResult &Graph::Topo()
 
             for (auto &v : front->outputs)
             {
-                v->inputDegree--;
-                if (v->inputDegree == 0)
+                indegreeMap[v->name]--;
+                if (indegreeMap[v->name] == 0)
                 {
-                    tempTopoQueue.push(v.get());
+                    for (auto &[k, n] : graphNodesMap)
+                    {
+                        if (v->name == n->name)
+                            tempTopoQueue.push(n.get());
+                    }
                 }
             }
         }
@@ -289,7 +252,7 @@ Graph::TopoResult &Graph::Topo()
     {
         for (auto &node : nodes)
         {
-            spdlog::info("{}", node->name);
+            spdlog::info("{} {}", level, node->passName + "::" + node->name);
         }
     }
 

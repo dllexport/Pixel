@@ -3,7 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <RHI/RenderPass.h>
+#include <RHI/RenderGroup.h>
 #include <RHI/Pipeline.h>
 
 PixelEngine::PixelEngine()
@@ -18,32 +18,32 @@ PixelEngine::~PixelEngine()
     assert(rhiRuntime->use_count() == 1);
 }
 
-IntrusivePtr<RenderPass> PixelEngine::RegisterRenderPass(IntrusivePtr<Graph> graph)
+IntrusivePtr<RenderGroup> PixelEngine::RegisterRenderGroup(IntrusivePtr<Graph> graph)
 {
-    if (renderPassTemplates.count(graph->name))
+    if (renderGroupTemplates.count(graph->name))
     {
         spdlog::info("renderPass {} already exist", graph->name);
         return nullptr;
     }
 
-    auto renderpass = rhiRuntime->CreateRenderPass(graph);
-    renderpass->Build();
-    this->renderPassTemplates[renderpass->Name()] = renderpass;
+    auto renderGroup = rhiRuntime->CreateRenderGroup(graph);
+    renderGroup->Build();
+    this->renderGroupTemplates[renderGroup->Name()] = renderGroup;
 
-    return renderpass;
+    return renderGroup;
 }
 
-IntrusivePtr<Pipeline> PixelEngine::RegisterPipeline(std::string renderPassName, std::string subPassName, PipelineStates pipelineStates)
+IntrusivePtr<Pipeline> PixelEngine::RegisterPipeline(std::string renderGroupName, std::string subPassName, PipelineStates pipelineStates)
 {
-    if (!renderPassTemplates.count(renderPassName))
+    if (!renderGroupTemplates.count(renderGroupName))
     {
-        spdlog::info("renderPass {} does no exist", renderPassName);
+        spdlog::info("renderPass {} does no exist", renderGroupName);
         return nullptr;
     }
-    auto renderPass = renderPassTemplates[renderPassName];
-    auto &pipelineTemplate = this->pipelineTemplates[renderPass];
+    auto renderGroup = renderGroupTemplates[renderGroupName];
+    auto &pipelineTemplate = this->pipelineTemplates[renderGroup];
 
-    auto pipeline = rhiRuntime->CreatePipeline(renderPass, subPassName, pipelineStates);
+    auto pipeline = rhiRuntime->CreatePipeline(renderGroup, subPassName, pipelineStates);
     pipeline->Build();
     pipelineTemplate[subPassName] = pipeline;
 

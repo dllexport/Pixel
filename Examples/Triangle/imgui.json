@@ -1,0 +1,27 @@
+{
+    "name": "imguiPass",
+    "subpasses": [
+        {
+            "name": "imgui",
+            "type": "graphic",
+            "shaders": {
+                "vertex": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.vert.spv",
+                "fragment": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "imguiUBO",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "color",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "swapChain": true
+                }
+            ]
+        }
+    ]
+}

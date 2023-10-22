@@ -1,5 +1,5 @@
 {
-    "name": "singlePass",
+    "name": "TrianglePass",
     "subpasses": [
         {
             "name": "single",
@@ -23,38 +23,16 @@
                     "name": "color",
                     "type": "attachment",
                     "format": "FORMAT_B8G8R8A8_UNORM",
-                    "swapChain": true
+                    "swapChain": true,
+                    "clear": true
                 },
                 {
                     "name": "depth",
                     "type": "attachment",
                     "format": "FORMAT_D16_UNORM",
                     "depthStencil": true,
-                    "shared": true
-                }
-            ]
-        },
-        {
-            "name": "imgui",
-            "type": "graphic",
-            "subpass_dependency": [
-                "single"
-            ],
-            "shaders": {
-                "vertex": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.vert.spv",
-                "fragment": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.frag.spv"
-            },
-            "inputs": [
-                {
-                    "name": "imguiUBO",
-                    "type": "buffer"
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "color",
-                    "type": "reference",
-                    "swapChain": true
+                    "shared": true,
+                    "clear": true
                 }
             ]
         }

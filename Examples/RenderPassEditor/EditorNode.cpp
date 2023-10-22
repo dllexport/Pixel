@@ -52,21 +52,9 @@ void Node::DrawHeader(DrawContext &dc, util::BlueprintNodeBuilder &builder, Node
     builder.EndHeader();
 }
 
-void Node::Draw(DrawContext &dc)
+void Node::DrawInputs(DrawContext &dc, util::BlueprintNodeBuilder &builder, Node *node)
 {
-    util::BlueprintNodeBuilder builder;
-
-    auto node = this;
-
     auto &newLinkPin = dc.newLinkPin;
-
-    const auto isSimple = node->Type == NodeType::Simple;
-
-    builder.Begin(node->ID);
-    if (!isSimple)
-    {
-        DrawHeader(dc, builder, node);
-    }
 
     for (auto &input : node->Inputs)
     {
@@ -91,15 +79,13 @@ void Node::Draw(DrawContext &dc)
         ImGui::PopStyleVar();
         builder.EndInput();
     }
+}
 
-    if (isSimple)
-    {
-        builder.Middle();
+void Node::DrawOutputs(DrawContext &dc, util::BlueprintNodeBuilder &builder, Node *node)
+{
+    auto &newLinkPin = dc.newLinkPin;
 
-        ImGui::Spring(1, 0);
-        ImGui::TextUnformatted(node->Name.c_str());
-        ImGui::Spring(1, 0);
-    }
+    const auto isSimple = node->Type == NodeType::Simple;
 
     for (auto &output : node->Outputs)
     {
@@ -156,6 +142,36 @@ void Node::Draw(DrawContext &dc)
         ImGui::PopStyleVar();
         builder.EndOutput();
     }
+}
+
+void Node::Draw(DrawContext &dc)
+{
+    util::BlueprintNodeBuilder builder;
+
+    auto node = this;
+
+    auto &newLinkPin = dc.newLinkPin;
+
+    const auto isSimple = node->Type == NodeType::Simple;
+
+    builder.Begin(node->ID);
+    if (!isSimple)
+    {
+        DrawHeader(dc, builder, node);
+    }
+
+    DrawInputs(dc, builder, node);
+
+    if (isSimple)
+    {
+        builder.Middle();
+
+        ImGui::Spring(1, 0);
+        ImGui::TextUnformatted(node->Name.c_str());
+        ImGui::Spring(1, 0);
+    }
+
+    DrawOutputs(dc, builder, node);
 
     builder.End();
 }

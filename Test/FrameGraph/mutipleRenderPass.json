@@ -1,0 +1,132 @@
+{
+    "name": "RP 0",
+    "subpasses": [
+        {
+            "name": "compute 0",
+            "type": "compute",
+            "shaders": {
+                "compute": "compute.spv"
+            },
+            "inputs": [
+                {
+                    "name": "ubo",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "position",
+                    "type": "ssbo"
+                }
+            ]
+        },
+        {
+            "name": "deferred",
+            "type": "graphic",
+            "shaders": {
+                "vertex": "gbuffer.vert.spv",
+                "fragment": "gbuffer.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "ubo",
+                    "type": "buffer"
+                },
+                {
+                    "name": "gbufferUBO",
+                    "type": "buffer"
+                },
+                {
+                    "name": "samplerColor",
+                    "type": "sampler"
+                },
+                {
+                    "name": "samplerNormalMap",
+                    "type": "sampler"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "normal",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "albedo",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "depth",
+                    "type": "attachment",
+                    "format": "FORMAT_D16_UNORM"
+                }
+            ]
+        },
+        {
+            "name": "compose",
+            "type": "graphic",
+            "subpass_dependency": [
+                "deferred"
+            ],
+            "shaders": {
+                "vertex": "compose.vert.spv",
+                "fragment": "compose.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "lightUbo",
+                    "type": "buffer"
+                },
+                {
+                    "name": "position",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "normal",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "albedo",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "color",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "swapChain": true
+                }
+            ]
+        },
+        {
+            "name": "imgui",
+            "type": "graphic",
+            "subpass_dependency": [
+                "compose"
+            ],
+            "shaders": {
+                "vertex": "imgui.vert.spv",
+                "fragment": "imgui.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "imguiUBO",
+                    "type": "buffer"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "color",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "swapChain": true
+                }
+            ]
+        }
+    ]
+}

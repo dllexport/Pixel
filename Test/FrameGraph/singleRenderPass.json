@@ -1,0 +1,49 @@
+{
+    "name": "RP 0",
+    "subpasses": [
+        {
+            "name": "pass 0",
+            "type": "graphic",
+            "shaders": {
+                "vertex": "vert.spv",
+                "fragment": "frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "ubo 0",
+                    "type": "buffer"
+                },
+                {
+                    "name": "ubo 1",
+                    "type": "buffer"
+                },
+                {
+                    "name": "sampler 0",
+                    "type": "sampler"
+                },
+                {
+                    "name": "sampler 1",
+                    "type": "sampler"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "attachment 0",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "attachment 1",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM"
+                },
+                {
+                    "name": "depth",
+                    "type": "attachment",
+                    "format": "FORMAT_D16_UNORM",
+                    "depthStencil": true
+                }
+            ]
+        }
+    ]
+}

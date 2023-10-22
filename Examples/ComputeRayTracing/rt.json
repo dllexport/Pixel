@@ -1,0 +1,14 @@
+{
+    "name": "ComputeRayTracing",
+    "subpasses": [
+        {
+            "name": "compute 0",
+            "type": "compute",
+            "shaders": {
+                "compute": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/compute.comp.spv"
+            },
+            "inputs": [],
+            "outputs": []
+        }
+    ]
+}

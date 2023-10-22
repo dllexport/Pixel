@@ -1,0 +1,5 @@
+add_executable(GraphTest main.cpp FrameGraphTest.cpp)
+target_link_libraries(GraphTest gtest Pixel)
+configure_file("singleRenderPass.json" "singleRenderPass.json" COPYONLY)
+configure_file("mutipleRenderPass.json" "mutipleRenderPass.json" COPYONLY)
+configure_file("MultipleNodeReference.json" "MultipleNodeReference.json" COPYONLY)

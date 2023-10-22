@@ -91,7 +91,8 @@ public:
         return updateRequests;
     }
 
-    IntrusivePtr<VulkanDescriptorSet>& GetDescriptorSet() {
+    IntrusivePtr<VulkanDescriptorSet> &GetDescriptorSet()
+    {
         return descriptorSet;
     }
 

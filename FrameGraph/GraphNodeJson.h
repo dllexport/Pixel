@@ -22,9 +22,10 @@ struct RenderSubPassResourceJson
 
 struct ShaderPaths
 {
+    std::string compute;
     std::string fragment;
     std::string vertex;
-    JS_OBJ(fragment, vertex);
+    JS_OBJ(compute, fragment, vertex);
 };
 
 struct RenderSubPassJson

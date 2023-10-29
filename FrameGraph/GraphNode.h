@@ -60,6 +60,9 @@ struct AttachmentGraphNode : public ResourceNode
     bool swapChain = false;
     bool color = false;
     bool clear = false;
+
+    // TODO, resolve global state, check if resource is used as input
+    bool input = true;
 };
 
 struct DescriptorGraphNode : public ResourceNode

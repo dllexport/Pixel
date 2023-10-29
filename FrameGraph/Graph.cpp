@@ -75,10 +75,12 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             {
                 auto attachment = new AttachmentGraphNode(input.name, GraphNode::ATTACHMENT);
                 attachment->depthStencil = input.depthStencil;
-                attachment->swapChain = input.swapChain;
-                attachment->shared = input.shared || input.swapChain;
+                // swapchain attachment can not be input node
+                assert(!input.swapChain);
+                attachment->shared = input.shared;
                 attachment->clear = input.clear;
                 attachment->format = TranslateFormat(input.format);
+                attachment->color = attachment->depthStencil ? false : true;
                 inputNode = attachment;
             }
             else if (input.type == "buffer" || input.type == "sampler" || input.type == "ssbo")

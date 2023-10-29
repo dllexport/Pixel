@@ -210,7 +210,7 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
                 desc.format = GeneralFormatToVkFormat(attachmentNode->format);
                 desc.samples = VK_SAMPLE_COUNT_1_BIT;
                 desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-                desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                desc.storeOp = attachmentNode->input ? VK_ATTACHMENT_STORE_OP_NONE : VK_ATTACHMENT_STORE_OP_STORE;
                 desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 desc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -254,6 +254,35 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
             if (dependency.has_value())
             {
                 dependencies.push_back(dependency.value());
+            }
+        }
+
+
+        // TODO, analyze pass's resource, add color and input transition dependency
+        if (subPass == "compose")
+        {
+            {
+                VkSubpassDependency dependency{};
+                dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+                dependency.dstSubpass = 0;
+                dependency.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                dependency.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+                dependencies.push_back(dependency);
+            }
+
+            {
+                VkSubpassDependency dependency{};
+                dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+                dependency.dstSubpass = 0;
+                dependency.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                dependency.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+                dependencies.push_back(dependency);
             }
         }
     }

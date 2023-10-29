@@ -85,6 +85,10 @@ public:
     VkFormat GetFormat();
     VkImageSubresourceRange GetImageSubResourceRange(VkImageAspectFlags aspectMask);
 
+    bool IsExternal();
+    bool IsSwapChain();
+    void SetSwapChain();
+
 private:
     friend class VulkanRuntime;
     friend class VulkanAuxiliaryExecutor;
@@ -98,8 +102,5 @@ private:
     // whether textue is ref by command buffer
     bool inTransition = false;
 
-    bool IsExternal()
-    {
-        return image && !imageAllocation;
-    }
+    bool isSwapChain = false;
 };

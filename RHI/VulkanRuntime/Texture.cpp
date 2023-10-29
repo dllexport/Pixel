@@ -101,3 +101,18 @@ VkImageSubresourceRange VulkanTexture::GetImageSubResourceRange(VkImageAspectFla
     subresourceRange.layerCount = 1;
     return subresourceRange;
 }
+
+bool VulkanTexture::IsExternal()
+{
+    return image && !imageAllocation;
+}
+
+bool VulkanTexture::IsSwapChain()
+{
+    return isSwapChain;
+}
+
+void VulkanTexture::SetSwapChain()
+{
+    isSwapChain = true;
+}

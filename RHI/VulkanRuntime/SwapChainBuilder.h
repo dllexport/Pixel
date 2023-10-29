@@ -15,6 +15,7 @@ public:
     SwapChainBuilder &SetPreferDepthStencilFormat(VkFormat format);
     SwapChainBuilder &SetPreferPresentMode(VkPresentModeKHR mode);
     SwapChainBuilder &SetBufferCount(uint32_t count);
+    SwapChainBuilder &SetSurface(IntrusivePtr<Surface> surface);
     SwapChainBuilder &SetOldSwapChain(IntrusivePtr<VulkanSwapChain> oldSwapChain);
     IntrusivePtr<VulkanSwapChain> Build();
 

@@ -44,6 +44,11 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
     {
         return passName + "::" + name;
     }
+
+    template<class T>
+    T As() {
+        return static_cast<T>(this);
+    }
 };
 
 struct ResourceNode : public GraphNode

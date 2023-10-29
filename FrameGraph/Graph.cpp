@@ -79,6 +79,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 assert(!input.swapChain);
                 attachment->shared = input.shared;
                 attachment->clear = input.clear;
+                attachment->input = true;
                 attachment->format = TranslateFormat(input.format);
                 attachment->color = attachment->depthStencil ? false : true;
                 inputNode = attachment;

@@ -199,7 +199,7 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
                 desc.format = GeneralFormatToVkFormat(attachmentNode->format);
                 desc.samples = VK_SAMPLE_COUNT_1_BIT;
                 desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-                desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
                 desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 desc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -265,17 +265,28 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
             // Hazard READ_AFTER_WRITE
             // layout transition from GENERAL to DET (write)
             // loadOp VK_ATTACHMENT_LOAD_OP_LOAD (TODO: some color attachments maybe write only)
-            if (attachmentNode->swapChain) {
+            if (attachmentNode->swapChain || attachmentNode->color) {
                 VkSubpassDependency dependency{};
                 dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
                 dependency.dstSubpass = 0;
                 dependency.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
                 dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-                dependency.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                dependency.srcAccessMask = VK_ACCESS_NONE;
                 dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
                 dependencies.push_back(dependency);
-                break;
+            }
+
+            if (attachmentNode->depthStencil) {
+                VkSubpassDependency dependency{};
+                dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+                dependency.dstSubpass = 0;
+                dependency.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                dependency.srcAccessMask = VK_ACCESS_NONE;
+                dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+                dependencies.push_back(dependency);
             }
         }
 

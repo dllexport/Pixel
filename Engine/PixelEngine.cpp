@@ -20,9 +20,9 @@ PixelEngine::~PixelEngine()
 
 IntrusivePtr<RenderGroup> PixelEngine::RegisterRenderGroup(IntrusivePtr<Graph> graph)
 {
-    if (renderGroupTemplates.count(graph->name))
+    if (renderGroupTemplates.count(graph->GetName()))
     {
-        spdlog::info("renderPass {} already exist", graph->name);
+        spdlog::info("renderPass {} already exist", graph->GetName());
         return nullptr;
     }
 

@@ -51,7 +51,7 @@ void ImguiOverlay::BuildPipeline()
         .colorBlendAttachmentStates = {imguiColorBlendState},
         .depthStencilState = {.depthTestEnable = false, .depthWriteEnable = false}};
 
-    imguiPipeline = engine->RegisterPipeline("singlePass", "imgui", imguiPipelineStates);
+    imguiPipeline = engine->RegisterPipeline("imguiPass", "imgui", imguiPipelineStates);
 }
 
 void ImguiOverlay::BuildDrawable()

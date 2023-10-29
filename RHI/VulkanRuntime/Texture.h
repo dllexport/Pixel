@@ -83,14 +83,20 @@ public:
 
     VkImage GetImage();
     VkFormat GetFormat();
+    VkImageSubresourceRange GetImageSubResourceRange(VkImageAspectFlags aspectMask);
 
 private:
     friend class VulkanRuntime;
+    friend class VulkanAuxiliaryExecutor;
+
     IntrusivePtr<Context> context;
-    VkImage image;
+    VkImage image = VK_NULL_HANDLE;
     VmaAllocation imageAllocation = VK_NULL_HANDLE;
     VmaAllocationInfo imageAllocationInfo;
     void *mappedData = nullptr;
+
+    // whether textue is ref by command buffer
+    bool inTransition = false;
 
     bool IsExternal()
     {

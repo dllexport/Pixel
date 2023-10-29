@@ -25,6 +25,9 @@ VkImage VulkanTexture::GetImage()
 
 bool VulkanTexture::Allocate(TextureFormat format, UsageBits type, MemoryPropertyBits memoryProperties, Extent extent, Configuration config)
 {
+    if (this->image)
+        return true;
+
     VkImageCreateInfo imageCI = {};
     imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -87,4 +90,14 @@ void VulkanTexture::Assign(VkImage image, VkFormat format)
 VkFormat VulkanTexture::GetFormat()
 {
     return GeneralFormatToVkFormat(format);
+}
+
+VkImageSubresourceRange VulkanTexture::GetImageSubResourceRange(VkImageAspectFlags aspectMask)
+{
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = aspectMask;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.layerCount = 1;
+    return subresourceRange;
 }

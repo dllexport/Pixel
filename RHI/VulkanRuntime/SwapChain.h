@@ -44,7 +44,7 @@ public:
 
 private:
     friend class SwapChainBuilder;
-    friend class VulkanRenderPassExecutor;
+    friend class VulkanRenderGroup;
     IntrusivePtr<Context> context;
 
     VkSurfaceCapabilitiesKHR capabilities;

@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
 #include <RHI/VulkanRuntime/Buffer.h>
 #include <RHI/MutableBuffer.h>

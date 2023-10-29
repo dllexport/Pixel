@@ -79,6 +79,9 @@ void VulkanRenderGroup::Reset()
         vkDestroyCommandPool(context->GetVkDevice(), graphicCommandPool, nullptr);
         vkDestroyCommandPool(context->GetVkDevice(), computeCommandPool, nullptr);
 
+        graphicCommandPool = nullptr;
+        computeCommandPool = nullptr;
+
         resource.commandBuffers.clear();
     }
 
@@ -93,7 +96,7 @@ void VulkanRenderGroup::Reset()
     this->auxiliaryExecutor->Reset();
 
     sharedResources.clear();
-
+    groupScopeResources.clear();
     prepareCommandPool();
 }
 
@@ -101,6 +104,7 @@ void VulkanRenderGroup::AddBindingState(IntrusivePtr<ResourceBindingState> state
 {
     auto vgp = static_cast<VulkanGraphicsPipeline *>(state->GetPipeline().get());
     this->resourceBindingStates[vgp].push_back(static_cast<VulkanResourceBindingState *>(state.get()));
+    this->pipelineMap[vgp->name] = vgp;
 }
 
 void VulkanRenderGroup::Prepare(VulkanSwapChain *swapChain)
@@ -129,6 +133,7 @@ void VulkanRenderGroup::ImportResource(std::string name, std::vector<IntrusivePt
 std::vector<VkCommandBuffer> VulkanRenderGroup::GetCommandBuffer(uint32_t currentImageIndex)
 {
     std::vector<VkCommandBuffer> result;
+    // TODO, sort by topo
     for (auto [_, cbs] : renderPassResourceMap)
     {
         result.push_back(cbs.commandBuffers[currentImageIndex]);
@@ -162,19 +167,20 @@ void VulkanRenderGroup::prepareCommandPool()
 
 void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain *swapchain)
 {
-    for (auto &[name, renderPass] : renderPasses)
+    // renderPasses may contain more than 1 subpass
+    for (auto &[passName, rp] : renderPasses)
     {
-        auto vulkanRP = static_cast<VulkanRenderPass *>(renderPass.get());
+        auto renderPass = static_cast<VulkanRenderPass *>(rp.get());
         auto &renderPassResource = renderPassResourceMap[renderPass];
         auto &commandBuffer = renderPassResource.commandBuffers[imageIndex];
 
         VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        std::vector<VkClearValue> clearValues(vulkanRP->attachmentNodes.size());
-        for (int i = 0; i < vulkanRP->attachmentNodes.size(); i++)
+        std::vector<VkClearValue> clearValues(renderPass->attachmentNodes.size());
+        for (int i = 0; i < renderPass->attachmentNodes.size(); i++)
         {
-            auto attachmentNode = vulkanRP->attachmentNodes[i];
+            auto attachmentNode = renderPass->attachmentNodes[i];
             if (attachmentNode->color)
                 clearValues[i].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
@@ -184,7 +190,7 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
 
         VkRenderPassBeginInfo renderPassBeginInfo = {};
         renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.renderPass = vulkanRP->GetRenderPass();
+        renderPassBeginInfo.renderPass = renderPass->GetRenderPass();
         renderPassBeginInfo.renderArea.offset.x = 0;
         renderPassBeginInfo.renderArea.offset.y = 0;
         renderPassBeginInfo.renderArea.extent = swapchain->extent;
@@ -203,91 +209,78 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        std::unordered_map<std::string, IntrusivePtr<VulkanGraphicsPipeline>> subPassName2Pipeline;
-
-        for (auto [pipeline, resourceBinding] : resourceBindingStates)
+        // for each subpass in renderPass
+        for (auto &subpass : renderPass->graphicRenderPasses)
         {
-            auto vulkanPL = static_cast<VulkanGraphicsPipeline *>(pipeline.get());
-            subPassName2Pipeline[vulkanPL->GetPipelineName()] = vulkanPL;
-        }
+            assert(pipelineMap.count(subpass->name));
+            auto pipeline = static_cast<VulkanGraphicsPipeline *>(pipelineMap[passName].get());
 
-        auto topoResult = graph->Topo();
-        bool firstPass = true;
-        for (auto &[level, rps] : topoResult.levelsRenderPassOnly)
-        {
-            for (auto &node : rps)
+            assert(this->resourceBindingStates.count(pipeline));
+
+            auto &drawStates = this->resourceBindingStates[pipeline];
+
+            // if (drawStates.empty())
+            // {
+            //     vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+            // }
+
+            // for each drawable of pipeline
+            for (auto &drawState : drawStates)
             {
-                auto vulkanPL = subPassName2Pipeline[node->name];
-                if (!resourceBindingStates.count(vulkanPL))
+                auto &pipelineLayout = pipeline->GetPipelineLayout();
+                auto &descriptorSets = drawState->GetDescriptorSets(imageIndex);
+                auto constantBuffer = static_cast<ConstantBuffer *>(drawState->GetConstantBuffer().get());
+
+                if (drawState->GetDrawOps().empty() && (!drawState->GetVertexBuffers() || !drawState->GetIndexBuffers()))
                 {
                     continue;
                 }
-                auto vrbs = resourceBindingStates[vulkanPL];
-                // for each drawable of pipeline
-                for (int rpIndex = 0; rpIndex < vrbs.size(); rpIndex++)
+
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetPipeline());
+
+                if (constantBuffer)
                 {
-                    auto &vrb = vrbs[rpIndex];
-                    auto vulkanRBS = static_cast<VulkanResourceBindingState *>(vrb.get());
-                    auto &pipelineLayout = vulkanPL->GetPipelineLayout();
-                    auto &descriptorSets = vulkanRBS->GetDescriptorSets(imageIndex);
-                    auto constantBuffer = static_cast<ConstantBuffer *>(vulkanRBS->GetConstantBuffer().get());
-
-                    if (vrb->GetDrawOps().empty() && (!vulkanRBS->GetVertexBuffers() || !vulkanRBS->GetIndexBuffers()))
-                    {
-                        continue;
-                    }
-
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPL->GetPipeline());
-
-                    if (constantBuffer)
-                    {
-                        vkCmdPushConstants(commandBuffer, pipelineLayout->GetLayout(),
-                                           VK_SHADER_STAGE_VERTEX_BIT,
-                                           0, constantBuffer->Size(), constantBuffer->Map());
-                    }
-
-                    if (!descriptorSets.empty())
-                    {
-                        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->GetLayout(), 0, descriptorSets.size(), descriptorSets.data(), 0, nullptr);
-                    }
-
-                    const VkDeviceSize offsets[1] = {0};
-                    auto vertexBuffer = vulkanRBS->GetVertexBuffer(imageIndex);
-                    if (vertexBuffer)
-                    {
-                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer->GetBuffer(), offsets);
-                    }
-                    auto indexBuffer = vulkanRBS->GetIndexBuffer(imageIndex);
-                    if (indexBuffer)
-                    {
-                        vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetBuffer(), 0, vulkanRBS->GetIndexType());
-                    }
-
-                    // default scissor
-                    VkRect2D scissor = {};
-                    scissor.extent = swapchain->extent;
-                    scissor.offset.x = 0;
-                    scissor.offset.y = 0;
-
-                    for (auto drawOP : vulkanRBS->GetDrawOps())
-                    {
-                        if (drawOP.scissorExtent.x && drawOP.scissorExtent.y)
-                        {
-                            scissor.offset = {drawOP.scissorOffset.x, drawOP.scissorOffset.y};
-                            scissor.extent = {drawOP.scissorExtent.x, drawOP.scissorExtent.y};
-                        }
-                        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-                        if (drawOP.indexCount)
-                            vkCmdDrawIndexed(commandBuffer, drawOP.indexCount, drawOP.instanceCount, drawOP.firstIndex, drawOP.vertexOffset, drawOP.firstInstance);
-                        else if (drawOP.vertexCount)
-                            vkCmdDraw(commandBuffer, drawOP.vertexCount, drawOP.instanceCount, 0, 0);
-                    }
+                    vkCmdPushConstants(commandBuffer, pipelineLayout->GetLayout(),
+                                       VK_SHADER_STAGE_VERTEX_BIT,
+                                       0, constantBuffer->Size(), constantBuffer->Map());
                 }
-            }
 
-            if (level < topoResult.maxLevelRenderPassOnly)
-            {
-                vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+                if (!descriptorSets.empty())
+                {
+                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->GetLayout(), 0, descriptorSets.size(), descriptorSets.data(), 0, nullptr);
+                }
+
+                const VkDeviceSize offsets[1] = {0};
+                auto vertexBuffer = drawState->GetVertexBuffer(imageIndex);
+                if (vertexBuffer)
+                {
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer->GetBuffer(), offsets);
+                }
+                auto indexBuffer = drawState->GetIndexBuffer(imageIndex);
+                if (indexBuffer)
+                {
+                    vkCmdBindIndexBuffer(commandBuffer, indexBuffer->GetBuffer(), 0, drawState->GetIndexType());
+                }
+
+                // default scissor
+                VkRect2D scissor = {};
+                scissor.extent = swapchain->extent;
+                scissor.offset.x = 0;
+                scissor.offset.y = 0;
+
+                for (auto drawOP : drawState->GetDrawOps())
+                {
+                    if (drawOP.scissorExtent.x && drawOP.scissorExtent.y)
+                    {
+                        scissor.offset = {drawOP.scissorOffset.x, drawOP.scissorOffset.y};
+                        scissor.extent = {drawOP.scissorExtent.x, drawOP.scissorExtent.y};
+                    }
+                    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+                    if (drawOP.indexCount)
+                        vkCmdDrawIndexed(commandBuffer, drawOP.indexCount, drawOP.instanceCount, drawOP.firstIndex, drawOP.vertexOffset, drawOP.firstInstance);
+                    else if (drawOP.vertexCount)
+                        vkCmdDraw(commandBuffer, drawOP.vertexCount, drawOP.instanceCount, 0, 0);
+                }
             }
         }
 
@@ -305,7 +298,7 @@ uint32_t VulkanRenderGroup::DeferAttachmentUsage(IntrusivePtr<AttachmentGraphNod
     {
         usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
-    if (attachmentNode->inputSubPassNames.size() != 0)
+    if (attachmentNode->inputSubPassNames.size() != 0 || attachmentNode->input)
     {
         usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
@@ -381,9 +374,9 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &rende
 
     auto &attachmentImages = renderPassResource.attachmentImages;
 
-    renderPassResource.frameBuffers.resize(swapChain->GetTextures().size());
+    renderPassResource.frameBuffers.resize(swapChain->ImageSize());
 
-    for (int i = 0; i < swapChain->GetTextures().size(); i++)
+    for (int i = 0; i < swapChain->ImageSize(); i++)
     {
         std::vector<VkImageView> attachmentViews;
 
@@ -395,9 +388,14 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &rende
             {
                 texture = (VulkanTexture *)(sharedResources["::" + attachment->name][i].get());
             }
+            else if (groupScopeResources.count(attachment->name) && groupScopeResources[attachment->name].size() == swapChain->ImageSize())
+            {
+                texture = static_cast<VulkanTexture *>(groupScopeResources[attachment->name][i].get());
+            }
             else
             {
                 texture = CreateAttachmentResource(swapChain, attachment);
+                groupScopeResources[attachment->name].push_back(texture);
             }
 
             VulkanAuxiliaryExecutor::ImageLayoutConfig config = {

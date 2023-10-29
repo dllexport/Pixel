@@ -45,7 +45,18 @@ bool VulkanAuxiliaryExecutor::Execute()
 
     auto result = vkWaitForFences(context->GetVkDevice(), 1, &fence, VK_TRUE, UINT32_MAX);
     vkDestroyFence(context->GetVkDevice(), fence, nullptr);
+
+    for (auto &group : submitGroups)
+    {
+        if (group.dstTexture)
+        {
+            static_cast<VulkanTexture *>(group.dstTexture.get())->inTransition = false;
+        }
+    }
     submitGroups.clear();
+
+    this->resetCommandPool();
+    
     return true;
 }
 
@@ -272,6 +283,37 @@ void VulkanAuxiliaryExecutor::TransferResource(IntrusivePtr<Buffer> gpuBuffer, I
         .dstBuffer = buffer,
         .srcBuffer = stagingBuffer});
 }
+#include <spdlog/spdlog.h>
+bool VulkanAuxiliaryExecutor::SetImageLayout(IntrusivePtr<VulkanTexture> texture, ImageLayoutConfig config)
+{
+    if (texture->inTransition)
+        return false;
+
+    auto commandBuffer = allocateCommandBuffer(graphicCommandPool);
+    VkCommandBufferBeginInfo cmdBufferBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
+
+    VkImageMemoryBarrier imageMemoryBarrier = {};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.oldLayout = config.oldLayout;
+    imageMemoryBarrier.newLayout = config.newLayout;
+    imageMemoryBarrier.image = texture->GetImage();
+    imageMemoryBarrier.subresourceRange = texture->GetImageSubResourceRange(config.aspectMask);
+
+    vkCmdPipelineBarrier(commandBuffer, config.srcStageMask, config.dstStageMask, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    this->submitGroups.push_back(SubmitGroup{
+        .commandBuffer = commandBuffer,
+        .dstTexture = texture});
+
+    texture->inTransition = true;
+
+    return true;
+}
 
 void VulkanAuxiliaryExecutor::prepareCommandPool()
 {
@@ -292,6 +334,13 @@ void VulkanAuxiliaryExecutor::prepareCommandPool()
     }
 }
 
+void VulkanAuxiliaryExecutor::resetCommandPool()
+{
+    vkDestroyCommandPool(context->GetVkDevice(), graphicCommandPool, nullptr);
+    vkDestroyCommandPool(context->GetVkDevice(), computeCommandPool, nullptr);
+    prepareCommandPool();
+}
+
 VkCommandBuffer VulkanAuxiliaryExecutor::allocateCommandBuffer(VkCommandPool pool)
 {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
@@ -303,4 +352,10 @@ VkCommandBuffer VulkanAuxiliaryExecutor::allocateCommandBuffer(VkCommandPool poo
     VkCommandBuffer cmdBuffer;
     vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, &cmdBuffer);
     return cmdBuffer;
+}
+
+void VulkanAuxiliaryExecutor::Reset()
+{
+    this->submitGroups.clear();
+    resetCommandPool();
 }

@@ -6,7 +6,7 @@ RenderGroup::RenderGroup(IntrusivePtr<Graph> graph) : graph(graph)
 
 std::string RenderGroup::Name()
 {
-    return this->graph->name;
+    return graph->GetName();
 }
 
 const IntrusivePtr<Graph> RenderGroup::GetGraph()

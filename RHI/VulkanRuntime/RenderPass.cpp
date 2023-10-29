@@ -1,5 +1,5 @@
 #include <RHI/VulkanRuntime/RenderPass.h>
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/Texture.h>
 
 #include <spdlog/spdlog.h>
@@ -7,13 +7,49 @@
 #include <optional>
 #include <iterator>
 
-VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : RenderPass(graph), context(context)
+VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : context(context), graph(graph)
 {
 }
 
 VulkanRenderPass::~VulkanRenderPass()
 {
     vkDestroyRenderPass(context->GetVkDevice(), renderPass, nullptr);
+}
+
+VkRenderPass VulkanRenderPass::GetRenderPass()
+{
+    return renderPass;
+}
+
+int32_t VulkanRenderPass::GetSubPassIndex(std::string subPassName)
+{
+    for (int32_t i = 0; i < graphicRenderPasses.size(); i++)
+    {
+        if (graphicRenderPasses[i]->name == subPassName)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+VulkanRenderPass::SubPassAttachmentReferences VulkanRenderPass::GetSubPassReference(std::string name)
+{
+    if (attachmentReferencesMap.count(name))
+    {
+        return attachmentReferencesMap[name];
+    }
+    return {};
+}
+
+IntrusivePtr<GraphicRenderPassGraphNode> VulkanRenderPass::GetGraphicRenderPassGraphNode(uint32_t subPassIndex)
+{
+    return graphicRenderPasses[subPassIndex];
+}
+
+IntrusivePtr<GraphicRenderPassGraphNode> VulkanRenderPass::GetGraphicRenderPassGraphNode(std::string subPassName)
+{
+    return graphicRenderPasses[GetSubPassIndex(subPassName)];
 }
 
 std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t toIndex, VulkanRenderPass::SubPassAttachmentReferences from, VulkanRenderPass::SubPassAttachmentReferences to)
@@ -94,141 +130,131 @@ std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t 
     return dependency;
 }
 
-void VulkanRenderPass::Build()
+void VulkanRenderPass::Build(std::vector<std::string> subPasses)
 {
     // todo: handle multisubpassed
     std::vector<VkAttachmentDescription> attachmentsDescriptions;
     std::vector<VkSubpassDescription> subPassDescriptions;
     uint32_t attachmentCounter = 0;
 
-    for (auto &[level, subPassNodes] : this->graph->Topo().levelsRenderPassOnly)
+    // may have multiple nodes in same level
+    for (auto &subPass : subPasses)
     {
-        // may have multiple nodes in same level
-        for (auto &subPassNode : subPassNodes)
+        auto &subPassNode = graph->GetNodeMap().at(subPass);
+        graphicRenderPasses.push_back(static_cast<GraphicRenderPassGraphNode *>(subPassNode.get()));
+
+        // store the newly created attachment node in this pass
+        std::vector<IntrusivePtr<AttachmentGraphNode>> subPassAttachmentNodes;
+
+        auto &referencesGroup = this->attachmentReferencesMap[subPassNode->name];
+
+        for (auto n : subPassNode->inputs)
         {
-            graphicRenderPasses.push_back(static_cast<GraphicRenderPassGraphNode *>(subPassNode));
-
-            // store the newly created attachment node in this pass
-            std::vector<IntrusivePtr<AttachmentGraphNode>> subPassAttachmentNodes;
-
-            auto &referencesGroup = this->referencesMap[subPassNode->name];
-
-            for (auto n : subPassNode->inputs)
+            if (n->type == GraphNode::ATTACHMENT)
             {
-                if (n->type == GraphNode::ATTACHMENT)
+                auto agn = static_cast<AttachmentGraphNode *>(n.get());
+                int attachmentRefIndex = std::find_if(attachmentNodes.begin(), attachmentNodes.end(), [&](IntrusivePtr<AttachmentGraphNode> &node)
+                                                      { return node->name == agn->name; }) -
+                                         attachmentNodes.begin();
+                if (attachmentRefIndex >= attachmentNodes.size())
                 {
-                    auto agn = static_cast<AttachmentGraphNode *>(n.get());
-                    int attachmentRefIndex = std::find_if(attachmentNodes.begin(), attachmentNodes.end(), [&](IntrusivePtr<AttachmentGraphNode> &node)
-                                                          { return node->name == agn->name; }) -
-                                             attachmentNodes.begin();
-                    if (attachmentRefIndex >= attachmentNodes.size())
-                    {
-                        attachmentRefIndex = attachmentCounter++;
-                        subPassAttachmentNodes.push_back(agn);
-                    }
-                    referencesGroup.inputRefs.push_back({(uint32_t)attachmentRefIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+                    attachmentRefIndex = attachmentCounter++;
+                    subPassAttachmentNodes.push_back(agn);
                 }
+                referencesGroup.inputRefs.push_back({(uint32_t)attachmentRefIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
             }
+        }
 
-            for (auto output : subPassNode->outputs)
+        for (auto output : subPassNode->outputs)
+        {
+            if (output->type == GraphNode::ATTACHMENT)
             {
-                if (output->type == GraphNode::ATTACHMENT)
+                auto agn = static_cast<AttachmentGraphNode *>(output.get());
+                // try to get attachment ref index (if exist)
+                int attachmentRefIndex = std::find(attachmentNodes.begin(), attachmentNodes.end(), agn) - attachmentNodes.begin();
+                if (attachmentRefIndex >= attachmentNodes.size())
                 {
-                    auto agn = static_cast<AttachmentGraphNode *>(output.get());
-                    // try to get attachment ref index (if exist)
-                    int attachmentRefIndex = std::find(attachmentNodes.begin(), attachmentNodes.end(), agn) - attachmentNodes.begin();
-                    if (attachmentRefIndex >= attachmentNodes.size())
-                    {
-                        attachmentRefIndex = attachmentCounter++;
-                        subPassAttachmentNodes.push_back(agn);
-                    }
-                    if (agn->depthStencil)
-                    {
-                        referencesGroup.depthRef.push_back({(uint32_t)attachmentRefIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
-                    }
-                    else
-                    {
-                        referencesGroup.colorRefs.push_back({(uint32_t)attachmentRefIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-                    }
+                    attachmentRefIndex = attachmentCounter++;
+                    subPassAttachmentNodes.push_back(agn);
                 }
-            }
-
-            // for new created attachment, create VkAttachmentDescriptions
-            for (int i = 0; i < subPassAttachmentNodes.size(); i++)
-            {
-                auto attachmentNode = subPassAttachmentNodes[i];
-                VkAttachmentDescription desc = {};
-
-                if (attachmentNode->depthStencil)
+                if (agn->depthStencil)
                 {
-                    desc.format = GeneralFormatToVkFormat(attachmentNode->format);
-                    desc.samples = VK_SAMPLE_COUNT_1_BIT;
-                    desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-                    desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                    desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                    desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                    desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    referencesGroup.depthRef.push_back({(uint32_t)attachmentRefIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
                 }
                 else
                 {
-                    desc.format = GeneralFormatToVkFormat(attachmentNode->format);
-                    desc.samples = VK_SAMPLE_COUNT_1_BIT;
-                    desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-                    desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                    desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                    desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                    desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    desc.finalLayout = attachmentNode->swapChain ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    referencesGroup.colorRefs.push_back({(uint32_t)attachmentRefIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
                 }
-                attachmentsDescriptions.push_back(desc);
             }
-
-            // merge into global
-            attachmentNodes.insert(std::end(attachmentNodes), subPassAttachmentNodes.begin(), subPassAttachmentNodes.end());
-
-            VkSubpassDescription subPassDescription = {};
-            subPassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subPassDescription.inputAttachmentCount = (uint32_t)referencesGroup.inputRefs.size();
-            subPassDescription.pInputAttachments = referencesGroup.inputRefs.data();
-            subPassDescription.colorAttachmentCount = (uint32_t)referencesGroup.colorRefs.size();
-            subPassDescription.pColorAttachments = referencesGroup.colorRefs.data();
-            subPassDescription.pDepthStencilAttachment = referencesGroup.depthRef.data();
-            subPassDescriptions.push_back(subPassDescription);
         }
+
+        // for new created attachment, create VkAttachmentDescriptions
+        for (int i = 0; i < subPassAttachmentNodes.size(); i++)
+        {
+            auto attachmentNode = subPassAttachmentNodes[i];
+            VkAttachmentDescription desc = {};
+
+            if (attachmentNode->depthStencil)
+            {
+                desc.format = GeneralFormatToVkFormat(attachmentNode->format);
+                desc.samples = VK_SAMPLE_COUNT_1_BIT;
+                desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+                desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+                desc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+            }
+            else
+            {
+                desc.format = GeneralFormatToVkFormat(attachmentNode->format);
+                desc.samples = VK_SAMPLE_COUNT_1_BIT;
+                desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+                desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                desc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+                desc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+            }
+            attachmentsDescriptions.push_back(desc);
+        }
+
+        // merge into global
+        attachmentNodes.insert(std::end(attachmentNodes), subPassAttachmentNodes.begin(), subPassAttachmentNodes.end());
+
+        VkSubpassDescription subPassDescription = {};
+        subPassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subPassDescription.inputAttachmentCount = (uint32_t)referencesGroup.inputRefs.size();
+        subPassDescription.pInputAttachments = referencesGroup.inputRefs.data();
+        subPassDescription.colorAttachmentCount = (uint32_t)referencesGroup.colorRefs.size();
+        subPassDescription.pColorAttachments = referencesGroup.colorRefs.data();
+        subPassDescription.pDepthStencilAttachment = referencesGroup.depthRef.data();
+        subPassDescriptions.push_back(subPassDescription);
     }
 
+    // handle synchronization within pass
     std::vector<VkSubpassDependency> dependencies;
     // resolve dependencies
     auto topo = graph->Topo();
 
-    for (auto [level, subPassNodes] : topo.levelsRenderPassOnly)
+    bool externalDependencySet = false;
+    for (auto &subPass : subPasses)
     {
-        for (auto &subPassNode : subPassNodes)
+        auto &subPassNode = graph->GetNodeMap().at(subPass);
+
+        auto subPassNodeSubPassIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), subPassNode) - graphicRenderPasses.begin();
+
+        // find direct dependency only
+        auto dependencees = subPassNode->TraceAllOutputs(GraphNode::GRAPHIC_PASS, 1);
+
+        for (auto dependencee : dependencees)
         {
-            auto subPassNodeSubPassIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), subPassNode) - graphicRenderPasses.begin();
-
-            // find direct dependency only
-            auto dependencees = subPassNode->TraceAllOutputs(GraphNode::GRAPHIC_PASS, 1);
-
-            for (auto dependencee : dependencees)
+            auto dependenceeIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), dependencee) - graphicRenderPasses.begin();
+            auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, attachmentReferencesMap[subPassNode->name], attachmentReferencesMap[dependencee->name]);
+            if (dependency.has_value())
             {
-                auto dependenceeIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), dependencee) - graphicRenderPasses.begin();
-                auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, referencesMap[subPassNode->name], referencesMap[dependencee->name]);
-                if (dependency.has_value())
-                {
-                    dependencies.push_back(dependency.value());
-                }
+                dependencies.push_back(dependency.value());
             }
-
-            VkSubpassDependency dependency = {};
-            dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-            dependency.dstSubpass = 0;
-            dependency.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dependency.srcAccessMask |= 0;
-            dependency.dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-            dependency.dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
-            dependencies.push_back(dependency);
         }
     }
 
@@ -242,9 +268,4 @@ void VulkanRenderPass::Build()
     renderPassInfoCI.pDependencies = dependencies.data();
 
     auto result = vkCreateRenderPass(context->GetVkDevice(), &renderPassInfoCI, nullptr, &this->renderPass);
-}
-
-void VulkanRenderPass::RegisterPipeline(std::string name, IntrusivePtr<VulkanPipeline> pipeline)
-{
-    pipelineMap[name] = pipeline;
 }

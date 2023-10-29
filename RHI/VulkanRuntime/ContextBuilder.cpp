@@ -19,7 +19,7 @@ ContextBuilder::ContextBuilder()
 
 #ifndef NDEBUG
         spdlog::debug("available extensions:");
-        for (auto& extension : availableInstanceExtensions)
+        for (auto &extension : availableInstanceExtensions)
         {
             spdlog::debug("{}:{}", extension.extensionName, extension.specVersion);
         }
@@ -118,8 +118,11 @@ void ContextBuilder::BuildInstance()
     ici.enabledExtensionCount = instanceExtensions.size();
     ici.ppEnabledExtensionNames = instanceExtensions.data();
 
-    ici.enabledLayerCount = instanceLayers.size();
-    ici.ppEnabledLayerNames = instanceLayers.data();
+    if (enableValidationLayers)
+    {
+        ici.enabledLayerCount = instanceLayers.size();
+        ici.ppEnabledLayerNames = instanceLayers.data();
+    }
 
     auto result = vkCreateInstance(&ici, nullptr, &context->instance);
     if (result != VK_SUCCESS)
@@ -193,7 +196,7 @@ int ContextBuilder::DefaultPhysicalDeviceSelector(std::vector<VkPhysicalDevice> 
     {
         return 0;
     }
-    
+
     return -1;
 }
 
@@ -221,12 +224,11 @@ void ContextBuilder::BuildPhysicalDevice()
 
 #ifndef NDEBUG
     spdlog::debug("available device extensions:");
-    for (auto& extension : availablePhysicalDeviceExtensions)
+    for (auto &extension : availablePhysicalDeviceExtensions)
     {
         spdlog::debug("{}:{}", extension.extensionName, extension.specVersion);
     }
 #endif
-
 }
 
 std::unordered_map<VkFlags, uint32_t> SelectDeviceQueues(std::vector<VkQueueFamilyProperties> &properties)

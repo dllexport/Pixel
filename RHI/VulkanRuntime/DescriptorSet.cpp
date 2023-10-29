@@ -25,7 +25,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
 
 void VulkanDescriptorSet::AllocateExtraDescriptorSets(uint32_t frameIndex)
 {
-    auto vulkanPipeline = static_cast<VulkanPipeline *>(pipeline.get());
+    auto vulkanPipeline = static_cast<VulkanGraphicsPipeline *>(pipeline.get());
     auto layouts = vulkanPipeline->GetPipelineLayout()->GetSetsLayouts();
 
     VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
@@ -81,7 +81,7 @@ void VulkanDescriptorSet::ClearInternal()
 
 void VulkanDescriptorSet::AllocateDescriptorPool(IntrusivePtr<Pipeline> &pipeline)
 {
-    auto vulkanPipeline = static_cast<VulkanPipeline *>(pipeline.get());
+    auto vulkanPipeline = static_cast<VulkanGraphicsPipeline *>(pipeline.get());
     auto &bindingsInSets = vulkanPipeline->GetPipelineLayout()->GetBindingsInSets();
 
     std::vector<VkDescriptorPoolSize> poolSizes;

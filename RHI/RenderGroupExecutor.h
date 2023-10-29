@@ -39,6 +39,7 @@ public:
     virtual void BindResource(std::string name, std::vector<IntrusivePtr<ResourceHandle>> resources) = 0;
 
     void SetSwapChain(IntrusivePtr<SwapChain> swapChain);
+    IntrusivePtr<SwapChain> GetSwapChain();
 
 protected:
     IntrusivePtr<SwapChain> swapChain;

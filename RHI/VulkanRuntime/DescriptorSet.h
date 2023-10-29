@@ -5,7 +5,7 @@
 #include <RHI/ResourceHandle.h>
 
 #include <RHI/VulkanRuntime/Context.h>
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 
 #include <vulkan/vulkan.h>
 

@@ -39,7 +39,7 @@ void Renderer::InitWindow()
     this->window->Build(1024, 768);
     this->window->RegisterResizeCallback(std::bind(&Renderer::ReCreateSwapChain, this, std::placeholders::_1, std::placeholders::_2));
     this->window->RegisterEventCallback(std::bind(&Renderer::EventCallback, this, std::placeholders::_1));
-    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, 1024, 768);
+    this->swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, 1024, 768, nullptr);
 }
 
 void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
@@ -56,7 +56,8 @@ void Renderer::ReCreateSwapChain(uint32_t width, uint32_t height)
     event.resizeEvent.height = height;
     EventCallback(event);
 
-    swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, width, height);
+    auto oldSwapChain = renderGroupExecutor->GetSwapChain();
+    swapChain = engine->rhiRuntime->CreateSwapChain(this->window->hwnd, width, height, oldSwapChain);
     renderGroupExecutor->Reset();
     renderGroupExecutor->SetSwapChain(swapChain);
     renderGroupExecutor->Prepare();
@@ -80,7 +81,6 @@ void Renderer::Build()
 void Renderer::AddDrawState(IntrusivePtr<ResourceBindingState> state)
 {
     drawStates.push_back(state);
-    
 }
 
 void Renderer::PostFrame()

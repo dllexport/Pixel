@@ -73,6 +73,10 @@ private:
     // global name -> res(per inflight)
     std::unordered_map<std::string, std::vector<IntrusivePtr<ResourceHandle>>> sharedResources;
 
+    // resources in group scope
+    // (group name::resource name) -> res(per inflight)
+    std::unordered_map<std::string, std::vector<IntrusivePtr<ResourceHandle>>> groupScopeResources;
+
     // pipeline -> drawStates
     std::unordered_map<IntrusivePtr<Pipeline>, std::vector<IntrusivePtr<VulkanResourceBindingState>>> resourceBindingStates;
 

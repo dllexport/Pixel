@@ -90,7 +90,7 @@ void VulkanGroupExecutor::prepareSharedResources()
             // skip if resource is already allocated
             if (sharedResources[sharedKey].size() == vulkanSC->GetTextures().size())
                 continue;
-                
+
             auto &resourceNode = renderGroup->GetGraph()->GetNodeMap().at(sharedKey);
 
             for (int i = 0; i < vulkanSC->GetTextures().size(); i++)
@@ -306,10 +306,10 @@ bool VulkanGroupExecutor::Execute()
 
     for (int i = 0; i < groups.size(); i++)
     {
-        auto &rg = groups[i];
-        auto cbs = rg.get()->GetCommandBuffer(currentImage);
+        auto &rg = groups[i].get();
+        auto cbs = rg->GetCommandBuffer(currentImage);
         commandBuffers.insert(commandBuffers.end(), cbs.begin(), cbs.end());
-        commandBuffers.push_back(renderGroupSyncMap[rg.get()->Name()].afterGroupExec[currentImage]);
+        commandBuffers.push_back(renderGroupSyncMap[rg->Name()].afterGroupExec[currentImage]);
     }
 
     commandBuffers.push_back(globalSynCommands.afterGroupExec[currentImage]);

@@ -257,11 +257,15 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
             }
         }
 
+        for (auto output : subPassNode->outputs) {
+            if (output->type != GraphNode::ATTACHMENT)
+                continue;
 
-        // TODO, analyze pass's resource, add color and input transition dependency
-        if (subPass == "compose")
-        {
-            {
+            auto attachmentNode = output->As<AttachmentGraphNode*>();
+            // Hazard READ_AFTER_WRITE
+            // layout transition from GENERAL to DET (write)
+            // loadOp VK_ATTACHMENT_LOAD_OP_LOAD (TODO: some color attachments maybe write only)
+            if (attachmentNode->swapChain) {
                 VkSubpassDependency dependency{};
                 dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
                 dependency.dstSubpass = 0;
@@ -271,9 +275,20 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
                 dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
                 dependencies.push_back(dependency);
+                break;
             }
+        }
 
-            {
+
+        for (auto input : subPassNode->inputs) {
+            if (input->type != GraphNode::ATTACHMENT)
+                continue;
+
+            auto attachmentNode = input->As<AttachmentGraphNode*>();
+            // Hazard READ_AFTER_WRITE
+            // layout transition from GENERAL to DET (write)
+            // loadOp VK_ATTACHMENT_LOAD_OP_LOAD (TODO: some color attachments maybe write only)
+            if (attachmentNode->input) {
                 VkSubpassDependency dependency{};
                 dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
                 dependency.dstSubpass = 0;
@@ -283,6 +298,7 @@ void VulkanRenderPass::Build(std::vector<std::string> subPasses)
                 dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
                 dependencies.push_back(dependency);
+                break;
             }
         }
     }

@@ -15,8 +15,6 @@ public:
     IntrusivePtr<Context> GetContext();
 
     virtual IntrusivePtr<RenderGroup> CreateRenderGroup(IntrusivePtr<Graph> graph) override;
-    virtual IntrusivePtr<Pipeline> CreatePipeline(IntrusivePtr<RenderGroup> renderPass, std::string subPassName, PipelineStates pipelineStates) override;
-    virtual IntrusivePtr<Pipeline> CreateComputePipeline(IntrusivePtr<RenderGroup>, std::string subPassName) override;
     virtual IntrusivePtr<Buffer> CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits, uint32_t size) override;
     virtual IntrusivePtr<MutableBuffer> CreateMutableBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
     virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config) override;

@@ -7,6 +7,7 @@
 #include <RHI/RenderGroup.h>
 #include <RHI/RenderGroupExecutor.h>
 #include <RHI/Pipeline.h>
+#include <RHI/PipelineStates.h>
 #include <RHI/Buffer.h>
 #include <RHI/MutableBuffer.h>
 #include <RHI/Texture.h>
@@ -21,8 +22,6 @@ class RHIRuntime : public IntrusiveCounter<RHIRuntime>
 public:
     virtual ~RHIRuntime() = default;
     virtual IntrusivePtr<RenderGroup> CreateRenderGroup(IntrusivePtr<Graph> graph) = 0;
-    virtual IntrusivePtr<Pipeline> CreatePipeline(IntrusivePtr<RenderGroup>, std::string subPassName, PipelineStates pipelineStates) = 0;
-    virtual IntrusivePtr<Pipeline> CreateComputePipeline(IntrusivePtr<RenderGroup>, std::string subPassName) = 0;
     virtual IntrusivePtr<Buffer> CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
     virtual IntrusivePtr<MutableBuffer> CreateMutableBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) = 0;
     virtual IntrusivePtr<Texture> CreateTexture(TextureFormat format, Texture::UsageBits type, MemoryPropertyBits memoryProperties, Texture::Extent extent, Texture::Configuration config = Texture::Configuration::Default()) = 0;

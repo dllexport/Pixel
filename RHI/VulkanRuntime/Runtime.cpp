@@ -68,25 +68,6 @@ IntrusivePtr<RenderGroup> VulkanRuntime::CreateRenderGroup(IntrusivePtr<Graph> g
     return new VulkanRenderGroup(context, graph, ae);
 }
 
-IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderGroup> renderGroup, std::string subPassName, PipelineStates pipelineStates)
-{
-    auto vrg = static_cast<VulkanRenderGroup *>(renderGroup.get());
-    auto rp = vrg->GetRenderPass(subPassName);
-    if (!rp)
-    {
-        spdlog::info("subPass: {} not exist in renderPass {}", subPassName, vrg->GetGraph()->GetName());
-        return nullptr;
-    }
-    auto pipeline = new VulkanGraphicsPipeline(context, rp, subPassName, pipelineStates);
-    pipeline->groupName = renderGroup->Name();
-    return pipeline;
-}
-
-IntrusivePtr<Pipeline> VulkanRuntime::CreateComputePipeline(IntrusivePtr<RenderGroup> renderPass, std::string subPassName)
-{
-    return new VulkanComputePipeline(context, renderPass, subPassName);
-}
-
 IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
 {
     if (memoryProperties & MemoryProperty::MEMORY_PROPERTY_HOST_LOCAL_BIT)

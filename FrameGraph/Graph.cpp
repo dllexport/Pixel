@@ -37,11 +37,10 @@ bool isPipelineNode(IntrusivePtr<GraphNode> node)
     return node->type == GraphNode::Type::GRAPHIC_PASS || node->type == GraphNode::Type::COMPUTE_PASS;
 }
 
-IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
+IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
 {
     IntrusivePtr<Graph> graph = new Graph;
 
-    auto jsonStr = ReadStringFile(path);
     JS::ParseContext context(jsonStr);
     auto &json = graph->json;
     auto error = context.parseTo(json);
@@ -70,7 +69,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
 
         for (auto input : subpass.inputs)
         {
-            GraphNode *inputNode;
+            ResourceNode *inputNode;
             if (input.type == "attachment")
             {
                 auto attachment = new AttachmentGraphNode(input.name, GraphNode::ATTACHMENT);
@@ -86,8 +85,13 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             }
             else if (input.type == "buffer" || input.type == "sampler" || input.type == "ssbo")
             {
-                inputNode = new DescriptorGraphNode(input.name, input.type == "sampler" ? GraphNode::SAMPLER : GraphNode::BUFFER);
+                auto dn = new DescriptorGraphNode(input.name, input.type == "sampler" ? GraphNode::SAMPLER : GraphNode::BUFFER);
+                dn->set = 0;
+                inputNode = dn;
             }
+
+            // all input nodes are ResourceNode
+            inputNode->binding = input.binding;
 
             inputNode->passName = node->name;
             // save which subpass use this node as input
@@ -138,7 +142,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
                 std::string scopeName = node->name + "::" + output.name;
                 if (output.shared || output.swapChain)
                 {
-                    scopeName = "::" + output.name;
+                    scopeName = output.name;
                     graph->sharedResourceKeys.insert(scopeName);
                 }
                 resolvedMap[scopeName] = outputNode;
@@ -155,10 +159,11 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
             continue;
 
         auto passNode = (RenderPassGraphNode *)node.get();
+        // inputs must be descriptors
         for (unsigned i = 0; i < passNode->inputs.size(); i++)
         {
-            auto resNode = (ResourceNode *)passNode->inputs[i].get();
-            passNode->bindingSets[resNode->name] = {0, i, passNode->inputs[i]->type};
+            auto resNode = (DescriptorGraphNode *)passNode->inputs[i].get();
+            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding, passNode->inputs[i]->type};
         }
         // TODO, handle outputs (BUFFER SSBO)
     }
@@ -178,6 +183,13 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
     graph->name = json.name;
     graph->graphNodesMap = resolvedMap;
     return graph;
+}
+
+IntrusivePtr<Graph> Graph::ParseRenderPassJson(std::string path)
+{
+    auto jsonStr = ReadStringFile(path);
+
+    return ParseRenderPassJsonRawString(jsonStr);
 }
 
 template <typename Iter, typename Q>

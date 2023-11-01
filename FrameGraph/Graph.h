@@ -23,6 +23,7 @@ public:
     };
 
     static IntrusivePtr<Graph> ParseRenderPassJson(std::string path);
+    static IntrusivePtr<Graph> ParseRenderPassJsonRawString(std::string jsonStr);
     TopoResult &Topo();
 
     std::vector<std::string> DependencyGroups()

@@ -33,23 +33,6 @@ IntrusivePtr<RenderGroup> PixelEngine::RegisterRenderGroup(IntrusivePtr<Graph> g
     return renderGroup;
 }
 
-IntrusivePtr<Pipeline> PixelEngine::RegisterPipeline(std::string renderGroupName, std::string subPassName, PipelineStates pipelineStates)
-{
-    if (!renderGroupTemplates.count(renderGroupName))
-    {
-        spdlog::info("renderPass {} does no exist", renderGroupName);
-        return nullptr;
-    }
-    auto renderGroup = renderGroupTemplates[renderGroupName];
-    auto &pipelineTemplate = this->pipelineTemplates[renderGroup];
-
-    auto pipeline = rhiRuntime->CreatePipeline(renderGroup, subPassName, pipelineStates);
-    pipeline->Build();
-    pipelineTemplate[subPassName] = pipeline;
-
-    return pipeline;
-}
-
 IntrusivePtr<RHIRuntime> &PixelEngine::GetRHIRuntime()
 {
     return rhiRuntime;

@@ -18,18 +18,12 @@ public:
     PixelEngine();
     ~PixelEngine();
     IntrusivePtr<RenderGroup> RegisterRenderGroup(IntrusivePtr<Graph> graph);
-    IntrusivePtr<Pipeline> RegisterPipeline(std::string renderGroupName, std::string subPassName, PipelineStates pipelineStates);
 
     IntrusivePtr<Renderer> CreateRenderer();
 
     IntrusivePtr<RHIRuntime>& GetRHIRuntime();
 
     void Frame();
-
-    std::unordered_map<std::string, IntrusivePtr<Pipeline>> GetPipelines(IntrusivePtr<RenderGroup> renderGroup)
-    {
-        return pipelineTemplates[renderGroup];
-    }
 
     IntrusivePtr<AuxiliaryExecutor> GetAuxiliaryExecutor()
     {
@@ -38,7 +32,6 @@ public:
 
 private:
     std::unordered_map<std::string, IntrusivePtr<RenderGroup>> renderGroupTemplates;
-    std::unordered_map<IntrusivePtr<RenderGroup>, std::unordered_map<std::string, IntrusivePtr<Pipeline>>> pipelineTemplates;
     IntrusivePtr<RHIRuntime> rhiRuntime;
 
     friend class Renderer;

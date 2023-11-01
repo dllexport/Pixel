@@ -12,7 +12,7 @@
 class VulkanComputePipeline : public Pipeline
 {
 public:
-    VulkanComputePipeline(IntrusivePtr<Context> context, IntrusivePtr<RenderGroup> renderGroup, std::string passName);
+    VulkanComputePipeline(IntrusivePtr<Context> context, std::string pipelineName, std::string groupName);
     virtual ~VulkanComputePipeline() override;
     virtual void Build() override;
 

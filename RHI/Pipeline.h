@@ -7,15 +7,15 @@
 class Pipeline : public IntrusiveCounter<Pipeline>
 {
 public:
-    Pipeline();
+    Pipeline(std::string groupName, std::string pipelineName);
     virtual ~Pipeline() = default;
     virtual void Build() = 0;
 
     std::string GetPipelineName()
     {
-        return name;
+        return pipelineName;
     }
 
-    std::string name;
+    std::string pipelineName;
     std::string groupName;
 };

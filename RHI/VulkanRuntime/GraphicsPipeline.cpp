@@ -281,9 +281,8 @@ VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::I
     return vertexInputStateCI;
 }
 
-VulkanGraphicsPipeline::VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string name, PipelineStates pipelineStates) : Pipeline(), context(context), pipelineStates(pipelineStates)
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string groupName, std::string pipelineName, PipelineStates pipelineStates) : Pipeline(groupName, pipelineName), context(context), pipelineStates(pipelineStates)
 {
-    this->name = name;
     this->renderPass = renderPass;
 }
 
@@ -310,7 +309,7 @@ void VulkanGraphicsPipeline::Build()
 
     // apply default blending state
     auto vulkanRenderPass = static_cast<VulkanRenderPass *>(renderPass.get());
-    auto colorRefsSize = vulkanRenderPass->attachmentReferencesMap[this->name].colorRefs.size();
+    auto colorRefsSize = vulkanRenderPass->attachmentReferencesMap[this->pipelineName].colorRefs.size();
     auto colorBlendAttachmentStates = TranslateColorBlendAttachmentState(pipelineStates.colorBlendAttachmentStates, colorRefsSize);
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = BuildColorBlendAttachmentState(colorBlendAttachmentStates);
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = TranslateDepthStencilState(pipelineStates.depthStencilState);
@@ -320,7 +319,7 @@ void VulkanGraphicsPipeline::Build()
     std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicStateCI = TranslateDynamicState(dynamicStateEnables);
 
-    auto subPassIndex = vulkanRenderPass->GetSubPassIndex(this->name);
+    auto subPassIndex = vulkanRenderPass->GetSubPassIndex(this->pipelineName);
 
     if (pipelineStates.shaderState.Empty())
     {

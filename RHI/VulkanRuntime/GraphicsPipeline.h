@@ -11,7 +11,7 @@ class VulkanPipelineLayout;
 class VulkanGraphicsPipeline : public Pipeline
 {
 public:
-    VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string name, PipelineStates pipelineStates);
+    VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string groupName, std::string pipelineName, PipelineStates pipelineStates);
     virtual ~VulkanGraphicsPipeline() override;
     virtual void Build() override;
 

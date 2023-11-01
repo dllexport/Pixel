@@ -59,16 +59,15 @@ int main()
 {
     spdlog::set_level(spdlog::level::debug);
 
-    auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/Triangle/triangle.json");
+    auto graph = Graph::ParseRenderPassJson("triangle.json");
     PipelineStates colorPipelineStates = {
         .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
         .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
 
     IntrusivePtr<PixelEngine> engine = new PixelEngine;
-
-    auto renderPass = engine->RegisterRenderPass(graph);
-    auto colorPipeline = engine->RegisterPipeline("singlePass", "single", colorPipelineStates);
+    auto renderGroup = engine->RegisterRenderGroup(graph);
+    auto colorPipeline = renderGroup->CreatePipeline("single", colorPipelineStates);
 
     auto &rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();

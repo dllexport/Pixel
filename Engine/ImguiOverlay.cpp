@@ -18,7 +18,7 @@ ImguiOverlay::~ImguiOverlay()
 void ImguiOverlay::ImGUINewFrame()
 {
     ImGui::NewFrame();
-    
+
     ImGui::ShowDemoWindow();
 
     ImGui::Render();
@@ -28,6 +28,47 @@ void ImguiOverlay::ImGUINewFrame()
 
 void ImguiOverlay::BuildPipeline()
 {
+    auto rawString = R"JSON(
+        {
+            "name": "imguiPass",
+            "dependencies": [
+                "any"
+            ],
+            "subpasses": [
+                {
+                    "name": "imgui",
+                    "type": "graphic",
+                    "shaders": {
+                        "vertex": "ui.vert.spv",
+                        "fragment": "ui.frag.spv"
+                    },
+                    "inputs": [
+                        {
+                            "name": "imguiUBO",
+                            "type": "buffer"
+                        },
+                        {
+                            "name": "fontSampler",
+                            "type": "sampler",
+                            "binding": 0
+                        }
+                    ],
+                    "outputs": [
+                        {
+                            "name": "::color",
+                            "type": "attachment",
+                            "format": "FORMAT_B8G8R8A8_UNORM",
+                            "swapChain": true
+                        }
+                    ]
+                }
+            ]
+        }
+    )JSON";
+
+    auto imguiPass = Graph::ParseRenderPassJsonRawString(rawString);
+    auto imguiRenderGroup = engine->RegisterRenderGroup(imguiPass);
+
     ColorBlendAttachmentState imguiColorBlendState = {
         .blendEnable = true,
         .srcColorBlendFactor = BLEND_FACTOR_SRC_ALPHA,
@@ -51,7 +92,7 @@ void ImguiOverlay::BuildPipeline()
         .colorBlendAttachmentStates = {imguiColorBlendState},
         .depthStencilState = {.depthTestEnable = false, .depthWriteEnable = false}};
 
-    imguiPipeline = engine->RegisterPipeline("imguiPass", "imgui", imguiPipelineStates);
+    imguiPipeline = imguiRenderGroup->CreatePipeline("imgui", imguiPipelineStates);
 }
 
 void ImguiOverlay::BuildDrawable()
@@ -87,7 +128,7 @@ void ImguiOverlay::BuildDrawable()
     imguiDrawable->Bind(imguiCBuffer);
 
     // capture IntrusivePtr
-    auto imguiUpdateCallback = [this, rhiRuntime, imguiCBuffer, imguiDrawable](UpdateInput inputs)
+    auto imguiUpdateCallback = [shared = IntrusivePtr<ImguiOverlay>(this), rhiRuntime, imguiCBuffer, imguiDrawable = imguiDrawable.get()](UpdateInput inputs)
     {
         auto &event = inputs.event;
         ImGuiIO &io = ImGui::GetIO();
@@ -204,7 +245,7 @@ void ImguiOverlay::BuildDrawable()
         }
 
         // draw ui to internal buffer
-        ImGUINewFrame();
+        shared->ImGUINewFrame();
 
         auto &vertexBuffers = imguiDrawable->GetVertexBuffers();
         auto &indexBuffers = imguiDrawable->GetIndexBuffers();

@@ -17,7 +17,10 @@ struct RenderSubPassResourceJson
     bool shared;
     bool clear;
 
-    JS_OBJ(name, type, format, depthStencil, swapChain, shared, clear);
+    uint8_t binding;
+    uint8_t set;
+
+    JS_OBJ(name, type, format, depthStencil, swapChain, shared, clear, set, binding);
 };
 
 struct ShaderPaths

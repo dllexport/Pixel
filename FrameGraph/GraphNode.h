@@ -45,8 +45,9 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
         return passName + "::" + name;
     }
 
-    template<class T>
-    T As() {
+    template <class T>
+    T As()
+    {
         return static_cast<T>(this);
     }
 };
@@ -55,6 +56,8 @@ struct ResourceNode : public GraphNode
 {
     explicit ResourceNode(std::string name, Type type) : GraphNode(name, type) {}
     bool shared = false;
+
+    uint8_t binding;
 };
 
 struct AttachmentGraphNode : public ResourceNode
@@ -74,6 +77,7 @@ struct DescriptorGraphNode : public ResourceNode
 {
     DescriptorGraphNode(std::string name, Type type) : ResourceNode(name, type) {}
     bool sampler = false;
+    uint8_t set;
 };
 
 struct RenderPassGraphNode : public GraphNode

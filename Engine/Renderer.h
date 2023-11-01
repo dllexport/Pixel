@@ -22,7 +22,7 @@ public:
     Renderer(PixelEngine *engine);
     ~Renderer();
 
-    void AddDrawState(IntrusivePtr<ResourceBindingState> state);
+    void AddDrawState(IntrusivePtr<ResourceBindingState>& state);
 
     IntrusivePtr<Camera> GetCamera();
 

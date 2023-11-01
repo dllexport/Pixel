@@ -78,7 +78,7 @@ void Renderer::Build()
     renderGroupExecutor->Prepare();
 }
 
-void Renderer::AddDrawState(IntrusivePtr<ResourceBindingState> state)
+void Renderer::AddDrawState(IntrusivePtr<ResourceBindingState>& state)
 {
     drawStates.push_back(state);
 }

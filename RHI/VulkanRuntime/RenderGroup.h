@@ -29,6 +29,8 @@ public:
 
     void ImportResource(std::string name, std::vector<IntrusivePtr<ResourceHandle>> resources);
 
+    virtual IntrusivePtr<Pipeline> CreatePipeline(std::string subPassName, PipelineStates pipelineStates) override;
+
     virtual void AddBindingState(IntrusivePtr<ResourceBindingState> state) override;
 
     // rebuild command buffers

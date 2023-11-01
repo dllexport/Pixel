@@ -22,12 +22,6 @@ VulkanRenderGroup::~VulkanRenderGroup()
     vkDestroyCommandPool(context->GetVkDevice(), computeCommandPool, nullptr);
 }
 
-struct SplitSubPassMeta
-{
-    std::string type;
-    std::vector<std::string> nodes;
-};
-
 void VulkanRenderGroup::Build()
 {
     for (auto &[level, passes] : this->graph->Topo().levelsRenderPassOnly)
@@ -104,7 +98,7 @@ void VulkanRenderGroup::AddBindingState(IntrusivePtr<ResourceBindingState> state
 {
     auto vgp = static_cast<VulkanGraphicsPipeline *>(state->GetPipeline().get());
     this->resourceBindingStates[vgp].push_back(static_cast<VulkanResourceBindingState *>(state.get()));
-    this->pipelineMap[vgp->name] = vgp;
+    this->pipelineMap[vgp->pipelineName] = vgp;
 }
 
 void VulkanRenderGroup::Prepare(VulkanSwapChain *swapChain)
@@ -128,6 +122,20 @@ void VulkanRenderGroup::RegisterPipeline(std::string name, IntrusivePtr<VulkanGr
 void VulkanRenderGroup::ImportResource(std::string name, std::vector<IntrusivePtr<ResourceHandle>> resources)
 {
     this->sharedResources[name] = resources;
+}
+
+IntrusivePtr<Pipeline> VulkanRenderGroup::CreatePipeline(std::string subPassName, PipelineStates pipelineStates)
+{
+    auto rp = this->GetRenderPass(subPassName);
+    if (!rp)
+    {
+        spdlog::info("subPass: {} not exist in renderPass {}", subPassName, this->GetGraph()->GetName());
+        return nullptr;
+    }
+    auto pipeline = new VulkanGraphicsPipeline(context, rp, Name(), subPassName, pipelineStates);
+    pipeline->groupName = this->Name();
+    pipeline->Build();
+    return pipeline;
 }
 
 std::vector<VkCommandBuffer> VulkanRenderGroup::GetCommandBuffer(uint32_t currentImageIndex)
@@ -386,7 +394,7 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &rende
 
             if (attachment->shared)
             {
-                texture = (VulkanTexture *)(sharedResources["::" + attachment->name][i].get());
+                texture = (VulkanTexture *)(sharedResources[attachment->name][i].get());
             }
             else if (groupScopeResources.count(attachment->name) && groupScopeResources[attachment->name].size() == swapChain->ImageSize())
             {
@@ -489,7 +497,7 @@ void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
                     if (!resourceHandleMap[bindingSet.set][bindingSet.binding].Empty())
                         continue;
 
-                    spdlog::info("resource: {} frame index {} set binding {} {} is empty", resourceName, frameIndex, bindingSet.set, bindingSet.binding);
+                    spdlog::info("resource: {} frame index {} set {} binding {} is empty", resourceName, frameIndex, bindingSet.set, bindingSet.binding);
                     // default resource (immutable) bind at frameIndex == 0
                     // per frame attachmentImages is prepared in prepareFrameBuffer
                     if (frameIndex == 0 || bindingSet.type == GraphNode::ATTACHMENT)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 #include <string>
 
@@ -114,7 +115,7 @@ struct ShaderState
 {
     std::string vertexShaderPath;
     std::string fragmentShaderPath;
-    std::string commputeShaderPath;
+    std::string computeShaderPath;
 
     bool Empty()
     {
@@ -140,5 +141,11 @@ struct PipelineStates
     RasterizationState rasterizationState;
     std::vector<ColorBlendAttachmentState> colorBlendAttachmentStates;
     DepthStencilState depthStencilState;
+    ShaderState shaderState;
+};
+
+struct ComputePipelineStates
+{
+    std::array<uint8_t, 3> localGroupSize;
     ShaderState shaderState;
 };

@@ -4,8 +4,10 @@
 
 #include <RHI/ConstantBuffer.h>
 
-#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
+
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
+#include <RHI/VulkanRuntime/ComputePipeline.h>
 
 VulkanRenderGroup::VulkanRenderGroup(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph, IntrusivePtr<VulkanAuxiliaryExecutor> auxiliaryExecutor) : RenderGroup(graph), context(context), auxiliaryExecutor(auxiliaryExecutor)
 {
@@ -31,9 +33,15 @@ void VulkanRenderGroup::Build()
             spdlog::info("{} {}", level, pass->name);
             if (pass->type == GraphNode::GRAPHIC_PASS)
             {
-                IntrusivePtr<VulkanRenderPass> grp = new VulkanRenderPass(context, graph);
+                auto grp = new VulkanRenderPass(context, graph);
                 grp->Build({pass->name});
                 this->renderPasses[pass->name] = grp;
+            }
+            else if (pass->type == GraphNode::COMPUTE_PASS)
+            {
+                auto grp = new VulkanComputePass(context, graph);
+                grp->Build(pass->name);
+                this->computePasses[pass->name] = grp;
             }
         }
     }
@@ -109,6 +117,11 @@ void VulkanRenderGroup::Prepare(VulkanSwapChain *swapChain)
         prepareFrameBuffer(renderPass, swapChain);
     }
 
+    for (auto &[name, computePass] : computePasses)
+    {
+        // prepareResources(computePass, swapChain);
+    }
+
     // make sure all descriptor set in layout is valid
     // fill dummy or internal data if slot is empty
     resolveDrawStatesDescriptors(swapChain);
@@ -133,6 +146,20 @@ IntrusivePtr<Pipeline> VulkanRenderGroup::CreatePipeline(std::string subPassName
         return nullptr;
     }
     auto pipeline = new VulkanGraphicsPipeline(context, rp, Name(), subPassName, pipelineStates);
+    pipeline->groupName = this->Name();
+    pipeline->Build();
+    return pipeline;
+}
+
+IntrusivePtr<Pipeline> VulkanRenderGroup::CreatePipeline(std::string subPassName, ComputePipelineStates pipelineStates)
+{
+    auto rp = computePasses.at(subPassName);
+    if (!rp)
+    {
+        spdlog::info("subPass: {} not exist in renderPass {}", subPassName, this->GetGraph()->GetName());
+        return nullptr;
+    }
+    auto pipeline = new VulkanComputePipeline(context, rp, Name(), subPassName, pipelineStates);
     pipeline->groupName = this->Name();
     pipeline->Build();
     return pipeline;
@@ -294,6 +321,19 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
 
         vkCmdEndRenderPass(commandBuffer);
 
+        vkEndCommandBuffer(commandBuffer);
+    }
+
+    for (auto &[name, cp] : computePasses)
+    {
+        auto computePass = static_cast<VulkanComputePass *>(cp.get());
+        auto &computePassResource = computePassResourceMap[computePass];
+        auto &commandBuffer = computePassResource.commandBuffers[imageIndex];
+
+        VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+        cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
         vkEndCommandBuffer(commandBuffer);
     }
 }
@@ -469,6 +509,87 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &rende
     }
 }
 
+void VulkanRenderGroup::prepareResources(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain)
+{
+    auto vulkanRP = static_cast<VulkanRenderPass *>(renderPass.get());
+
+    auto &renderPassResource = this->renderPassResourceMap[renderPass];
+
+    auto &buffers = renderPassResource.buffers;
+
+    renderPassResource.frameBuffers.resize(swapChain->ImageSize());
+
+    for (int i = 0; i < swapChain->ImageSize(); i++)
+    {
+
+        for (auto attachment : vulkanRP->attachmentNodes)
+        {
+            IntrusivePtr<VulkanTexture> texture;
+
+            if (attachment->shared)
+            {
+                texture = (VulkanTexture *)(sharedResources[attachment->name][i].get());
+            }
+            else if (groupScopeResources.count(attachment->name) && groupScopeResources[attachment->name].size() == swapChain->ImageSize())
+            {
+                texture = static_cast<VulkanTexture *>(groupScopeResources[attachment->name][i].get());
+            }
+            else
+            {
+                texture = CreateAttachmentResource(swapChain, attachment);
+                groupScopeResources[attachment->name].push_back(texture);
+            }
+
+            VulkanAuxiliaryExecutor::ImageLayoutConfig config = {
+                .aspectMask = VulkanRenderGroup::DeferAttachmentAspect(attachment),
+                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+                .srcStageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                .dstStageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT};
+
+            auto res = this->auxiliaryExecutor->SetImageLayout(texture, config);
+
+            // spdlog::info("setting {} {} {} {}", i, attachment->name + ":" + attachment->passName, res, fmt::ptr(texture->GetImage()));
+
+            VkImageAspectFlags imageAspect = {};
+
+            auto textureUsage = DeferAttachmentUsage(attachment);
+
+            if (textureUsage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+            {
+                imageAspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
+            }
+            if (textureUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+            {
+                imageAspect |= VK_IMAGE_ASPECT_COLOR_BIT;
+            }
+            VkImageViewCreateInfo imageView = {};
+            imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageView.format = GeneralFormatToVkFormat(attachment->format);
+            imageView.subresourceRange = {};
+            imageView.subresourceRange.aspectMask = imageAspect;
+            imageView.subresourceRange.baseMipLevel = 0;
+            imageView.subresourceRange.levelCount = 1;
+            imageView.subresourceRange.baseArrayLayer = 0;
+            imageView.subresourceRange.layerCount = 1;
+            imageView.image = texture->GetImage();
+
+            auto textureView = texture->CreateTextureView(imageView);
+
+            IntrusivePtr<VulkanSampler> sampler;
+            if (attachment->inputSubPassNames.size() != 0)
+            {
+                sampler = new VulkanSampler(context, texture);
+                sampler->Allocate({});
+            }
+
+            attachmentImages[attachment->name].push_back({texture, textureView, sampler});
+            attachmentViews.push_back(textureView->GetImageView());
+        }
+    }
+}
+
 void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
 {
     for (auto &[pipeline, drawStates] : resourceBindingStates)
@@ -500,10 +621,19 @@ void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
                     spdlog::info("resource: {} frame index {} set {} binding {} is empty", resourceName, frameIndex, bindingSet.set, bindingSet.binding);
                     // default resource (immutable) bind at frameIndex == 0
                     // per frame attachmentImages is prepared in prepareFrameBuffer
-                    if (frameIndex == 0 || bindingSet.type == GraphNode::ATTACHMENT)
+                    // per frame buffers is prepared in prepareResources
+                    if (frameIndex == 0)
                     {
-                        auto &attachmentImages = renderPassResourceMap[vulkanRP].attachmentImages[resourceName];
-                        vulkanDrawState->BindInternal(frameIndex, bindingSet.set, bindingSet.binding, attachmentImages[frameIndex].sampler);
+                        IntrusivePtr<ResourceHandle> resource;
+                        if (bindingSet.type == GraphNode::ATTACHMENT)
+                        {
+                            resource = renderPassResourceMap[vulkanRP].attachmentImages[resourceName][frameIndex].sampler;
+                        }
+                        if (bindingSet.type == GraphNode::BUFFER)
+                        {
+                            resource = renderPassResourceMap[vulkanRP].buffers[resourceName][frameIndex];
+                        }
+                        vulkanDrawState->BindInternal(frameIndex, bindingSet.set, bindingSet.binding, resource);
                     }
                     else
                     {

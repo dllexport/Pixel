@@ -17,6 +17,7 @@ public:
     virtual void Build() = 0;
 
     virtual IntrusivePtr<Pipeline> CreatePipeline(std::string subPassName, PipelineStates pipelineStates) = 0;
+    virtual IntrusivePtr<Pipeline> CreatePipeline(std::string subPassName, ComputePipelineStates pipelineStates) = 0;
 
     virtual void AddBindingState(IntrusivePtr<ResourceBindingState> state) = 0;
 

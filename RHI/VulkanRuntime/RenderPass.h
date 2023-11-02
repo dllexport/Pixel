@@ -1,6 +1,5 @@
 #pragma once
 
-#include <RHI/Pipeline.h>
 #include <RHI/VulkanRuntime/Context.h>
 #include <FrameGraph/Graph.h>
 #include <vulkan/vulkan.h>

@@ -1,18 +1,18 @@
 #pragma once
 
-#include <RHI/Pipeline.h>
 #include <RHI/PipelineStates.h>
+#include <RHI/VulkanRuntime/Pipeline.h>
 
 #include <RHI/VulkanRuntime/Context.h>
-#include <RHI/VulkanRuntime/RenderGroup.h>
+#include <RHI/VulkanRuntime/ComputePass.h>
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
 #include <RHI/VulkanRuntime/PipelineLayout.h>
 
-class VulkanComputePipeline : public Pipeline
+class VulkanComputePipeline : public VulkanPipeline
 {
 public:
-    VulkanComputePipeline(IntrusivePtr<Context> context, std::string pipelineName, std::string groupName);
+    VulkanComputePipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanComputePass> computePass, std::string pipelineName, std::string groupName, ComputePipelineStates pipelineStates);
     virtual ~VulkanComputePipeline() override;
     virtual void Build() override;
 
@@ -23,16 +23,14 @@ public:
         return pipeline;
     }
 
+    IntrusivePtr<VulkanComputePass> GetComputePass()
+    {
+        return computePass;
+    }
+
 private:
-    IntrusivePtr<Context> context;
     std::string subPassName;
 
-    std::vector<VkShaderModule> shaderModules;
-    std::unordered_map<VkShaderStageFlagBits, std::vector<char>> shaderCode;
-    std::vector<VkPipelineShaderStageCreateInfo> TranslateShaderState(ShaderState state);
-    VkShaderModule loadShader(std::string path, VkShaderStageFlagBits stage);
-
-    IntrusivePtr<VulkanPipelineLayout> pipelineLayout;
-
-    VkPipeline pipeline;
+    ComputePipelineStates pipelineStates;
+    IntrusivePtr<VulkanComputePass> computePass;
 };

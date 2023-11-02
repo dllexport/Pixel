@@ -61,7 +61,9 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
         }
         else if (subpass.type == "compute")
         {
-            node = new ComputeRenderPassGraphNode(subpass.name, GraphNode::COMPUTE_PASS);
+            auto crp = new ComputeRenderPassGraphNode(subpass.name, GraphNode::COMPUTE_PASS);
+            crp->computeShader = subpass.shaders.compute;
+            node = crp;
         }
 
         resourceNodes.push_back(node);

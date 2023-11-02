@@ -1,7 +1,5 @@
 #pragma once
 
-#include <RHI/Pipeline.h>
-#include <RHI/VulkanRuntime/ComputePipeline.h>
 #include <RHI/VulkanRuntime/Context.h>
 #include <FrameGraph/Graph.h>
 #include <FrameGraph/GraphNode.h>
@@ -14,7 +12,11 @@ public:
     VulkanComputePass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
     ~VulkanComputePass() {}
 
-    void Build() {}
+    void Build(std::string pipelineName)
+    {
+        auto cn = this->graph->GetNodeMap().at(pipelineName);
+        this->computePassNode = cn->As<ComputeRenderPassGraphNode*>();
+    }
 
 private:
     friend class VulkanComputePipeline;

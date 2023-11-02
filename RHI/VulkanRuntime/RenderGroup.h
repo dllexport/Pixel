@@ -30,6 +30,7 @@ public:
     void ImportResource(std::string name, std::vector<IntrusivePtr<ResourceHandle>> resources);
 
     virtual IntrusivePtr<Pipeline> CreatePipeline(std::string subPassName, PipelineStates pipelineStates) override;
+    virtual IntrusivePtr<Pipeline> CreatePipeline(std::string subPassName, ComputePipelineStates pipelineStates) override;
 
     virtual void AddBindingState(IntrusivePtr<ResourceBindingState> state) override;
 
@@ -58,6 +59,7 @@ private:
     {
         // attachment name -> vulkan image(1 per inflight)
         std::unordered_map<std::string, std::vector<VulkanImage>> attachmentImages;
+        std::unordered_map<std::string, std::vector<IntrusivePtr<VulkanBuffer>>> buffers;
         std::vector<VkFramebuffer> frameBuffers;
         std::vector<VkCommandBuffer> commandBuffers;
     };
@@ -97,6 +99,9 @@ private:
     //    setting layout for shared attachment if restrained by inTransition state
     // 2. create texture and framebuffer (per frame)
     void prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain);
+    
+    // allocate internal resources for descriptor resolving
+    void prepareResources(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain);
 
     // record command buffer at imageIndex
     void buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain *swapChain);

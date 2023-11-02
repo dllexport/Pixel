@@ -1,0 +1,47 @@
+{
+    "name": "ComputeRayTracing",
+    "subpasses": [
+        {
+            "name": "compute 0",
+            "type": "compute",
+            "shaders": {
+                "compute": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/compute.comp.spv"
+            },
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "ssbo_buffer",
+                    "type": "ssbo",
+                    "binding": 0
+                }
+            ]
+        },
+        {
+            "name": "present",
+            "type": "graphic",
+            "subpass_dependency": [
+                "compute 0"
+            ],
+            "shaders": {
+                "vertex": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/present.frag.spv",
+                "fragment": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/present.frag.spv"
+            },
+            "inputs": [
+                {
+                    "name": "ssbo_buffer",
+                    "type": "ssbo",
+                    "binding": 0
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "::color",
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "swapChain": true,
+                    "clear": true
+                }
+            ]
+        }
+    ]
+}

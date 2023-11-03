@@ -5,9 +5,10 @@
 #include <RHI/ConstantBuffer.h>
 #include <RHI/VulkanRuntime/Context.h>
 #include <RHI/VulkanRuntime/ContextBuilder.h>
-#include <RHI/VulkanRuntime/RenderPass.h>
-#include <RHI/VulkanRuntime/RenderPassExecutor.h>
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/RenderGroup.h>
+#include <RHI/VulkanRuntime/RenderGroupExecutor.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
+#include <RHI/VulkanRuntime/ComputePipeline.h>
 #include <RHI/VulkanRuntime/Buffer.h>
 #include <RHI/VulkanRuntime/Texture.h>
 #include <RHI/VulkanRuntime/Sampler.h>
@@ -61,19 +62,10 @@ IntrusivePtr<Context> VulkanRuntime::GetContext()
     return context;
 }
 
-IntrusivePtr<RenderPass> VulkanRuntime::CreateRenderPass(IntrusivePtr<Graph> graph)
+IntrusivePtr<RenderGroup> VulkanRuntime::CreateRenderGroup(IntrusivePtr<Graph> graph)
 {
-    return new VulkanRenderPass(context, graph);
-}
-
-IntrusivePtr<Pipeline> VulkanRuntime::CreatePipeline(IntrusivePtr<RenderPass> renderPass, std::string subPassName, PipelineStates pipelineStates)
-{
-    if (static_cast<VulkanRenderPass *>(renderPass.get())->GetSubPassIndex(subPassName) == -1)
-    {
-        spdlog::info("subPass: {} not exist in renderPass {}", subPassName, renderPass->GetGraph()->name);
-        return nullptr;
-    }
-    return new VulkanPipeline(context, renderPass, subPassName, pipelineStates);
+    auto ae = new VulkanAuxiliaryExecutor(context);
+    return new VulkanRenderGroup(context, graph, ae);
 }
 
 IntrusivePtr<Buffer> VulkanRuntime::CreateBuffer(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size)
@@ -109,9 +101,9 @@ IntrusivePtr<Sampler> VulkanRuntime::CreateSampler(IntrusivePtr<Texture> texture
     return sampler;
 }
 
-IntrusivePtr<RenderPassExecutor> VulkanRuntime::CreateRenderPassExecutor()
+IntrusivePtr<RenderGroupExecutor> VulkanRuntime::CreateRenderGroupExecutor()
 {
-    auto rpe = new VulkanRenderPassExecutor(context);
+    auto rpe = new VulkanGroupExecutor(context);
     return rpe;
 }
 
@@ -120,14 +112,20 @@ IntrusivePtr<ResourceBindingState> VulkanRuntime::CreateResourceBindingState(Int
     return new VulkanResourceBindingState(context, pipeline);
 }
 
-IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle, uint32_t width, uint32_t height)
+IntrusivePtr<SwapChain> VulkanRuntime::CreateSwapChain(void *handle, uint32_t width, uint32_t height, IntrusivePtr<SwapChain> oldSwapChain)
 {
-    return SwapChainBuilder(context)
-        .SetExtent(width, height)
-        .SetHandle(handle)
-        .SetPreferPresentMode(VK_PRESENT_MODE_FIFO_KHR)
-        .SetPreferFormat({VK_FORMAT_B8G8R8A8_UNORM})
-        .Build();
+    auto osc = static_cast<VulkanSwapChain *>(oldSwapChain.get());
+    auto builder = SwapChainBuilder(context)
+                       .SetExtent(width, height)
+                       .SetHandle(handle)
+                       .SetPreferPresentMode(VK_PRESENT_MODE_FIFO_KHR)
+                       .SetPreferFormat({VK_FORMAT_B8G8R8A8_UNORM});
+    if (osc)
+    {
+        builder.SetSurface(osc->GetSurface())
+            .SetOldSwapChain(osc);
+    }
+    return builder.Build();
 }
 
 IntrusivePtr<AuxiliaryExecutor> VulkanRuntime::CreateAuxiliaryExecutor()

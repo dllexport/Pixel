@@ -5,7 +5,7 @@
 #include <RHI/ResourceHandle.h>
 
 #include <RHI/VulkanRuntime/Context.h>
-#include <RHI/VulkanRuntime/Pipeline.h>
+#include <RHI/VulkanRuntime/GraphicsPipeline.h>
 
 #include <vulkan/vulkan.h>
 
@@ -33,6 +33,7 @@ public:
     // bind internal resources
     void Bind(uint32_t frameIndex, uint32_t set, uint32_t binding, IntrusivePtr<ResourceHandle> resource, bool internal);
 
+    // copy resource at frame 0 to targetFrameIndex
     void Copy(uint32_t targetFrameIndex, uint32_t set, uint32_t binding);
 
     // clear all internal resource in resourceMap

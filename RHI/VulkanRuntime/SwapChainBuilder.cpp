@@ -44,6 +44,12 @@ SwapChainBuilder &SwapChainBuilder::SetBufferCount(uint32_t count)
     return *this;
 }
 
+SwapChainBuilder &SwapChainBuilder::SetSurface(IntrusivePtr<Surface> surface)
+{
+    this->surface = surface;
+    return *this;
+}
+
 SwapChainBuilder &SwapChainBuilder::SetOldSwapChain(IntrusivePtr<VulkanSwapChain> oldSwapChain)
 {
     this->oldSwapChain = oldSwapChain;
@@ -156,27 +162,12 @@ void SwapChainBuilder::BuildSwapChain()
     images.resize(imageCount);
     vkGetSwapchainImagesKHR(context->GetVkDevice(), swapChain, &imageCount, images.data());
     newSwapChain->swapChainTextures.resize(imageCount);
-    newSwapChain->swapChainTextureViews.resize(imageCount);
     for (int i = 0; i < imageCount; i++)
     {
         IntrusivePtr<VulkanTexture> texture = new VulkanTexture(context);
         texture->Assign(images[i], newSwapChain->format.format);
-        VkImageViewCreateInfo ci = {};
-        ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        ci.format = newSwapChain->format.format;
-        ci.subresourceRange = {};
-        ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        ci.subresourceRange.baseMipLevel = 0;
-        ci.subresourceRange.levelCount = 1;
-        ci.subresourceRange.baseArrayLayer = 0;
-        ci.subresourceRange.layerCount = 1;
-        ci.image = texture->GetImage();
-
-        auto textureView = texture->CreateTextureView(ci);
-
+        texture->SetSwapChain();
         newSwapChain->swapChainTextures[i] = texture;
-        newSwapChain->swapChainTextureViews[i] = textureView;
     }
 }
 
@@ -212,7 +203,9 @@ void SwapChainBuilder::ResolveDepthStencilFormat()
 IntrusivePtr<VulkanSwapChain> SwapChainBuilder::Build()
 {
     this->newSwapChain = new VulkanSwapChain(context);
-    BuildSurface();
+    // build surface if surface is not provided
+    if (!surface)
+        BuildSurface();
     BuildSwapChainProperties();
     BuildSwapChain();
     ResolveDepthStencilFormat();

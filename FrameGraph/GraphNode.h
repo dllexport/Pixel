@@ -12,8 +12,6 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
 {
     enum Type
     {
-        REFERENCE,
-
         GRAPHIC_PASS,
         COMPUTE_PASS,
 
@@ -32,8 +30,8 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
     std::vector<IntrusivePtr<GraphNode>> TraceAllOutputs(Type type, uint32_t traceLevel);
 
     std::string name;
+    std::string passName;
     Type type;
-    uint16_t inputDegree = 0;
 
     friend class Graph;
     std::vector<IntrusivePtr<GraphNode>> inputs;
@@ -41,14 +39,25 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
 
     // subpasses use it as input (directly)
     std::unordered_set<std::string> inputSubPassNames;
+
+    std::string GlobalName()
+    {
+        return passName + "::" + name;
+    }
+
+    template <class T>
+    T As()
+    {
+        return static_cast<T>(this);
+    }
 };
 
 struct ResourceNode : public GraphNode
 {
     explicit ResourceNode(std::string name, Type type) : GraphNode(name, type) {}
+    bool shared = false;
 
-    uint32_t set = 0;
-    uint32_t binding = UINT32_MAX;
+    uint8_t binding;
 };
 
 struct AttachmentGraphNode : public ResourceNode
@@ -57,25 +66,23 @@ struct AttachmentGraphNode : public ResourceNode
     TextureFormat format = TextureFormat::FORMAT_NONE;
     bool depthStencil = false;
     bool swapChain = false;
-    bool shared = false;
     bool color = false;
     bool clear = false;
+
+    // TODO, resolve global state, check if resource is used as input
+    bool input = true;
 };
 
 struct DescriptorGraphNode : public ResourceNode
 {
     DescriptorGraphNode(std::string name, Type type) : ResourceNode(name, type) {}
-    uint32_t set = 0;
-    uint32_t binding = UINT32_MAX;
     bool sampler = false;
+    uint8_t set;
 };
 
-struct GraphicRenderPassGraphNode : public GraphNode
+struct RenderPassGraphNode : public GraphNode
 {
-    GraphicRenderPassGraphNode(std::string name, Type type) : GraphNode(name, type) {}
-    std::string vertexShader;
-    std::string framgmentShader;
-
+    using GraphNode::GraphNode;
     // node -> (set, binding)
     struct ResourceBindingPack
     {
@@ -86,7 +93,15 @@ struct GraphicRenderPassGraphNode : public GraphNode
     std::unordered_map<std::string, ResourceBindingPack> bindingSets;
 };
 
-struct ComputeRenderPassGraphNode : public GraphNode
+struct GraphicRenderPassGraphNode : public RenderPassGraphNode
 {
-    ComputeRenderPassGraphNode(std::string name, Type type) : GraphNode(name, type) {}
+    GraphicRenderPassGraphNode(std::string name, Type type) : RenderPassGraphNode(name, type) {}
+    std::string vertexShader;
+    std::string framgmentShader;
+};
+
+struct ComputeRenderPassGraphNode : public RenderPassGraphNode
+{
+    ComputeRenderPassGraphNode(std::string name, Type type) : RenderPassGraphNode(name, type) {}
+    std::string computeShader;
 };

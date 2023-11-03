@@ -9,6 +9,7 @@
 #include <RHI/Texture.h>
 #include <RHI/MutableBuffer.h>
 #include <RHI/RHIRuntime.h>
+#include <RHI/RenderGroup.h>
 
 class ImGuiContext;
 class ImguiOverlay : public IntrusiveCounter<ImguiOverlay>

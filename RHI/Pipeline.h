@@ -1,19 +1,21 @@
 #pragma once
 
-#include <Core/IntrusivePtr.h>
+#include <string>
 
-#include <RHI/PipelineStates.h>
-#include <RHI/RenderPass.h>
+#include <Core/IntrusivePtr.h>
 
 class Pipeline : public IntrusiveCounter<Pipeline>
 {
 public:
-    Pipeline(PipelineStates pipelineStates);
+    Pipeline(std::string groupName, std::string pipelineName);
     virtual ~Pipeline() = default;
     virtual void Build() = 0;
-    IntrusivePtr<RenderPass> GetRenderPass();
 
-protected:
-    PipelineStates pipelineStates;
-    IntrusivePtr<RenderPass> renderPass;
+    std::string GetPipelineName()
+    {
+        return pipelineName;
+    }
+
+    std::string pipelineName;
+    std::string groupName;
 };

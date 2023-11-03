@@ -22,11 +22,6 @@ public:
         return this->swapChainTextures.size();
     }
 
-    std::vector<IntrusivePtr<VulkanTextureView>> &GetTextureViews()
-    {
-        return swapChainTextureViews;
-    }
-
     std::vector<IntrusivePtr<VulkanTexture>> &GetTextures()
     {
         return swapChainTextures;
@@ -42,9 +37,14 @@ public:
         return renderFinishedSemaphores;
     }
 
+    IntrusivePtr<Surface> GetSurface()
+    {
+        return surface;
+    }
+
 private:
     friend class SwapChainBuilder;
-    friend class VulkanRenderPassExecutor;
+    friend class VulkanRenderGroup;
     IntrusivePtr<Context> context;
 
     VkSurfaceCapabilitiesKHR capabilities;
@@ -56,7 +56,6 @@ private:
     IntrusivePtr<Surface> surface;
     VkSwapchainKHR swapChain;
     std::vector<IntrusivePtr<VulkanTexture>> swapChainTextures;
-    std::vector<IntrusivePtr<VulkanTextureView>> swapChainTextureViews;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;

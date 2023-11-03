@@ -41,15 +41,15 @@ enum class PinKind
 
 enum class NodeType
 {
-    Blueprint,
     Simple,
-    Tree,
-    Comment,
-    Houdini,
     PipelineNode,
     ShaderNode,
     AttachmentTableNode,
-    AttachmentNode
+    AttachmentNode,
+    AttachmentReferenceNode,
+    DescriptorTableNode,
+    MutableBuffer,
+    ConstBuffer
 };
 
 struct Node;
@@ -64,7 +64,7 @@ struct Pin : public IntrusiveCounter<Pin>
 
     std::function<void()> auxCallback;
 
-    Pin(int id, const char *name, PinType type) : ID(id), Node(nullptr), Name(name), Type(type), Kind(PinKind::Input)
+    Pin(int id, std::string name, PinType type) : ID(id), Node(nullptr), Name(name), Type(type), Kind(PinKind::Input)
     {
     }
 };
@@ -103,7 +103,7 @@ struct Node : public IntrusiveCounter<Node>
     std::string State;
     std::string SavedState;
 
-    Node(const char *name, ImColor color = ImColor(255, 255, 255)) : ID(GetNextId()), Name(name), Color(color), Type(NodeType::Blueprint), Size(0, 0)
+    Node(std::string name, ImColor color = ImColor(255, 255, 255)) : ID(GetNextId()), Name(name), Color(color), Type(NodeType::Simple), Size(0, 0)
     {
     }
 
@@ -142,6 +142,8 @@ struct Node : public IntrusiveCounter<Node>
 
     virtual void Draw(DrawContext &dc);
     virtual void DrawHeader(DrawContext &dc, util::BlueprintNodeBuilder &builder, Node *node);
+    virtual void DrawInputs(DrawContext &dc, util::BlueprintNodeBuilder &builder, Node *node);
+    virtual void DrawOutputs(DrawContext &dc, util::BlueprintNodeBuilder &builder, Node *node);
 
     virtual bool IsLinkValid(DrawContext &dc, Pin *from, Pin *to)
     {

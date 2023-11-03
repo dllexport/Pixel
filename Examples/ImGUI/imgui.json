@@ -1,22 +1,30 @@
 {
-    "name": "singlePass",
+    "name": "imguiPass",
+    "dependencies": [
+        "any"
+    ],
     "subpasses": [
         {
             "name": "imgui",
             "type": "graphic",
             "shaders": {
-                "vertex": "/Users/mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.vert.spv",
-                "fragment": "/Users/mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.frag.spv"
+                "vertex": "ui.vert.spv",
+                "fragment": "ui.frag.spv"
             },
             "inputs": [
                 {
                     "name": "imguiUBO",
                     "type": "buffer"
+                },
+                {
+                    "name": "fontSampler",
+                    "type": "sampler",
+                    "binding": 0
                 }
             ],
             "outputs": [
                 {
-                    "name": "color",
+                    "name": "::color",
                     "type": "attachment",
                     "format": "FORMAT_B8G8R8A8_UNORM",
                     "swapChain": true,

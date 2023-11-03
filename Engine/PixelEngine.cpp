@@ -3,7 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <RHI/RenderPass.h>
+#include <RHI/RenderGroup.h>
 #include <RHI/Pipeline.h>
 
 PixelEngine::PixelEngine()
@@ -18,36 +18,19 @@ PixelEngine::~PixelEngine()
     assert(rhiRuntime->use_count() == 1);
 }
 
-IntrusivePtr<RenderPass> PixelEngine::RegisterRenderPass(IntrusivePtr<Graph> graph)
+IntrusivePtr<RenderGroup> PixelEngine::RegisterRenderGroup(IntrusivePtr<Graph> graph)
 {
-    if (renderPassTemplates.count(graph->name))
+    if (renderGroupTemplates.count(graph->GetName()))
     {
-        spdlog::info("renderPass {} already exist", graph->name);
+        spdlog::info("renderPass {} already exist", graph->GetName());
         return nullptr;
     }
 
-    auto renderpass = rhiRuntime->CreateRenderPass(graph);
-    renderpass->Build();
-    this->renderPassTemplates[renderpass->Name()] = renderpass;
+    auto renderGroup = rhiRuntime->CreateRenderGroup(graph);
+    renderGroup->Build();
+    this->renderGroupTemplates[renderGroup->Name()] = renderGroup;
 
-    return renderpass;
-}
-
-IntrusivePtr<Pipeline> PixelEngine::RegisterPipeline(std::string renderPassName, std::string subPassName, PipelineStates pipelineStates)
-{
-    if (!renderPassTemplates.count(renderPassName))
-    {
-        spdlog::info("renderPass {} does no exist", renderPassName);
-        return nullptr;
-    }
-    auto renderPass = renderPassTemplates[renderPassName];
-    auto &pipelineTemplate = this->pipelineTemplates[renderPass];
-
-    auto pipeline = rhiRuntime->CreatePipeline(renderPass, subPassName, pipelineStates);
-    pipeline->Build();
-    pipelineTemplate[subPassName] = pipeline;
-
-    return pipeline;
+    return renderGroup;
 }
 
 IntrusivePtr<RHIRuntime> &PixelEngine::GetRHIRuntime()

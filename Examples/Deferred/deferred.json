@@ -11,43 +11,51 @@
             "inputs": [
                 {
                     "name": "ubo",
-                    "type": "buffer"
+                    "type": "buffer",
+                    "binding": 0
                 },
                 {
                     "name": "gbufferUBO",
-                    "type": "buffer"
+                    "type": "buffer",
+                    "binding": 1
                 },
                 {
                     "name": "samplerColor",
-                    "type": "sampler"
+                    "type": "sampler",
+                    "binding": 2
                 },
                 {
                     "name": "samplerNormalMap",
-                    "type": "sampler"
+                    "type": "sampler",
+                    "binding": 3
                 }
             ],
             "outputs": [
                 {
                     "name": "position",
                     "type": "attachment",
-                    "format": "FORMAT_B8G8R8A8_UNORM"
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "clear": true
                 },
                 {
                     "name": "normal",
                     "type": "attachment",
-                    "format": "FORMAT_B8G8R8A8_UNORM"
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "clear": true
                 },
                 {
                     "name": "albedo",
                     "type": "attachment",
-                    "format": "FORMAT_B8G8R8A8_UNORM"
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "clear": true
                 },
                 {
                     "name": "depth",
                     "type": "attachment",
                     "format": "FORMAT_D16_UNORM",
                     "depthStencil": true,
-                    "shared": true
+                    "shared": true,
+                    "clear": true
                 }
             ]
         },
@@ -64,47 +72,31 @@
             "inputs": [
                 {
                     "name": "lightUbo",
-                    "type": "buffer"
+                    "type": "buffer",
+                    "binding": 0
                 },
                 {
                     "name": "position",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "binding": 1
                 },
                 {
                     "name": "normal",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "binding": 2
                 },
                 {
                     "name": "albedo",
-                    "type": "reference"
+                    "type": "attachment",
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "binding": 3
                 }
             ],
             "outputs": [
                 {
-                    "name": "color",
-                    "type": "reference"
-                }
-            ]
-        },
-        {
-            "name": "imgui",
-            "type": "graphic",
-            "subpass_dependency": [
-                "compose"
-            ],
-            "shaders": {
-                "vertex": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.vert.spv",
-                "fragment": "C:/Users/Mario/Documents/GitHub/Vulkan/data/shaders/glsl/imgui/ui.frag.spv"
-            },
-            "inputs": [
-                {
-                    "name": "imguiUBO",
-                    "type": "buffer"
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "color",
+                    "name": "::color",
                     "type": "attachment",
                     "format": "FORMAT_B8G8R8A8_UNORM",
                     "swapChain": true

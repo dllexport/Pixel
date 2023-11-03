@@ -170,6 +170,7 @@ void CreateComposeDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer,
 int main()
 {
     spdlog::set_level(spdlog::level::debug);
+    IntrusivePtr<PixelEngine> engine = new PixelEngine;
 
     auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/Deferred/deferred.json");
 
@@ -178,10 +179,9 @@ int main()
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
         .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
 
-    IntrusivePtr<PixelEngine> engine = new PixelEngine;
-    auto renderPass = engine->RegisterRenderPass(graph);
-    auto colorPipeline = engine->RegisterPipeline("singlePass", "deferred", colorPipelineStates);
-    auto composePipeline = engine->RegisterPipeline("singlePass", "compose", colorPipelineStates);
+    auto deferredRenderGroup = engine->RegisterRenderGroup(graph);
+    auto colorPipeline = deferredRenderGroup->CreatePipeline("deferred", colorPipelineStates);
+    auto composePipeline = deferredRenderGroup->CreatePipeline("compose", colorPipelineStates);
 
     auto& rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();

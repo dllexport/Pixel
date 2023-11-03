@@ -1,10 +1,5 @@
 #include <RHI/Pipeline.h>
 
-Pipeline::Pipeline(PipelineStates pipelineStates) : pipelineStates(pipelineStates)
+Pipeline::Pipeline(std::string groupName, std::string pipelineName) : groupName(groupName), pipelineName(pipelineName)
 {
-}
-
-IntrusivePtr<RenderPass> Pipeline::GetRenderPass()
-{
-    return renderPass;
 }

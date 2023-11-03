@@ -9,7 +9,7 @@
 #include <RHI/RuntimeEntry.h>
 #include <RHI/AuxiliaryExecutor.h>
 
-class RenderPass;
+class RenderGroup;
 class Pipeline;
 class Renderer;
 class PixelEngine : public IntrusiveCounter<PixelEngine>
@@ -17,8 +17,7 @@ class PixelEngine : public IntrusiveCounter<PixelEngine>
 public:
     PixelEngine();
     ~PixelEngine();
-    IntrusivePtr<RenderPass> RegisterRenderPass(IntrusivePtr<Graph> graph);
-    IntrusivePtr<Pipeline> RegisterPipeline(std::string renderPassName, std::string subPassName, PipelineStates pipelineStates);
+    IntrusivePtr<RenderGroup> RegisterRenderGroup(IntrusivePtr<Graph> graph);
 
     IntrusivePtr<Renderer> CreateRenderer();
 
@@ -26,19 +25,13 @@ public:
 
     void Frame();
 
-    std::unordered_map<std::string, IntrusivePtr<Pipeline>> GetPipelines(IntrusivePtr<RenderPass> renderPass)
-    {
-        return pipelineTemplates[renderPass];
-    }
-
     IntrusivePtr<AuxiliaryExecutor> GetAuxiliaryExecutor()
     {
         return auxExecutor;
     }
 
 private:
-    std::unordered_map<std::string, IntrusivePtr<RenderPass>> renderPassTemplates;
-    std::unordered_map<IntrusivePtr<RenderPass>, std::unordered_map<std::string, IntrusivePtr<Pipeline>>> pipelineTemplates;
+    std::unordered_map<std::string, IntrusivePtr<RenderGroup>> renderGroupTemplates;
     IntrusivePtr<RHIRuntime> rhiRuntime;
 
     friend class Renderer;

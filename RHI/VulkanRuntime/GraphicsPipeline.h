@@ -5,14 +5,14 @@
 #include <RHI/VulkanRuntime/Pipeline.h>
 
 #include <RHI/VulkanRuntime/Context.h>
-#include <RHI/VulkanRuntime/RenderPass.h>
+#include <RHI/VulkanRuntime/GraphicPass.h>
 #include <RHI/VulkanRuntime/SPIVReflection.h>
 
 class VulkanPipelineLayout;
 class VulkanGraphicsPipeline : public VulkanPipeline
 {
 public:
-    VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string groupName, std::string pipelineName, PipelineStates pipelineStates);
+    VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanGraphicPass> renderPass, std::string groupName, std::string pipelineName, PipelineStates pipelineStates);
     virtual ~VulkanGraphicsPipeline() override;
     virtual void Build() override;
 
@@ -20,10 +20,10 @@ public:
 
     VkPipeline GetPipeline();
 
-    IntrusivePtr<VulkanRenderPass> GetRenderPass();
+    IntrusivePtr<VulkanGraphicPass> GetRenderPass();
 
 private:
-    IntrusivePtr<VulkanRenderPass> renderPass;
+    IntrusivePtr<VulkanGraphicPass> renderPass;
 
     PipelineStates pipelineStates;
 };

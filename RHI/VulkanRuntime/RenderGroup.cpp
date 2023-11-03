@@ -33,7 +33,7 @@ void VulkanRenderGroup::Build()
             spdlog::info("{} {}", level, pass->name);
             if (pass->type == GraphNode::GRAPHIC_PASS)
             {
-                auto grp = new VulkanRenderPass(context, graph);
+                auto grp = new VulkanGraphicPass(context, graph);
                 grp->Build({pass->name});
                 this->renderPasses[pass->name] = grp;
             }
@@ -176,7 +176,7 @@ std::vector<VkCommandBuffer> VulkanRenderGroup::GetCommandBuffer(uint32_t curren
     return result;
 }
 
-IntrusivePtr<VulkanRenderPass> VulkanRenderGroup::GetRenderPass(std::string name)
+IntrusivePtr<VulkanGraphicPass> VulkanRenderGroup::GetRenderPass(std::string name)
 {
     return renderPasses[name];
 }
@@ -205,7 +205,7 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
     // renderPasses may contain more than 1 subpass
     for (auto &[passName, rp] : renderPasses)
     {
-        auto renderPass = static_cast<VulkanRenderPass *>(rp.get());
+        auto renderPass = static_cast<VulkanGraphicPass *>(rp.get());
         auto &renderPassResource = renderPassResourceMap[renderPass];
         auto &commandBuffer = renderPassResource.commandBuffers[imageIndex];
 
@@ -377,7 +377,7 @@ VkImageAspectFlags VulkanRenderGroup::DeferAttachmentAspect(IntrusivePtr<Attachm
     return imageAspect;
 }
 
-void VulkanRenderGroup::prepareCommandBuffer(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain)
+void VulkanRenderGroup::prepareCommandBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
 {
     auto scTextureSize = swapChain->GetTextures().size();
     {
@@ -414,9 +414,9 @@ IntrusivePtr<VulkanTexture> VulkanRenderGroup::CreateAttachmentResource(VulkanSw
     return texture;
 }
 
-void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain)
+void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
 {
-    auto vulkanRP = static_cast<VulkanRenderPass *>(renderPass.get());
+    auto vulkanRP = static_cast<VulkanGraphicPass *>(renderPass.get());
 
     auto &renderPassResource = this->renderPassResourceMap[renderPass];
 
@@ -509,9 +509,9 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &rende
     }
 }
 
-void VulkanRenderGroup::prepareResources(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain)
+void VulkanRenderGroup::prepareResources(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
 {
-    auto vulkanRP = static_cast<VulkanRenderPass *>(renderPass.get());
+    auto vulkanRP = static_cast<VulkanGraphicPass *>(renderPass.get());
 
     auto &renderPassResource = this->renderPassResourceMap[renderPass];
 
@@ -522,71 +522,7 @@ void VulkanRenderGroup::prepareResources(IntrusivePtr<VulkanRenderPass> &renderP
     for (int i = 0; i < swapChain->ImageSize(); i++)
     {
 
-        for (auto attachment : vulkanRP->attachmentNodes)
-        {
-            IntrusivePtr<VulkanTexture> texture;
-
-            if (attachment->shared)
-            {
-                texture = (VulkanTexture *)(sharedResources[attachment->name][i].get());
-            }
-            else if (groupScopeResources.count(attachment->name) && groupScopeResources[attachment->name].size() == swapChain->ImageSize())
-            {
-                texture = static_cast<VulkanTexture *>(groupScopeResources[attachment->name][i].get());
-            }
-            else
-            {
-                texture = CreateAttachmentResource(swapChain, attachment);
-                groupScopeResources[attachment->name].push_back(texture);
-            }
-
-            VulkanAuxiliaryExecutor::ImageLayoutConfig config = {
-                .aspectMask = VulkanRenderGroup::DeferAttachmentAspect(attachment),
-                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-                .srcStageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                .dstStageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT};
-
-            auto res = this->auxiliaryExecutor->SetImageLayout(texture, config);
-
-            // spdlog::info("setting {} {} {} {}", i, attachment->name + ":" + attachment->passName, res, fmt::ptr(texture->GetImage()));
-
-            VkImageAspectFlags imageAspect = {};
-
-            auto textureUsage = DeferAttachmentUsage(attachment);
-
-            if (textureUsage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-            {
-                imageAspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
-            }
-            if (textureUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            {
-                imageAspect |= VK_IMAGE_ASPECT_COLOR_BIT;
-            }
-            VkImageViewCreateInfo imageView = {};
-            imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            imageView.format = GeneralFormatToVkFormat(attachment->format);
-            imageView.subresourceRange = {};
-            imageView.subresourceRange.aspectMask = imageAspect;
-            imageView.subresourceRange.baseMipLevel = 0;
-            imageView.subresourceRange.levelCount = 1;
-            imageView.subresourceRange.baseArrayLayer = 0;
-            imageView.subresourceRange.layerCount = 1;
-            imageView.image = texture->GetImage();
-
-            auto textureView = texture->CreateTextureView(imageView);
-
-            IntrusivePtr<VulkanSampler> sampler;
-            if (attachment->inputSubPassNames.size() != 0)
-            {
-                sampler = new VulkanSampler(context, texture);
-                sampler->Allocate({});
-            }
-
-            attachmentImages[attachment->name].push_back({texture, textureView, sampler});
-            attachmentViews.push_back(textureView->GetImageView());
-        }
+        
     }
 }
 

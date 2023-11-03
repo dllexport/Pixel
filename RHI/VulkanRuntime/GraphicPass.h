@@ -4,11 +4,11 @@
 #include <FrameGraph/Graph.h>
 #include <vulkan/vulkan.h>
 
-class VulkanRenderPass : public IntrusiveCounter<VulkanRenderPass>
+class VulkanGraphicPass : public IntrusiveCounter<VulkanGraphicPass>
 {
 public:
-    VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
-    ~VulkanRenderPass();
+    VulkanGraphicPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
+    ~VulkanGraphicPass();
 
     void Build(std::vector<std::string> subPasses);
 

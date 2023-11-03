@@ -1,4 +1,4 @@
-#include <RHI/VulkanRuntime/RenderPass.h>
+#include <RHI/VulkanRuntime/GraphicPass.h>
 #include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/Texture.h>
 
@@ -7,21 +7,21 @@
 #include <optional>
 #include <iterator>
 
-VulkanRenderPass::VulkanRenderPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : context(context), graph(graph)
+VulkanGraphicPass::VulkanGraphicPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : context(context), graph(graph)
 {
 }
 
-VulkanRenderPass::~VulkanRenderPass()
+VulkanGraphicPass::~VulkanGraphicPass()
 {
     vkDestroyRenderPass(context->GetVkDevice(), renderPass, nullptr);
 }
 
-VkRenderPass VulkanRenderPass::GetRenderPass()
+VkRenderPass VulkanGraphicPass::GetRenderPass()
 {
     return renderPass;
 }
 
-int32_t VulkanRenderPass::GetSubPassIndex(std::string subPassName)
+int32_t VulkanGraphicPass::GetSubPassIndex(std::string subPassName)
 {
     for (int32_t i = 0; i < graphicRenderPasses.size(); i++)
     {
@@ -33,7 +33,7 @@ int32_t VulkanRenderPass::GetSubPassIndex(std::string subPassName)
     return -1;
 }
 
-VulkanRenderPass::SubPassAttachmentReferences VulkanRenderPass::GetSubPassReference(std::string name)
+VulkanGraphicPass::SubPassAttachmentReferences VulkanGraphicPass::GetSubPassReference(std::string name)
 {
     if (attachmentReferencesMap.count(name))
     {
@@ -42,17 +42,17 @@ VulkanRenderPass::SubPassAttachmentReferences VulkanRenderPass::GetSubPassRefere
     return {};
 }
 
-IntrusivePtr<GraphicRenderPassGraphNode> VulkanRenderPass::GetGraphicRenderPassGraphNode(uint32_t subPassIndex)
+IntrusivePtr<GraphicRenderPassGraphNode> VulkanGraphicPass::GetGraphicRenderPassGraphNode(uint32_t subPassIndex)
 {
     return graphicRenderPasses[subPassIndex];
 }
 
-IntrusivePtr<GraphicRenderPassGraphNode> VulkanRenderPass::GetGraphicRenderPassGraphNode(std::string subPassName)
+IntrusivePtr<GraphicRenderPassGraphNode> VulkanGraphicPass::GetGraphicRenderPassGraphNode(std::string subPassName)
 {
     return graphicRenderPasses[GetSubPassIndex(subPassName)];
 }
 
-std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t toIndex, VulkanRenderPass::SubPassAttachmentReferences from, VulkanRenderPass::SubPassAttachmentReferences to)
+std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t toIndex, VulkanGraphicPass::SubPassAttachmentReferences from, VulkanGraphicPass::SubPassAttachmentReferences to)
 {
     std::unordered_set<uint32_t> attachmentIndices;
     if (!from.depthRef.empty())
@@ -130,7 +130,7 @@ std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t 
     return dependency;
 }
 
-void VulkanRenderPass::Build(std::vector<std::string> subPasses)
+void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
 {
     // todo: handle multisubpassed
     std::vector<VkAttachmentDescription> attachmentsDescriptions;

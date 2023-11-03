@@ -6,7 +6,7 @@
 #include <RHI/VulkanRuntime/Texture.h>
 #include <RHI/VulkanRuntime/TextureView.h>
 #include <RHI/VulkanRuntime/Image.h>
-#include <RHI/VulkanRuntime/RenderPass.h>
+#include <RHI/VulkanRuntime/GraphicPass.h>
 #include <RHI/VulkanRuntime/GraphicsPipeline.h>
 #include <RHI/VulkanRuntime/RenderGroup.h>
 #include <RHI/VulkanRuntime/AuxiliaryExecutor.h>
@@ -37,7 +37,7 @@ private:
     VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> renderCommandBuffers;
 
-    std::unordered_set<IntrusivePtr<VulkanRenderPass>> renderPasses;
+    std::unordered_set<IntrusivePtr<VulkanGraphicPass>> renderPasses;
 
     std::unordered_map<std::string, IntrusivePtr<VulkanRenderGroup>> renderGroups;
 

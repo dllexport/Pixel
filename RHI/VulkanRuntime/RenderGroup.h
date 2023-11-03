@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include <RHI/RenderGroup.h>
-#include <RHI/VulkanRuntime/RenderPass.h>
+#include <RHI/VulkanRuntime/GraphicPass.h>
 #include <RHI/VulkanRuntime/ComputePass.h>
 #include <RHI/VulkanRuntime/Image.h>
 #include <RHI/VulkanRuntime/SwapChain.h>
@@ -41,7 +41,7 @@ public:
 
     std::vector<VkCommandBuffer> GetCommandBuffer(uint32_t currentImageIndex);
 
-    IntrusivePtr<VulkanRenderPass> GetRenderPass(std::string name);
+    IntrusivePtr<VulkanGraphicPass> GetRenderPass(std::string name);
 
     IntrusivePtr<VulkanTexture> CreateAttachmentResource(VulkanSwapChain *swapChain, IntrusivePtr<AttachmentGraphNode> attachmentNode);
 
@@ -52,7 +52,7 @@ private:
     IntrusivePtr<Context> context;
     IntrusivePtr<VulkanAuxiliaryExecutor> auxiliaryExecutor;
 
-    std::unordered_map<std::string, IntrusivePtr<VulkanRenderPass>> renderPasses;
+    std::unordered_map<std::string, IntrusivePtr<VulkanGraphicPass>> renderPasses;
     std::unordered_map<std::string, IntrusivePtr<VulkanComputePass>> computePasses;
 
     struct RenderPassFrameResource
@@ -63,7 +63,7 @@ private:
         std::vector<VkFramebuffer> frameBuffers;
         std::vector<VkCommandBuffer> commandBuffers;
     };
-    std::unordered_map<IntrusivePtr<VulkanRenderPass>, RenderPassFrameResource> renderPassResourceMap;
+    std::unordered_map<IntrusivePtr<VulkanGraphicPass>, RenderPassFrameResource> renderPassResourceMap;
 
     struct ComputePassFrameResource
     {
@@ -93,15 +93,15 @@ private:
 
     // create VkCommandBuffer and VkFramebuffer
     // 1 per frame
-    void prepareCommandBuffer(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain);
+    void prepareCommandBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
     
     // 1. layout transition from UNDEFINED to GENERAL for each attachment
     //    setting layout for shared attachment if restrained by inTransition state
     // 2. create texture and framebuffer (per frame)
-    void prepareFrameBuffer(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain);
+    void prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
     
     // allocate internal resources for descriptor resolving
-    void prepareResources(IntrusivePtr<VulkanRenderPass> &renderPass, VulkanSwapChain *swapChain);
+    void prepareResources(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
 
     // record command buffer at imageIndex
     void buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain *swapChain);

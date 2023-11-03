@@ -213,7 +213,7 @@ VkPipeline VulkanGraphicsPipeline::GetPipeline()
     return pipeline;
 }
 
-IntrusivePtr<VulkanRenderPass> VulkanGraphicsPipeline::GetRenderPass()
+IntrusivePtr<VulkanGraphicPass> VulkanGraphicsPipeline::GetRenderPass()
 {
     return renderPass;
 }
@@ -229,7 +229,7 @@ VkPipelineVertexInputStateCreateInfo TranslateInputVertexState(SPIVReflection::I
     return vertexInputStateCI;
 }
 
-VulkanGraphicsPipeline::VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanRenderPass> renderPass, std::string groupName, std::string pipelineName, PipelineStates pipelineStates) : VulkanPipeline(context, groupName, pipelineName), pipelineStates(pipelineStates)
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanGraphicPass> renderPass, std::string groupName, std::string pipelineName, PipelineStates pipelineStates) : VulkanPipeline(context, groupName, pipelineName), pipelineStates(pipelineStates)
 {
     this->renderPass = renderPass;
 }
@@ -256,7 +256,7 @@ void VulkanGraphicsPipeline::Build()
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = TranslateRasterizationState(pipelineStates.rasterizationState);
 
     // apply default blending state
-    auto vulkanRenderPass = static_cast<VulkanRenderPass *>(renderPass.get());
+    auto vulkanRenderPass = static_cast<VulkanGraphicPass *>(renderPass.get());
     auto colorRefsSize = vulkanRenderPass->attachmentReferencesMap[this->pipelineName].colorRefs.size();
     auto colorBlendAttachmentStates = TranslateColorBlendAttachmentState(pipelineStates.colorBlendAttachmentStates, colorRefsSize);
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = BuildColorBlendAttachmentState(colorBlendAttachmentStates);

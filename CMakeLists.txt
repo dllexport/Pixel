@@ -3,8 +3,8 @@ project(Pixel)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(VULKAN_SDK "C:/VulkanSDK/1.3.239.0")
-set(BOOST_ROOT "C:/Users/Mario/Documents/boost_1_81_0/stage")
+set(VULKAN_SDK)
+set(BOOST_ROOT)
 set(GLSL_VALIDATOR "${VULKAN_SDK}/Bin/glslangValidator")
 
 set(WINDOW_USE_GLFW ON)
@@ -16,6 +16,7 @@ endif()
 include_directories(3rd/imgui)
 
 file(GLOB IMGUI_SOURCE_FILES
+    "3rd/imgui/*.h"
     "3rd/imgui/*.cpp"
 )
 
@@ -77,11 +78,20 @@ target_link_libraries(Pixel PUBLIC
     json_struct
     spdlog
     glm
-    ${VULKAN_SDK}/lib/vulkan-1.lib
     spirv-reflect-static
     ktx
     tinygltf
 )
+
+if (WIN32)
+    target_link_libraries(Pixel PUBLIC
+        ${VULKAN_SDK}/lib/vulkan-1.lib
+    ) 
+elseif (APPLE)
+    target_link_libraries(Pixel PUBLIC
+        ${VULKAN_SDK}/lib/libvulkan.1.dylib
+    )
+endif()
 
 if (WINDOW_USE_GLFW)
 target_link_libraries(Pixel PRIVATE

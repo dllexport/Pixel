@@ -131,7 +131,8 @@ void VulkanGroupExecutor::Prepare()
     prepareFences();
     prepareRenderCommandBuffers();
     prepareSharedResources();
-
+    prepareRenderGroupTopo();
+    
     for (auto &[name, rg] : renderGroups)
     {
         rg->Prepare(vulkanSC);
@@ -288,6 +289,18 @@ void VulkanGroupExecutor::prepareRenderGroupSynchronization()
     }
 }
 
+void VulkanGroupExecutor::prepareRenderGroupTopo()
+{
+    std::vector<IntrusivePtr<Graph>> graphs;
+    for (auto &[_, rg] : renderGroups)
+    {
+        graphs.push_back(rg->GetGraph());
+    }
+
+    this->globalGraph = Graph::Merge(graphs);
+    this->globalGraph->Topo();
+}
+
 bool VulkanGroupExecutor::Execute()
 {
     auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
@@ -296,13 +309,16 @@ bool VulkanGroupExecutor::Execute()
 
     std::vector<std::reference_wrapper<IntrusivePtr<VulkanRenderGroup>>> groups;
 
-    // TODO, topo sort rendergroups
+    // topo sort rendergroups, render group order is deferred from subpasses
+    // subpass dependencies must not be cyclic
     // aggregate command buffers
-    for (auto &[_, rg] : renderGroups)
-    {
-        groups.insert(groups.begin(), rg);
+    for (auto& [level, nodes] : this->globalGraph->Topo().levelsRenderPassOnly) {
+        for (auto node : nodes) {
+            groups.push_back(this->renderGroups.at(node->GroupName()));
+            spdlog::info("{} {}", level, node->GlobalName());
+        }
     }
-
+    
     commandBuffers.push_back(globalSynCommands.beforeGroupExec[currentImage]);
 
     for (int i = 0; i < groups.size(); i++)
@@ -326,7 +342,7 @@ bool VulkanGroupExecutor::Execute()
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
-    submitInfo.commandBufferCount = commandBuffers.size();
+    submitInfo.commandBufferCount = (uint32_t)commandBuffers.size();
     submitInfo.pCommandBuffers = commandBuffers.data();
 
     VkSemaphore signalSemaphores[] = {vulkanSC->GetRenderFinishedSemaphores()[currentFrame]};

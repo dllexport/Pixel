@@ -65,9 +65,14 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
             crp->computeShader = subpass.shaders.compute;
             node = crp;
         }
+        
+        if (!subpass.subpass_dependency.empty())
+            node->As<RenderPassGraphNode*>()->dependencies.insert(subpass.subpass_dependency.cbegin(), subpass.subpass_dependency.cend());
 
+        node->passName = subpass.name;
+        node->groupName = json.name;
         resourceNodes.push_back(node);
-        resolvedMap[node->name] = node;
+        resolvedMap[node->GlobalName()] = node;
 
         for (auto input : subpass.inputs)
         {
@@ -96,21 +101,18 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
             inputNode->binding = input.binding;
 
             inputNode->passName = node->name;
+            inputNode->groupName = json.name;
+            
             // save which subpass use this node as input
             inputNode->inputSubPassNames.insert(subpass.name);
 
-            if (!resolvedMap.count(inputNode->name))
-                resolvedMap[node->name + "::" + inputNode->name] = inputNode;
-
-            if (!resolvedMap.count(inputNode->name))
+            if (!resolvedMap.count(inputNode->GlobalName()))
             {
-                std::string scopeName = node->name + "::" + input.name;
                 if (input.shared || input.swapChain)
                 {
-                    scopeName = "::" + input.name;
-                    graph->sharedResourceKeys.insert(scopeName);
+                    graph->sharedResourceKeys.insert(input.name);
                 }
-                resolvedMap[scopeName] = inputNode;
+                resolvedMap[inputNode->GlobalName()] = inputNode;
             }
 
             resourceNodes.push_back(inputNode);
@@ -138,16 +140,15 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
             }
 
             outputNode->passName = node->name;
+            outputNode->groupName = json.name;
 
-            if (!resolvedMap.count(outputNode->name))
+            if (!resolvedMap.count(outputNode->GlobalName()))
             {
-                std::string scopeName = node->name + "::" + output.name;
                 if (output.shared || output.swapChain)
                 {
-                    scopeName = output.name;
-                    graph->sharedResourceKeys.insert(scopeName);
+                    graph->sharedResourceKeys.insert(output.name);
                 }
-                resolvedMap[scopeName] = outputNode;
+                resolvedMap[outputNode->GlobalName()] = outputNode;
             }
             resourceNodes.push_back(outputNode);
             node->outputs.push_back(outputNode);
@@ -165,22 +166,26 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
         for (unsigned i = 0; i < passNode->inputs.size(); i++)
         {
             auto resNode = (DescriptorGraphNode *)passNode->inputs[i].get();
-            passNode->bindingSets[resNode->name] = {resNode->set, resNode->binding, passNode->inputs[i]->type};
+            passNode->bindingSets[resNode->GlobalName()] = {resNode->set, resNode->binding, passNode->inputs[i]->type};
         }
         // TODO, handle outputs (BUFFER SSBO)
     }
 
     // append subpass dependency
-    for (auto subpass : json.subpasses)
-    {
-        auto node = resolvedMap[subpass.name];
-        for (auto &dependency : subpass.subpass_dependency)
-        {
-            auto dep = resolvedMap[dependency];
-            node->inputs.push_back(dep);
-            dep->outputs.push_back(node);
-        }
-    }
+//    for (auto &subpass : json.subpasses)
+//    {
+//        auto node = resolvedMap[subpass.name];
+//        for (auto &dependency : subpass.subpass_dependency)
+//        {
+//            if (resolvedMap.count(dependency))
+//            {
+//                auto dep = resolvedMap[dependency];
+//                node->inputs.push_back(dep);
+//                dep->outputs.push_back(node);
+//            }
+//            // if dependency not exist, it's resolved in global scope
+//        }
+//    }
 
     graph->name = json.name;
     graph->graphNodesMap = resolvedMap;
@@ -241,14 +246,13 @@ Graph::TopoResult &Graph::Topo()
     std::unordered_map<std::string, uint32_t> indegreeMap;
     for (auto &[k, v] : graphNodesMap)
     {
-        indegreeMap[v->name] += v->inputs.size();
+        indegreeMap[v->GlobalName()] += v->inputs.size();
     }
 
     std::queue<GraphNode *> topoQueue;
     for (auto &[k, v] : graphNodesMap)
     {
-        auto localName = GetNodeLocalName(k);
-        if (indegreeMap[localName] == 0)
+        if (indegreeMap[v->GlobalName()] == 0)
         {
             topoQueue.push(v.get());
         }
@@ -268,8 +272,8 @@ Graph::TopoResult &Graph::Topo()
 
             for (auto &v : front->outputs)
             {
-                indegreeMap[v->name]--;
-                if (indegreeMap[v->name] == 0)
+                indegreeMap[v->GlobalName()]--;
+                if (indegreeMap[v->GlobalName()] == 0)
                 {
                     for (auto &[k, n] : graphNodesMap)
                     {
@@ -288,13 +292,14 @@ Graph::TopoResult &Graph::Topo()
     {
         for (auto &node : nodes)
         {
-            spdlog::info("{} {}", level, node->passName + "::" + node->name);
+            spdlog::info("{} {}", level, node->GlobalName());
         }
     }
 
+    // key -> passes
+    std::unordered_map<std::string, std::vector<std::string>> outputNameSet;
     for (auto &[level, nodes] : result)
     {
-        std::unordered_set<IntrusivePtr<GraphNode>> outputSet;
         for (auto &node : nodes)
         {
             for (auto &output : node->outputs)
@@ -303,14 +308,11 @@ Graph::TopoResult &Graph::Topo()
                 {
                     continue;
                 }
-                if (outputSet.count(output))
+                if (outputNameSet.count(output->GlobalName()))
                 {
-                    spdlog::info("level {} concurrent write to {}", level, output->name);
+                    spdlog::warn("level {} concurrent write to {}", level, output->GlobalName());
                 }
-                else
-                {
-                    outputSet.insert(output);
-                }
+                outputNameSet[output->GlobalName()].push_back(node->GlobalName());
             }
         }
     }
@@ -339,4 +341,58 @@ Graph::TopoResult &Graph::Topo()
         .maxLevelRenderPassOnly = uint16_t(levelPassOnly - 1)};
 
     return topoResultCache.value();
+}
+
+IntrusivePtr<Graph> Graph::Merge(std::vector<IntrusivePtr<Graph>> graphs)
+{
+    auto graph = new Graph();
+    
+    for (auto &g : graphs)
+    {
+        // merge graphNodesMap
+        for (auto &[k, v] : g->graphNodesMap)
+        {
+            
+            // check if key exist(is shared)
+            if (graph->graphNodesMap.count(k) == 0)
+                graph->graphNodesMap[k] = v;
+            else
+            {
+                auto &dstInputs = graph->graphNodesMap[k]->inputs;
+                auto &srcInputs = g->graphNodesMap[k]->inputs;
+                dstInputs.insert(dstInputs.end(), srcInputs.begin(), srcInputs.end());
+
+                auto &dstOutputs = graph->graphNodesMap[k]->outputs;
+                auto &srcOutputs = g->graphNodesMap[k]->outputs;
+                dstOutputs.insert(dstOutputs.end(), srcOutputs.begin(), srcOutputs.end());
+
+            }
+        }
+        
+        for (auto s : g->sharedResourceKeys)
+            graph->sharedResourceKeys.insert(s);
+    }
+
+    for (auto sharedKey : graph->sharedResourceKeys)
+    {
+        auto inputs = graph->graphNodesMap[sharedKey]->inputs;
+        for (auto& input : inputs) {
+            auto rgn = input->As<RenderPassGraphNode*>();
+            spdlog::info("checking dependencies of {}", rgn->GlobalName());
+            for (auto& dep : rgn->dependencies) {
+                if (!graph->graphNodesMap.count(dep)) {
+                    spdlog::warn("{} has dependency of {} in json, but not found", input->GlobalName(), dep);
+                    continue;
+                }
+                auto from = graph->graphNodesMap.at(dep);
+                auto to = input;
+                spdlog::info("linking {} to {}", from->GlobalName(), to->GlobalName());
+
+                from->outputs.push_back(to);
+                to->inputs.push_back(from);
+            }
+        }
+    }
+    
+    return graph;
 }

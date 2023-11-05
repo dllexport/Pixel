@@ -25,7 +25,7 @@ int32_t VulkanGraphicPass::GetSubPassIndex(std::string subPassName)
 {
     for (int32_t i = 0; i < graphicRenderPasses.size(); i++)
     {
-        if (graphicRenderPasses[i]->name == subPassName)
+        if (graphicRenderPasses[i]->LocalName() == subPassName)
         {
             return i;
         }
@@ -146,7 +146,7 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
         // store the newly created attachment node in this pass
         std::vector<IntrusivePtr<AttachmentGraphNode>> subPassAttachmentNodes;
 
-        auto &referencesGroup = this->attachmentReferencesMap[subPassNode->name];
+        auto &referencesGroup = this->attachmentReferencesMap[subPassNode->LocalName()];
 
         for (auto n : subPassNode->inputs)
         {
@@ -154,7 +154,7 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
             {
                 auto agn = static_cast<AttachmentGraphNode *>(n.get());
                 int attachmentRefIndex = std::find_if(attachmentNodes.begin(), attachmentNodes.end(), [&](IntrusivePtr<AttachmentGraphNode> &node)
-                                                      { return node->name == agn->name; }) -
+                                                      { return node->GlobalName() == agn->GlobalName(); }) -
                                          attachmentNodes.begin();
                 if (attachmentRefIndex >= attachmentNodes.size())
                 {
@@ -210,7 +210,7 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
                 desc.format = GeneralFormatToVkFormat(attachmentNode->format);
                 desc.samples = VK_SAMPLE_COUNT_1_BIT;
                 desc.loadOp = attachmentNode->clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-                desc.storeOp = attachmentNode->input ? VK_ATTACHMENT_STORE_OP_NONE : VK_ATTACHMENT_STORE_OP_STORE;
+                desc.storeOp = attachmentNode->input ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE;
                 desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 desc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -250,22 +250,24 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
         for (auto dependencee : dependencees)
         {
             auto dependenceeIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), dependencee) - graphicRenderPasses.begin();
-            auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, attachmentReferencesMap[subPassNode->name], attachmentReferencesMap[dependencee->name]);
+            auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, attachmentReferencesMap[subPassNode->GlobalName()], attachmentReferencesMap[dependencee->GlobalName()]);
             if (dependency.has_value())
             {
                 dependencies.push_back(dependency.value());
             }
         }
 
-        for (auto output : subPassNode->outputs) {
+        for (auto output : subPassNode->outputs)
+        {
             if (output->type != GraphNode::ATTACHMENT)
                 continue;
 
-            auto attachmentNode = output->As<AttachmentGraphNode*>();
+            auto attachmentNode = output->As<AttachmentGraphNode *>();
             // Hazard READ_AFTER_WRITE
             // layout transition from GENERAL to DET (write)
             // loadOp VK_ATTACHMENT_LOAD_OP_LOAD (TODO: some color attachments maybe write only)
-            if (attachmentNode->swapChain || attachmentNode->color) {
+            if (attachmentNode->swapChain || attachmentNode->color)
+            {
                 VkSubpassDependency dependency{};
                 dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
                 dependency.dstSubpass = 0;
@@ -277,7 +279,8 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
                 dependencies.push_back(dependency);
             }
 
-            if (attachmentNode->depthStencil) {
+            if (attachmentNode->depthStencil)
+            {
                 VkSubpassDependency dependency{};
                 dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
                 dependency.dstSubpass = 0;
@@ -290,16 +293,17 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
             }
         }
 
-
-        for (auto input : subPassNode->inputs) {
+        for (auto input : subPassNode->inputs)
+        {
             if (input->type != GraphNode::ATTACHMENT)
                 continue;
 
-            auto attachmentNode = input->As<AttachmentGraphNode*>();
+            auto attachmentNode = input->As<AttachmentGraphNode *>();
             // Hazard READ_AFTER_WRITE
             // layout transition from GENERAL to DET (write)
             // loadOp VK_ATTACHMENT_LOAD_OP_LOAD (TODO: some color attachments maybe write only)
-            if (attachmentNode->input) {
+            if (attachmentNode->input)
+            {
                 VkSubpassDependency dependency{};
                 dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
                 dependency.dstSubpass = 0;

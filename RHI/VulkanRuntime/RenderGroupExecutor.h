@@ -63,7 +63,8 @@ private:
     // GENERAL -> PRESENT_SRC || PRESENT_SRC -> GENERAL
     void prepareGlobalSynchronization();
 
-    struct SynCommands {
+    struct SynCommands
+    {
         // command per frame
         std::vector<VkCommandBuffer> beforeGroupExec;
         std::vector<VkCommandBuffer> afterGroupExec;
@@ -71,6 +72,9 @@ private:
 
     std::unordered_map<std::string, SynCommands> renderGroupSyncMap;
     SynCommands globalSynCommands;
+
+    IntrusivePtr<Graph> globalGraph;
+    void prepareRenderGroupTopo();
 
     uint64_t currentFrame = 0;
     int32_t currentImage = 0;

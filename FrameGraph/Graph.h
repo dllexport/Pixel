@@ -60,6 +60,8 @@ public:
 
     void DumpNodeMapString();
 
+    static IntrusivePtr<Graph> Merge(std::vector<IntrusivePtr<Graph>> graphs);
+
 private:
     // full scope name -> graph node
     std::unordered_map<std::string, IntrusivePtr<GraphNode>> graphNodesMap;

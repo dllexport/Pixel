@@ -29,8 +29,8 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
     // get all outputs of outputs, filtered by type
     std::vector<IntrusivePtr<GraphNode>> TraceAllOutputs(Type type, uint32_t traceLevel);
 
-    std::string name;
     std::string passName;
+    std::string groupName;
     Type type;
 
     friend class Graph;
@@ -40,9 +40,21 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
     // subpasses use it as input (directly)
     std::unordered_set<std::string> inputSubPassNames;
 
+    std::string LocalName()
+    {
+        return name;
+    }
+
     std::string GlobalName()
     {
-        return passName + "::" + name;
+        if (name.starts_with("::"))
+            return name;
+        return groupName + "::" + passName + "::" + name;
+    }
+
+    std::string GroupName()
+    {
+        return groupName;
     }
 
     template <class T>
@@ -50,6 +62,9 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
     {
         return static_cast<T>(this);
     }
+
+private:
+    std::string name;
 };
 
 struct ResourceNode : public GraphNode
@@ -70,7 +85,7 @@ struct AttachmentGraphNode : public ResourceNode
     bool clear = false;
 
     // TODO, resolve global state, check if resource is used as input
-    bool input = true;
+    bool input = false;
 };
 
 struct DescriptorGraphNode : public ResourceNode
@@ -91,6 +106,8 @@ struct RenderPassGraphNode : public GraphNode
         Type type;
     };
     std::unordered_map<std::string, ResourceBindingPack> bindingSets;
+
+    std::unordered_set<std::string> dependencies;
 };
 
 struct GraphicRenderPassGraphNode : public RenderPassGraphNode

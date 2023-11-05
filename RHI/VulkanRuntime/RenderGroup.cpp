@@ -30,18 +30,18 @@ void VulkanRenderGroup::Build()
     {
         for (auto &pass : passes)
         {
-            spdlog::info("{} {}", level, pass->name);
+            spdlog::info("{} {}", level, pass->GlobalName());
             if (pass->type == GraphNode::GRAPHIC_PASS)
             {
                 auto grp = new VulkanGraphicPass(context, graph);
-                grp->Build({pass->name});
-                this->renderPasses[pass->name] = grp;
+                grp->Build({pass->GlobalName()});
+                this->renderPasses[pass->LocalName()] = grp;
             }
             else if (pass->type == GraphNode::COMPUTE_PASS)
             {
                 auto grp = new VulkanComputePass(context, graph);
-                grp->Build(pass->name);
-                this->computePasses[pass->name] = grp;
+                grp->Build(pass->GlobalName());
+                this->computePasses[pass->LocalName()] = grp;
             }
         }
     }
@@ -247,7 +247,7 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
         // for each subpass in renderPass
         for (auto &subpass : renderPass->graphicRenderPasses)
         {
-            assert(pipelineMap.count(subpass->name));
+            assert(pipelineMap.count(subpass->LocalName()));
             auto pipeline = static_cast<VulkanGraphicsPipeline *>(pipelineMap[passName].get());
 
             assert(this->resourceBindingStates.count(pipeline));
@@ -434,16 +434,16 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &rend
 
             if (attachment->shared)
             {
-                texture = (VulkanTexture *)(sharedResources[attachment->name][i].get());
+                texture = (VulkanTexture *)(sharedResources[attachment->GlobalName()][i].get());
             }
-            else if (groupScopeResources.count(attachment->name) && groupScopeResources[attachment->name].size() == swapChain->ImageSize())
+            else if (groupScopeResources.count(attachment->GlobalName()) && groupScopeResources[attachment->GlobalName()].size() == swapChain->ImageSize())
             {
-                texture = static_cast<VulkanTexture *>(groupScopeResources[attachment->name][i].get());
+                texture = static_cast<VulkanTexture *>(groupScopeResources[attachment->GlobalName()][i].get());
             }
             else
             {
                 texture = CreateAttachmentResource(swapChain, attachment);
-                groupScopeResources[attachment->name].push_back(texture);
+                groupScopeResources[attachment->GlobalName()].push_back(texture);
             }
 
             VulkanAuxiliaryExecutor::ImageLayoutConfig config = {
@@ -490,7 +490,7 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &rend
                 sampler->Allocate({});
             }
 
-            attachmentImages[attachment->name].push_back({texture, textureView, sampler});
+            attachmentImages[attachment->GlobalName()].push_back({texture, textureView, sampler});
             attachmentViews.push_back(textureView->GetImageView());
         }
 

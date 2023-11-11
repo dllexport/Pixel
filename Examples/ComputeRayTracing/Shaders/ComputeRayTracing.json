@@ -5,7 +5,7 @@
             "name": "compute 0",
             "type": "compute",
             "shaders": {
-                "compute": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/compute.comp.spv"
+                "compute": "compute.comp.spv"
             },
             "inputs": [],
             "outputs": [
@@ -19,12 +19,9 @@
         {
             "name": "present",
             "type": "graphic",
-            "subpass_dependency": [
-                "compute 0"
-            ],
             "shaders": {
-                "vertex": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/present.frag.spv",
-                "fragment": "C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/present.frag.spv"
+                "vertex": "present.vert.spv",
+                "fragment": "present.frag.spv"
             },
             "inputs": [
                 {

@@ -29,8 +29,6 @@ public:
     }
 
 private:
-    std::string subPassName;
-
     ComputePipelineStates pipelineStates;
     IntrusivePtr<VulkanComputePass> computePass;
 };

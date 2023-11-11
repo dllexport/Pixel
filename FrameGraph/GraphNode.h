@@ -52,6 +52,13 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
         return groupName + "::" + passName + "::" + name;
     }
 
+    std::string ScopeName()
+    {
+        if (name.starts_with("::"))
+            return name;
+        return groupName + "::" + name;
+    }
+
     std::string GroupName()
     {
         return groupName;

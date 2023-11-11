@@ -23,15 +23,23 @@ void CreatePresentDrawable(PixelEngine *engine, IntrusivePtr<Renderer> renderer,
     renderer->AddDrawState(rbs);
 }
 
+void CreateDispatch(PixelEngine *engine, IntrusivePtr<Renderer> renderer, IntrusivePtr<Pipeline> pipeline)
+{
+    auto rhiRuntime = engine->GetRHIRuntime();
+    auto rbs = rhiRuntime->CreateResourceBindingState(pipeline);
+
+    rbs->BindDispatchOp({{1, 1, 1}});
+
+    renderer->AddDrawState(rbs);
+}
+
 int main()
 {
     spdlog::set_level(spdlog::level::debug);
 
-    auto graph = Graph::ParseRenderPassJson("C:/Users/Mario/Desktop/Pixel/Examples/ComputeRayTracing/ComputeRayTracing.json");
-
     IntrusivePtr<PixelEngine> engine = new PixelEngine;
+    auto graph = Graph::ParseRenderPassJson("ComputeRayTracing.json");
     auto renderGroup = engine->RegisterRenderGroup(graph);
-    auto computePipeline = renderGroup->CreatePipeline("compute 0", ComputePipelineStates{});
 
     auto &rhiRuntime = engine->GetRHIRuntime();
     auto renderer = engine->CreateRenderer();
@@ -42,13 +50,15 @@ int main()
 
     renderer->AddDrawState(ui->drawState);
 
+    auto computePipeline = renderGroup->CreatePipeline("compute 0", ComputePipelineStates{});
+    CreateDispatch(engine.get(), renderer, computePipeline);
+
     PipelineStates presentPipelineStates = {
         .inputAssembleState = {.type = InputAssembleState::Type::TRIANGLE_LIST},
         .rasterizationState = {.polygonMode = RasterizationState::PolygonModeType::FILL, .cullMode = RasterizationState::CullModeType::NONE, .frontFace = RasterizationState::FrontFaceType::COUNTER_CLOCKWISE, .lineWidth = 1.0f},
         .depthStencilState = {.depthTestEnable = true, .depthWriteEnable = true}};
 
     auto presentPipeline = renderGroup->CreatePipeline("present", presentPipelineStates);
-
     CreatePresentDrawable(engine.get(), renderer, presentPipeline);
 
     engine->Frame();

@@ -44,6 +44,11 @@ public:
         uint32_t firstInstance;
     };
 
+    struct DispatchOP
+    {
+        uint32_t x, y, z;
+    };
+
     void BindDrawOp(std::vector<DrawOP> drawOps)
     {
         this->drawOps = drawOps;
@@ -52,6 +57,16 @@ public:
     std::vector<DrawOP> &GetDrawOps()
     {
         return this->drawOps;
+    }
+
+    void BindDispatchOp(std::vector<DispatchOP> dispatchOps)
+    {
+        this->dispatchOps = dispatchOps;
+    }
+
+    std::vector<DispatchOP> &GetDispatchOps()
+    {
+        return this->dispatchOps;
     }
 
     enum IndexType
@@ -103,6 +118,7 @@ protected:
 
     // define how renderer will draw the buffer
     std::vector<DrawOP> drawOps;
+    std::vector<DispatchOP> dispatchOps;
 
     std::vector<UpdateCallback> updateCallbacks;
 };

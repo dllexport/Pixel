@@ -246,13 +246,18 @@ Graph::TopoResult &Graph::Topo()
     std::unordered_map<std::string, uint32_t> indegreeMap;
     for (auto &[k, v] : graphNodesMap)
     {
-        indegreeMap[v->GlobalName()] += v->inputs.size();
+        indegreeMap[v->ScopeName()] += v->inputs.size();
+    }
+
+    for (auto &[k, v] : indegreeMap)
+    {
+        spdlog::info("indegreeMap {} {}", k, v);
     }
 
     std::queue<GraphNode *> topoQueue;
     for (auto &[k, v] : graphNodesMap)
     {
-        if (indegreeMap[v->GlobalName()] == 0)
+        if (indegreeMap[v->ScopeName()] == 0)
         {
             topoQueue.push(v.get());
         }
@@ -272,13 +277,19 @@ Graph::TopoResult &Graph::Topo()
 
             for (auto &v : front->outputs)
             {
-                indegreeMap[v->GlobalName()]--;
-                if (indegreeMap[v->GlobalName()] == 0)
+                indegreeMap[v->ScopeName()]--;
+
+                spdlog::info("{} down to {}", v->GlobalName(), indegreeMap[v->ScopeName()]);
+                if (indegreeMap[v->ScopeName()] == 0)
                 {
                     for (auto &[k, n] : graphNodesMap)
                     {
+                        spdlog::info("comp {} {}", v->name, n->name);
                         if (v->name == n->name)
+                        {
+                            spdlog::info("adding {}", n->GlobalName());
                             tempTopoQueue.push(n.get());
+                        }
                     }
                 }
             }

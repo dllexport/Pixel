@@ -65,9 +65,9 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
             crp->computeShader = subpass.shaders.compute;
             node = crp;
         }
-        
-        if (!subpass.subpass_dependency.empty())
-            node->As<RenderPassGraphNode*>()->dependencies.insert(subpass.subpass_dependency.cbegin(), subpass.subpass_dependency.cend());
+
+        if (!subpass.dependencies.empty())
+            node->As<RenderPassGraphNode *>()->dependencies.insert(subpass.dependencies.cbegin(), subpass.dependencies.cend());
 
         node->passName = subpass.name;
         node->groupName = json.name;
@@ -102,7 +102,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
 
             inputNode->passName = node->name;
             inputNode->groupName = json.name;
-            
+
             // save which subpass use this node as input
             inputNode->inputSubPassNames.insert(subpass.name);
 
@@ -172,20 +172,20 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
     }
 
     // append subpass dependency
-//    for (auto &subpass : json.subpasses)
-//    {
-//        auto node = resolvedMap[subpass.name];
-//        for (auto &dependency : subpass.subpass_dependency)
-//        {
-//            if (resolvedMap.count(dependency))
-//            {
-//                auto dep = resolvedMap[dependency];
-//                node->inputs.push_back(dep);
-//                dep->outputs.push_back(node);
-//            }
-//            // if dependency not exist, it's resolved in global scope
-//        }
-//    }
+    //    for (auto &subpass : json.subpasses)
+    //    {
+    //        auto node = resolvedMap[subpass.name];
+    //        for (auto &dependency : subpass.subpass_dependency)
+    //        {
+    //            if (resolvedMap.count(dependency))
+    //            {
+    //                auto dep = resolvedMap[dependency];
+    //                node->inputs.push_back(dep);
+    //                dep->outputs.push_back(node);
+    //            }
+    //            // if dependency not exist, it's resolved in global scope
+    //        }
+    //    }
 
     graph->name = json.name;
     graph->graphNodesMap = resolvedMap;
@@ -346,13 +346,13 @@ Graph::TopoResult &Graph::Topo()
 IntrusivePtr<Graph> Graph::Merge(std::vector<IntrusivePtr<Graph>> graphs)
 {
     auto graph = new Graph();
-    
+
     for (auto &g : graphs)
     {
         // merge graphNodesMap
         for (auto &[k, v] : g->graphNodesMap)
         {
-            
+
             // check if key exist(is shared)
             if (graph->graphNodesMap.count(k) == 0)
                 graph->graphNodesMap[k] = v;
@@ -365,10 +365,9 @@ IntrusivePtr<Graph> Graph::Merge(std::vector<IntrusivePtr<Graph>> graphs)
                 auto &dstOutputs = graph->graphNodesMap[k]->outputs;
                 auto &srcOutputs = g->graphNodesMap[k]->outputs;
                 dstOutputs.insert(dstOutputs.end(), srcOutputs.begin(), srcOutputs.end());
-
             }
         }
-        
+
         for (auto s : g->sharedResourceKeys)
             graph->sharedResourceKeys.insert(s);
     }
@@ -376,11 +375,14 @@ IntrusivePtr<Graph> Graph::Merge(std::vector<IntrusivePtr<Graph>> graphs)
     for (auto sharedKey : graph->sharedResourceKeys)
     {
         auto inputs = graph->graphNodesMap[sharedKey]->inputs;
-        for (auto& input : inputs) {
-            auto rgn = input->As<RenderPassGraphNode*>();
+        for (auto &input : inputs)
+        {
+            auto rgn = input->As<RenderPassGraphNode *>();
             spdlog::info("checking dependencies of {}", rgn->GlobalName());
-            for (auto& dep : rgn->dependencies) {
-                if (!graph->graphNodesMap.count(dep)) {
+            for (auto &dep : rgn->dependencies)
+            {
+                if (!graph->graphNodesMap.count(dep))
+                {
                     spdlog::warn("{} has dependency of {} in json, but not found", input->GlobalName(), dep);
                     continue;
                 }
@@ -393,6 +395,6 @@ IntrusivePtr<Graph> Graph::Merge(std::vector<IntrusivePtr<Graph>> graphs)
             }
         }
     }
-    
+
     return graph;
 }

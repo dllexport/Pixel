@@ -28,45 +28,7 @@ void ImguiOverlay::ImGUINewFrame()
 
 void ImguiOverlay::BuildPipeline()
 {
-    auto rawString = R"JSON(
-        {
-            "name": "imguiPass",
-            "dependencies": [
-                "any"
-            ],
-            "subpasses": [
-                {
-                    "name": "imgui",
-                    "type": "graphic",
-                    "shaders": {
-                        "vertex": "ui.vert.spv",
-                        "fragment": "ui.frag.spv"
-                    },
-                    "inputs": [
-                        {
-                            "name": "imguiUBO",
-                            "type": "buffer"
-                        },
-                        {
-                            "name": "fontSampler",
-                            "type": "sampler",
-                            "binding": 0
-                        }
-                    ],
-                    "outputs": [
-                        {
-                            "name": "::color",
-                            "type": "attachment",
-                            "format": "FORMAT_B8G8R8A8_UNORM",
-                            "swapChain": true
-                        }
-                    ]
-                }
-            ]
-        }
-    )JSON";
-
-    auto imguiPass = Graph::ParseRenderPassJsonRawString(rawString);
+    auto imguiPass = Graph::ParseRenderPassJson("Shaders/imgui.json");
     auto imguiRenderGroup = engine->RegisterRenderGroup(imguiPass);
 
     ColorBlendAttachmentState imguiColorBlendState = {

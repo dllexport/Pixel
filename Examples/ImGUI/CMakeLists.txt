@@ -4,6 +4,11 @@ target_link_libraries(ImGUI PRIVATE
     Pixel
 )
 
-configure_file("imgui.json" "imgui.json" COPYONLY)
-configure_file("ui.vert.spv" "ui.vert.spv" COPYONLY)
-configure_file("ui.frag.spv" "ui.frag.spv" COPYONLY)
+file(GLOB_RECURSE GLSL_SOURCE_FILES
+    "Shaders/*.frag"
+    "Shaders/*.vert"
+)
+
+APPEND_GLSL_TO_TARGET(ImGUI "${GLSL_SOURCE_FILES}")
+
+configure_file("Shaders/imgui.json" "Shaders/imgui.json")

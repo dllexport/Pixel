@@ -114,4 +114,5 @@ endif()
 # include(GoogleTest)
 # gtest_discover_tests(framegraph_test)
 
+include(CMake/CompileGLSL.cmake)
 add_subdirectory(Examples)

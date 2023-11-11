@@ -132,7 +132,7 @@ void VulkanGroupExecutor::Prepare()
     prepareRenderCommandBuffers();
     prepareSharedResources();
     prepareRenderGroupTopo();
-    
+
     for (auto &[name, rg] : renderGroups)
     {
         rg->Prepare(vulkanSC);
@@ -312,13 +312,15 @@ bool VulkanGroupExecutor::Execute()
     // topo sort rendergroups, render group order is deferred from subpasses
     // subpass dependencies must not be cyclic
     // aggregate command buffers
-    for (auto& [level, nodes] : this->globalGraph->Topo().levelsRenderPassOnly) {
-        for (auto node : nodes) {
+    for (auto &[level, nodes] : this->globalGraph->Topo().levelsRenderPassOnly)
+    {
+        for (auto node : nodes)
+        {
             groups.push_back(this->renderGroups.at(node->GroupName()));
             spdlog::info("{} {}", level, node->GlobalName());
         }
     }
-    
+
     commandBuffers.push_back(globalSynCommands.beforeGroupExec[currentImage]);
 
     for (int i = 0; i < groups.size(); i++)

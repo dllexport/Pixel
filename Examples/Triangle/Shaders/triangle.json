@@ -6,8 +6,8 @@
             "name": "single",
             "type": "graphic",
             "shaders": {
-                "vertex": "C:/Users/Mario/Desktop/Pixel/Examples/Triangle/triangle.vert.spv",
-                "fragment": "C:/Users/Mario/Desktop/Pixel/Examples/Triangle/triangle.frag.spv"
+                "vertex": "triangle.vert.spv",
+                "fragment": "triangle.frag.spv"
             },
             "inputs": [
                 {
@@ -23,14 +23,15 @@
             ],
             "outputs": [
                 {
-                    "name": "color",
+                    "name": "::color",
                     "type": "attachment",
                     "format": "FORMAT_B8G8R8A8_UNORM",
                     "swapChain": true,
-                    "clear": true
+                    "clear": true,
+                    "shared": true
                 },
                 {
-                    "name": "depth",
+                    "name": "::depth",
                     "type": "attachment",
                     "format": "FORMAT_D16_UNORM",
                     "depthStencil": true,

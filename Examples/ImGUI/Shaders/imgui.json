@@ -1,16 +1,14 @@
 {
     "name": "imguiPass",
-    "dependencies": [
-        "any"
-    ],
     "subpasses": [
         {
             "name": "imgui",
             "type": "graphic",
             "shaders": {
-                "vertex": "ui.vert.spv",
-                "fragment": "ui.frag.spv"
+                "vertex": "Shaders/ui.vert.spv",
+                "fragment": "Shaders/ui.frag.spv"
             },
+            "dependencies": [],
             "inputs": [
                 {
                     "name": "imguiUBO",

@@ -269,7 +269,7 @@ void VulkanGraphicsPipeline::Build()
 
     auto subPassIndex = vulkanRenderPass->GetSubPassIndex(this->pipelineName);
     assert(subPassIndex != -1);
-    
+
     if (pipelineStates.shaderState.Empty())
     {
         auto grp = vulkanRenderPass->graphicRenderPasses[subPassIndex];

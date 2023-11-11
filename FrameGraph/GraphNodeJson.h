@@ -35,18 +35,17 @@ struct RenderSubPassJson
 {
     std::string name;
     std::string type;
-    std::vector<std::string> subpass_dependency;
+    std::vector<std::string> dependencies;
     std::vector<RenderSubPassResourceJson> inputs;
     std::vector<RenderSubPassResourceJson> outputs;
     ShaderPaths shaders;
-    JS_OBJ(name, type, subpass_dependency, inputs, outputs, shaders);
+    JS_OBJ(name, type, dependencies, inputs, outputs, shaders);
 };
 
 struct RenderPassJson
 {
     std::string name;
-    std::vector<std::string> dependencies;
     std::vector<RenderSubPassJson> subpasses;
 
-    JS_OBJ(name, dependencies, subpasses);
+    JS_OBJ(name, subpasses);
 };

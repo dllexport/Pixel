@@ -169,6 +169,14 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
             passNode->bindingSets[resNode->GlobalName()] = {resNode->set, resNode->binding, passNode->inputs[i]->type};
         }
         // TODO, handle outputs (BUFFER SSBO)
+        for (unsigned i = 0; i < passNode->outputs.size(); i++)
+        {
+            // skip attachments
+            if (passNode->outputs[i]->type == GraphNode::ATTACHMENT)
+                continue;
+            auto resNode = (DescriptorGraphNode *)passNode->outputs[i].get();
+            passNode->bindingSets[resNode->GlobalName()] = {resNode->set, resNode->binding, passNode->outputs[i]->type};
+        }
     }
 
     // append subpass dependency

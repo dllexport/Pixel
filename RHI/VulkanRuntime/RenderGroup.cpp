@@ -115,11 +115,12 @@ void VulkanRenderGroup::Prepare(VulkanSwapChain *swapChain)
     {
         prepareCommandBuffer(renderPass, swapChain);
         prepareFrameBuffer(renderPass, swapChain);
+        prepareResources(renderPass.get(), swapChain);
     }
 
     for (auto &[name, computePass] : computePasses)
     {
-        // prepareResources(computePass, swapChain);
+        prepareResources(computePass.get(), swapChain);
     }
 
     // make sure all descriptor set in layout is valid
@@ -245,7 +246,7 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         // for each subpass in renderPass
-        for (auto &subpass : renderPass->graphicRenderPasses)
+        for (auto &subpass : renderPass->GetRenderPassGraphNode())
         {
             assert(pipelineMap.count(subpass->LocalName()));
             auto pipeline = static_cast<VulkanGraphicsPipeline *>(pipelineMap[passName].get());
@@ -509,21 +510,25 @@ void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &rend
     }
 }
 
-void VulkanRenderGroup::prepareResources(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
+void VulkanRenderGroup::prepareResources(VulkanPass *pass, VulkanSwapChain *swapChain)
 {
-    auto vulkanRP = static_cast<VulkanGraphicPass *>(renderPass.get());
-
-    auto &renderPassResource = this->renderPassResourceMap[renderPass];
-
-    auto &buffers = renderPassResource.buffers;
-
-    renderPassResource.frameBuffers.resize(swapChain->ImageSize());
-
-    for (int i = 0; i < swapChain->ImageSize(); i++)
+    for (auto &passNode : pass->GetRenderPassGraphNode())
     {
-
-        
+        for (auto &[binding, value] : passNode->bindingSets)
+        {
+            spdlog::info("checking resource {} {}", binding, value.binding);
+        }
     }
+    int i = 0;
+    // auto &renderPassResource = this->renderPassResourceMap[pass];
+
+    // auto &buffers = renderPassResource.buffers;
+
+    // renderPassResource.frameBuffers.resize(swapChain->ImageSize());
+
+    // for (int i = 0; i < swapChain->ImageSize(); i++)
+    // {
+    // }
 }
 
 void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
@@ -554,7 +559,7 @@ void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
                     if (!resourceHandleMap[bindingSet.set][bindingSet.binding].Empty())
                         continue;
 
-                    spdlog::info("resource: {} frame index {} set {} binding {} is empty", resourceName, frameIndex, bindingSet.set, bindingSet.binding);
+                    spdlog::info("resource: {} frame index {} set {} binding {} is empty, perform internal binding", resourceName, frameIndex, bindingSet.set, bindingSet.binding);
                     // default resource (immutable) bind at frameIndex == 0
                     // per frame attachmentImages is prepared in prepareFrameBuffer
                     // per frame buffers is prepared in prepareResources

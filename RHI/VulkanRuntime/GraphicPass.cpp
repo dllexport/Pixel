@@ -7,7 +7,7 @@
 #include <optional>
 #include <iterator>
 
-VulkanGraphicPass::VulkanGraphicPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : context(context), graph(graph)
+VulkanGraphicPass::VulkanGraphicPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph) : VulkanPass(context, graph)
 {
 }
 
@@ -23,9 +23,9 @@ VkRenderPass VulkanGraphicPass::GetRenderPass()
 
 int32_t VulkanGraphicPass::GetSubPassIndex(std::string subPassName)
 {
-    for (int32_t i = 0; i < graphicRenderPasses.size(); i++)
+    for (int32_t i = 0; i < renderPassGraphNodes.size(); i++)
     {
-        if (graphicRenderPasses[i]->LocalName() == subPassName)
+        if (renderPassGraphNodes[i]->LocalName() == subPassName)
         {
             return i;
         }
@@ -44,12 +44,12 @@ VulkanGraphicPass::SubPassAttachmentReferences VulkanGraphicPass::GetSubPassRefe
 
 IntrusivePtr<GraphicRenderPassGraphNode> VulkanGraphicPass::GetGraphicRenderPassGraphNode(uint32_t subPassIndex)
 {
-    return graphicRenderPasses[subPassIndex];
+    return renderPassGraphNodes[subPassIndex]->As<GraphicRenderPassGraphNode *>();
 }
 
 IntrusivePtr<GraphicRenderPassGraphNode> VulkanGraphicPass::GetGraphicRenderPassGraphNode(std::string subPassName)
 {
-    return graphicRenderPasses[GetSubPassIndex(subPassName)];
+    return renderPassGraphNodes[GetSubPassIndex(subPassName)]->As<GraphicRenderPassGraphNode *>();
 }
 
 std::optional<VkSubpassDependency> BuildDependency(uint32_t fromIndex, uint32_t toIndex, VulkanGraphicPass::SubPassAttachmentReferences from, VulkanGraphicPass::SubPassAttachmentReferences to)
@@ -141,7 +141,7 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
     for (auto &subPass : subPasses)
     {
         auto &subPassNode = graph->GetNodeMap().at(subPass);
-        graphicRenderPasses.push_back(static_cast<GraphicRenderPassGraphNode *>(subPassNode.get()));
+        this->renderPassGraphNodes.push_back(subPassNode->As<RenderPassGraphNode *>());
 
         // store the newly created attachment node in this pass
         std::vector<IntrusivePtr<AttachmentGraphNode>> subPassAttachmentNodes;
@@ -242,14 +242,14 @@ void VulkanGraphicPass::Build(std::vector<std::string> subPasses)
     {
         auto &subPassNode = graph->GetNodeMap().at(subPass);
 
-        auto subPassNodeSubPassIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), subPassNode) - graphicRenderPasses.begin();
+        auto subPassNodeSubPassIndex = std::find(renderPassGraphNodes.begin(), renderPassGraphNodes.end(), subPassNode) - renderPassGraphNodes.begin();
 
         // find direct dependency only
         auto dependencees = subPassNode->TraceAllOutputs(GraphNode::GRAPHIC_PASS, 1);
 
         for (auto dependencee : dependencees)
         {
-            auto dependenceeIndex = std::find(graphicRenderPasses.begin(), graphicRenderPasses.end(), dependencee) - graphicRenderPasses.begin();
+            auto dependenceeIndex = std::find(renderPassGraphNodes.begin(), renderPassGraphNodes.end(), dependencee) - renderPassGraphNodes.begin();
             auto dependency = BuildDependency(subPassNodeSubPassIndex, dependenceeIndex, attachmentReferencesMap[subPassNode->GlobalName()], attachmentReferencesMap[dependencee->GlobalName()]);
             if (dependency.has_value())
             {

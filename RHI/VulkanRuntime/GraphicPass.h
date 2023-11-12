@@ -1,14 +1,13 @@
 #pragma once
 
-#include <RHI/VulkanRuntime/Context.h>
-#include <FrameGraph/Graph.h>
+#include <RHI/VulkanRuntime/Pass.h>
 #include <vulkan/vulkan.h>
 
-class VulkanGraphicPass : public IntrusiveCounter<VulkanGraphicPass>
+class VulkanGraphicPass : public VulkanPass
 {
 public:
     VulkanGraphicPass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
-    ~VulkanGraphicPass();
+    virtual ~VulkanGraphicPass() override;
 
     void Build(std::vector<std::string> subPasses);
 
@@ -36,11 +35,7 @@ public:
 private:
     friend class VulkanGraphicsPipeline;
     friend class VulkanRenderGroup;
-    IntrusivePtr<Context> context;
-    IntrusivePtr<Graph> graph;
 
-    // ordered subpass node from 0 to n
-    std::vector<IntrusivePtr<GraphicRenderPassGraphNode>> graphicRenderPasses;
     // for building command buffer in render group
     std::vector<IntrusivePtr<AttachmentGraphNode>> attachmentNodes;
 

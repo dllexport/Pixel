@@ -94,14 +94,14 @@ private:
     // create VkCommandBuffer and VkFramebuffer
     // 1 per frame
     void prepareCommandBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
-    
+
     // 1. layout transition from UNDEFINED to GENERAL for each attachment
     //    setting layout for shared attachment if restrained by inTransition state
     // 2. create texture and framebuffer (per frame)
     void prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
-    
+
     // allocate internal resources for descriptor resolving
-    void prepareResources(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
+    void prepareResources(VulkanPass *pass, VulkanSwapChain *swapChain);
 
     // record command buffer at imageIndex
     void buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain *swapChain);

@@ -17,7 +17,7 @@ void VulkanComputePipeline::Build()
 {
     if (pipelineStates.shaderState.Empty())
     {
-        auto crp = computePass->computePassNode;
+        auto crp = computePass->GetRenderPassGraphNode().at(0)->As<ComputeRenderPassGraphNode *>();
         pipelineStates.shaderState.computeShaderPath = crp->computeShader;
     }
     std::vector<VkPipelineShaderStageCreateInfo> shaderStateCI = TranslateShaderState(pipelineStates.shaderState);

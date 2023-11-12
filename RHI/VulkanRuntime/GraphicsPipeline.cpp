@@ -272,7 +272,7 @@ void VulkanGraphicsPipeline::Build()
 
     if (pipelineStates.shaderState.Empty())
     {
-        auto grp = vulkanRenderPass->graphicRenderPasses[subPassIndex];
+        auto grp = vulkanRenderPass->GetGraphicRenderPassGraphNode(subPassIndex);
         pipelineStates.shaderState.vertexShaderPath = grp->vertexShader;
         pipelineStates.shaderState.fragmentShaderPath = grp->framgmentShader;
     }

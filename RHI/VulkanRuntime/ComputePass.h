@@ -3,25 +3,23 @@
 #include <RHI/VulkanRuntime/Context.h>
 #include <FrameGraph/Graph.h>
 #include <FrameGraph/GraphNode.h>
+#include <RHI/VulkanRuntime/Pass.h>
 
 #include <vulkan/vulkan.h>
 
-class VulkanComputePass : public IntrusiveCounter<VulkanComputePass>
+class VulkanComputePass : public VulkanPass
 {
 public:
     VulkanComputePass(IntrusivePtr<Context> context, IntrusivePtr<Graph> graph);
-    ~VulkanComputePass() {}
+    virtual ~VulkanComputePass() override {}
 
     void Build(std::string pipelineName)
     {
         auto cn = this->graph->GetNodeMap().at(pipelineName);
-        this->computePassNode = cn->As<ComputeRenderPassGraphNode*>();
+        this->renderPassGraphNodes.push_back(cn->As<RenderPassGraphNode *>());
     }
 
 private:
     friend class VulkanComputePipeline;
     friend class VulkanGroupExecutor;
-    IntrusivePtr<Context> context;
-    IntrusivePtr<Graph> graph;
-    IntrusivePtr<ComputeRenderPassGraphNode> computePassNode;
 };

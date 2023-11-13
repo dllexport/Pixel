@@ -12,7 +12,11 @@
                 {
                     "name": "ssbo_buffer",
                     "type": "ssbo",
-                    "binding": 0
+                    "binding": 0,
+                    "size": 0,
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "internal": true,
+                    "immutable": false
                 }
             ]
         },
@@ -27,7 +31,11 @@
                 {
                     "name": "ssbo_buffer",
                     "type": "ssbo",
-                    "binding": 0
+                    "binding": 0,
+                    "size": 0,
+                    "format": "FORMAT_B8G8R8A8_UNORM",
+                    "internal": true,
+                    "immutable": false
                 }
             ],
             "outputs": [

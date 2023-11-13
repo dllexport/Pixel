@@ -28,7 +28,7 @@ void ImguiOverlay::ImGUINewFrame()
 
 void ImguiOverlay::BuildPipeline()
 {
-    auto imguiPass = Graph::ParseRenderPassJson("Shaders/imgui.json");
+    auto imguiPass = Graph::ParseRenderPassJson("imgui.json");
     auto imguiRenderGroup = engine->RegisterRenderGroup(imguiPass);
 
     ColorBlendAttachmentState imguiColorBlendState = {

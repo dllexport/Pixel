@@ -35,13 +35,13 @@ void VulkanRenderGroup::Build()
             {
                 auto grp = new VulkanGraphicPass(context, graph);
                 grp->Build({pass->GlobalName()});
-                this->renderPasses[pass->LocalName()] = grp;
+                this->renderPasses[pass->ScopeName()] = grp;
             }
             else if (pass->type == GraphNode::COMPUTE_PASS)
             {
                 auto grp = new VulkanComputePass(context, graph);
                 grp->Build(pass->GlobalName());
-                this->computePasses[pass->LocalName()] = grp;
+                this->computePasses[pass->ScopeName()] = grp;
             }
         }
     }
@@ -106,15 +106,15 @@ void VulkanRenderGroup::AddBindingState(IntrusivePtr<ResourceBindingState> state
 {
     auto vgp = static_cast<VulkanGraphicsPipeline *>(state->GetPipeline().get());
     this->resourceBindingStates[vgp].push_back(static_cast<VulkanResourceBindingState *>(state.get()));
-    this->pipelineMap[vgp->pipelineName] = vgp;
+    this->pipelineMap[vgp->GetRenderPassGraphNode()->ScopeName()] = vgp;
 }
 
 void VulkanRenderGroup::Prepare(VulkanSwapChain *swapChain)
 {
-    for (auto &[name, renderPass] : renderPasses)
+    for (auto &[passScopeName, renderPass] : renderPasses)
     {
-        prepareCommandBuffer(renderPass, swapChain);
-        prepareFrameBuffer(renderPass, swapChain);
+        prepareCommandBuffer(passScopeName, swapChain);
+        prepareFrameBuffer(passScopeName, renderPass, swapChain);
         prepareResources(renderPass.get(), swapChain);
     }
 
@@ -154,7 +154,7 @@ IntrusivePtr<Pipeline> VulkanRenderGroup::CreatePipeline(std::string subPassName
 
 IntrusivePtr<Pipeline> VulkanRenderGroup::CreatePipeline(std::string subPassName, ComputePipelineStates pipelineStates)
 {
-    auto rp = computePasses.at(subPassName);
+    auto rp = computePasses.at(this->Name() + "::" + subPassName);
     if (!rp)
     {
         spdlog::info("subPass: {} not exist in renderPass {}", subPassName, this->GetGraph()->GetName());
@@ -179,7 +179,7 @@ std::vector<VkCommandBuffer> VulkanRenderGroup::GetCommandBuffer(uint32_t curren
 
 IntrusivePtr<VulkanGraphicPass> VulkanRenderGroup::GetRenderPass(std::string name)
 {
-    return renderPasses[name];
+    return renderPasses[this->Name() + "::" + name];
 }
 
 void VulkanRenderGroup::prepareCommandPool()
@@ -204,10 +204,10 @@ void VulkanRenderGroup::prepareCommandPool()
 void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain *swapchain)
 {
     // renderPasses may contain more than 1 subpass
-    for (auto &[passName, rp] : renderPasses)
+    for (auto &[passScopeName, rp] : renderPasses)
     {
         auto renderPass = static_cast<VulkanGraphicPass *>(rp.get());
-        auto &renderPassResource = renderPassResourceMap[renderPass];
+        auto &renderPassResource = renderPassResourceMap[passScopeName];
         auto &commandBuffer = renderPassResource.commandBuffers[imageIndex];
 
         VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
@@ -248,8 +248,8 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
         // for each subpass in renderPass
         for (auto &subpass : renderPass->GetRenderPassGraphNode())
         {
-            assert(pipelineMap.count(subpass->LocalName()));
-            auto pipeline = static_cast<VulkanGraphicsPipeline *>(pipelineMap[passName].get());
+            assert(pipelineMap.count(subpass->ScopeName()));
+            auto pipeline = static_cast<VulkanGraphicsPipeline *>(pipelineMap[subpass->ScopeName()].get());
 
             assert(this->resourceBindingStates.count(pipeline));
 
@@ -325,18 +325,18 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
         vkEndCommandBuffer(commandBuffer);
     }
 
-    for (auto &[name, cp] : computePasses)
-    {
-        auto computePass = static_cast<VulkanComputePass *>(cp.get());
-        auto &computePassResource = computePassResourceMap[computePass];
-        auto &commandBuffer = computePassResource.commandBuffers[imageIndex];
+    // for (auto &[passScopeName, cp] : computePasses)
+    // {
+    //     auto computePass = static_cast<VulkanComputePass *>(cp.get());
+    //     auto &computePassResource = computePassResourceMap[passScopeName];
+    //     auto &commandBuffer = computePassResource.commandBuffers[imageIndex];
 
-        VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-        cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    //     VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+    //     cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
-        vkEndCommandBuffer(commandBuffer);
-    }
+    //     vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
+    //     vkEndCommandBuffer(commandBuffer);
+    // }
 }
 
 uint32_t VulkanRenderGroup::DeferAttachmentUsage(IntrusivePtr<AttachmentGraphNode> attachmentNode)
@@ -378,11 +378,11 @@ VkImageAspectFlags VulkanRenderGroup::DeferAttachmentAspect(IntrusivePtr<Attachm
     return imageAspect;
 }
 
-void VulkanRenderGroup::prepareCommandBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
+void VulkanRenderGroup::prepareCommandBuffer(std::string passScopeName, VulkanSwapChain *swapChain)
 {
     auto scTextureSize = swapChain->GetTextures().size();
     {
-        auto &commandBuffers = renderPassResourceMap[renderPass].commandBuffers;
+        auto &commandBuffers = renderPassResourceMap[passScopeName].commandBuffers;
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -415,11 +415,28 @@ IntrusivePtr<VulkanTexture> VulkanRenderGroup::CreateAttachmentResource(VulkanSw
     return texture;
 }
 
-void VulkanRenderGroup::prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
+IntrusivePtr<VulkanBuffer> VulkanRenderGroup::CreateBufferResource(VulkanSwapChain *swapChain, IntrusivePtr<SSBOGraphNode> resourceNode)
+{
+    auto buffer = new VulkanBuffer(context);
+
+    auto scExtent = swapChain->GetExtent();
+
+    auto bufferSize = resourceNode->size;
+    if (bufferSize == 0)
+    {
+        bufferSize = sizeof(float) * scExtent.height * scExtent.width * 3;
+    }
+
+    auto result = buffer->Allocate(Buffer::BUFFER_USAGE_STORAGE_BUFFER_BIT | Buffer::BUFFER_USAGE_TRANSFER_DST_BIT, MemoryProperty::MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferSize);
+
+    return buffer;
+}
+
+void VulkanRenderGroup::prepareFrameBuffer(std::string passScopeName, IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain)
 {
     auto vulkanRP = static_cast<VulkanGraphicPass *>(renderPass.get());
 
-    auto &renderPassResource = this->renderPassResourceMap[renderPass];
+    auto &renderPassResource = this->renderPassResourceMap[passScopeName];
 
     auto &attachmentImages = renderPassResource.attachmentImages;
 
@@ -514,65 +531,87 @@ void VulkanRenderGroup::prepareResources(VulkanPass *pass, VulkanSwapChain *swap
 {
     for (auto &passNode : pass->GetRenderPassGraphNode())
     {
-        for (auto &[binding, value] : passNode->bindingSets)
+        for (auto &[descriptorGraphNode, value] : passNode->bindingSets)
         {
-            spdlog::info("checking resource {} {}", binding, value.binding);
+            spdlog::info("checking resource {} at set {} binding {}", descriptorGraphNode->GlobalName(), value.set, value.binding);
+            auto ssboNode = descriptorGraphNode->As<SSBOGraphNode *>();
+            auto resourceScopeName = descriptorGraphNode->ScopeName();
+            // skip if resource is allocated
+            if (groupScopeResources.count(resourceScopeName) != 0)
+                continue;
+
+            // skip none internal node
+            if (!descriptorGraphNode->internal)
+                continue;
+
+            // allocate ssbo
+            groupScopeResources[resourceScopeName].resize(swapChain->ImageSize());
+
+            for (auto i = 0; i < swapChain->ImageSize(); i++)
+            {
+                auto buffer = CreateBufferResource(swapChain, descriptorGraphNode->As<SSBOGraphNode *>());
+                groupScopeResources[resourceScopeName][i] = buffer;
+            }
         }
     }
-    int i = 0;
-    // auto &renderPassResource = this->renderPassResourceMap[pass];
-
-    // auto &buffers = renderPassResource.buffers;
-
-    // renderPassResource.frameBuffers.resize(swapChain->ImageSize());
-
-    // for (int i = 0; i < swapChain->ImageSize(); i++)
-    // {
-    // }
 }
 
 void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
 {
     for (auto &[pipeline, drawStates] : resourceBindingStates)
     {
-        auto vulkanPL = static_cast<VulkanGraphicsPipeline *>(pipeline.get());
-        auto vulkanRP = vulkanPL->GetRenderPass();
+        auto vulkanPL = static_cast<VulkanPipeline *>(pipeline.get());
 
-        auto subPassNode = vulkanRP->GetGraphicRenderPassGraphNode(vulkanPL->GetPipelineName());
+        auto subPassNode = vulkanPL->GetRenderPassGraphNode();
+
+        auto subPassScopeName = subPassNode->ScopeName();
 
         // check every drawState's set binding of pipeline
         // if the resourceName is in attachmentImages, then it's the internal resource
         for (auto &drawState : drawStates)
         {
             // check each set binding in subpass
-            for (auto &[resourceName, bindingSet] : subPassNode->bindingSets)
+            for (auto &[resourceNode, bindingSet] : subPassNode->bindingSets)
             {
-                spdlog::info("checking resource {} at {} {}", resourceName, bindingSet.set, bindingSet.binding);
+                auto resourceScopeName = resourceNode->ScopeName();
+
+                spdlog::info("checking resource {} at {} {}", resourceScopeName, bindingSet.set, bindingSet.binding);
 
                 auto vulkanDrawState = static_cast<VulkanResourceBindingState *>(drawState.get());
 
-                // for each frame, bind internal resource
+                // for each frame, bind resource
                 for (auto frameIndex = 0; frameIndex < swapChain->ImageSize(); frameIndex++)
                 {
                     auto &resourceHandleMap = vulkanDrawState->GetDescriptorSet()->GetResourceHandlesMap(frameIndex);
-                    // set empty slot only, no override
+
+                    // check if external resource is bound
                     if (!resourceHandleMap[bindingSet.set][bindingSet.binding].Empty())
                         continue;
 
-                    spdlog::info("resource: {} frame index {} set {} binding {} is empty, perform internal binding", resourceName, frameIndex, bindingSet.set, bindingSet.binding);
+                    if (!resourceNode->internal && frameIndex == 0) {
+                        throw std::runtime_error("external resource at frame 0 must be bound");
+                    }
+
+                    spdlog::info("resource: {} frame index {} set {} binding {} is empty", resourceScopeName, frameIndex, bindingSet.set, bindingSet.binding);
+
                     // default resource (immutable) bind at frameIndex == 0
                     // per frame attachmentImages is prepared in prepareFrameBuffer
                     // per frame buffers is prepared in prepareResources
-                    if (frameIndex == 0)
+                    // find resource for first bind
+                    IntrusivePtr<ResourceHandle> resource;
+                    if (!resourceNode->immutable || frameIndex == 0)
                     {
-                        IntrusivePtr<ResourceHandle> resource;
+                        // attachments are graphic pass resource
                         if (bindingSet.type == GraphNode::ATTACHMENT)
                         {
-                            resource = renderPassResourceMap[vulkanRP].attachmentImages[resourceName][frameIndex].sampler;
+                            resource = renderPassResourceMap[subPassScopeName].attachmentImages[resourceScopeName][frameIndex].sampler;
                         }
-                        if (bindingSet.type == GraphNode::BUFFER)
+                        // buffers are group scope resource
+                        // must be internal at frameIndex == 0
+                        else if (bindingSet.type == GraphNode::BUFFER)
                         {
-                            resource = renderPassResourceMap[vulkanRP].buffers[resourceName][frameIndex];
+                            assert(resourceNode->internal);
+                            resource = groupScopeResources[resourceScopeName][frameIndex];
                         }
                         vulkanDrawState->BindInternal(frameIndex, bindingSet.set, bindingSet.binding, resource);
                     }

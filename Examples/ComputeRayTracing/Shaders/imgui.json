@@ -8,18 +8,22 @@
                 "ComputeRayTracing::present::present"
             ],
             "shaders": {
-                "vertex": "Shaders/ui.vert.spv",
-                "fragment": "Shaders/ui.frag.spv"
+                "vertex": "ui.vert.spv",
+                "fragment": "ui.frag.spv"
             },
             "inputs": [
                 {
                     "name": "imguiUBO",
-                    "type": "buffer"
+                    "type": "buffer",
+                    "internal": false,
+                    "immutable": true
                 },
                 {
                     "name": "fontSampler",
                     "type": "sampler",
-                    "binding": 0
+                    "binding": 0,
+                    "internal": false,
+                    "immutable": true
                 }
             ],
             "outputs": [

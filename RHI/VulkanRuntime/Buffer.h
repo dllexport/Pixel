@@ -24,6 +24,9 @@ public:
 
     virtual IntrusivePtr<Buffer> Clone() override;
 
+    virtual bool Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
+    bool Allocate(VkBufferCreateInfo bufferCI, VmaAllocationCreateInfo memoryCI);
+
 private:
     friend class VulkanRuntime;
     IntrusivePtr<Context> context;
@@ -35,7 +38,4 @@ private:
 
     VkBufferCreateInfo bufferCI;
     VmaAllocationCreateInfo memoryCI;
-    
-    virtual bool Allocate(Buffer::TypeBits type, MemoryPropertyBits memoryProperties, uint32_t size) override;
-    bool Allocate(VkBufferCreateInfo bufferCI, VmaAllocationCreateInfo memoryCI);
 };

@@ -10,6 +10,10 @@ inline std::string ReadStringFile(std::string path)
     {
         t.open("Shaders/" + path);
     }
+    if (!t.is_open())
+    {
+        t.open("../Shaders/" + path);
+    }
     return std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 }
 
@@ -19,6 +23,10 @@ inline std::vector<char> ReadBinaryFile(std::string path)
     if (!is.is_open())
     {
         is.open("Shaders/" + path, std::ios::binary | std::ios::in | std::ios::ate);
+    }
+    if (!is.is_open())
+    {
+        is.open("../Shaders/" + path, std::ios::binary | std::ios::in | std::ios::ate);
     }
     if (is.is_open())
     {

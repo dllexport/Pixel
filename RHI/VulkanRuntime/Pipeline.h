@@ -6,6 +6,8 @@
 #include <Core/IntrusivePtr.h>
 #include <Core/ReadFile.h>
 
+#include <FrameGraph/GraphNode.h>
+
 #include <RHI/Pipeline.h>
 #include <RHI/PipelineStates.h>
 #include <RHI/VulkanRuntime/PipelineLayout.h>
@@ -17,6 +19,8 @@ class VulkanPipeline : public Pipeline
 public:
     VulkanPipeline(IntrusivePtr<Context> context, std::string groupName, std::string pipelineName);
     virtual void Build() = 0;
+
+    virtual IntrusivePtr<RenderPassGraphNode> GetRenderPassGraphNode() = 0;
 
 protected:
     IntrusivePtr<Context> context;

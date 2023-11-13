@@ -52,6 +52,7 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
         return groupName + "::" + passName + "::" + name;
     }
 
+    // resource with same name is shared within group
     std::string ScopeName()
     {
         if (name.starts_with("::"))
@@ -62,6 +63,11 @@ struct GraphNode : public IntrusiveUnsafeCounter<GraphNode>
     std::string GroupName()
     {
         return groupName;
+    }
+
+    std::string PassName()
+    {
+        return passName;
     }
 
     template <class T>
@@ -80,6 +86,9 @@ struct ResourceNode : public GraphNode
     bool shared = false;
 
     uint8_t binding;
+
+    bool internal;
+    bool immutable;
 };
 
 struct AttachmentGraphNode : public ResourceNode
@@ -102,17 +111,25 @@ struct DescriptorGraphNode : public ResourceNode
     uint8_t set;
 };
 
+struct SSBOGraphNode : public DescriptorGraphNode
+{
+    SSBOGraphNode(std::string name, Type type) : DescriptorGraphNode(name, type) {}
+    uint32_t size;
+    TextureFormat format = TextureFormat::FORMAT_NONE;
+};
+
 struct RenderPassGraphNode : public GraphNode
 {
     using GraphNode::GraphNode;
-    // node -> (set, binding)
+
+    // node (global name) -> (set, binding)
     struct ResourceBindingPack
     {
         uint32_t set;
         uint32_t binding;
         Type type;
     };
-    std::unordered_map<std::string, ResourceBindingPack> bindingSets;
+    std::unordered_map<IntrusivePtr<DescriptorGraphNode>, ResourceBindingPack> bindingSets;
 
     std::unordered_set<std::string> dependencies;
 };

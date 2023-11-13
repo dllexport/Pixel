@@ -1,6 +1,6 @@
 #include <RHI/VulkanRuntime/ComputePipeline.h>
 
-VulkanComputePipeline::VulkanComputePipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanComputePass> computePass, std::string pipelineName, std::string groupName, ComputePipelineStates pipelineStates) : VulkanPipeline(context, groupName, pipelineName), computePass(computePass), pipelineStates(pipelineStates)
+VulkanComputePipeline::VulkanComputePipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanComputePass> computePass, std::string groupName, std::string pipelineName, ComputePipelineStates pipelineStates) : VulkanPipeline(context, groupName, pipelineName), computePass(computePass), pipelineStates(pipelineStates)
 {
 }
 

@@ -90,15 +90,26 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
                 attachment->color = attachment->depthStencil ? false : true;
                 inputNode = attachment;
             }
-            else if (input.type == "buffer" || input.type == "sampler" || input.type == "ssbo")
+            else if (input.type == "buffer" || input.type == "sampler")
             {
                 auto dn = new DescriptorGraphNode(input.name, input.type == "sampler" ? GraphNode::SAMPLER : GraphNode::BUFFER);
                 dn->set = 0;
+                dn->binding = input.binding;
+                inputNode = dn;
+            }
+            else if (input.type == "ssbo")
+            {
+                auto dn = new SSBOGraphNode(input.name, GraphNode::BUFFER);
+                dn->set = 0;
+                dn->binding = input.binding;
+                dn->size = input.size;
                 inputNode = dn;
             }
 
             // all input nodes are ResourceNode
             inputNode->binding = input.binding;
+            inputNode->internal = input.internal;
+            inputNode->immutable = input.immutable;
 
             inputNode->passName = node->name;
             inputNode->groupName = json.name;
@@ -122,7 +133,7 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
 
         for (auto output : subpass.outputs)
         {
-            GraphNode *outputNode;
+            ResourceNode *outputNode;
             if (output.type == "attachment")
             {
                 auto attachment = new AttachmentGraphNode(output.name, GraphNode::ATTACHMENT);
@@ -134,9 +145,19 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
                 attachment->format = TranslateFormat(output.format);
                 outputNode = attachment;
             }
-            else if (output.type == "buffer" || output.type == "ssbo")
+            else if (output.type == "buffer")
             {
                 outputNode = new DescriptorGraphNode(output.name, GraphNode::BUFFER);
+            }
+            else if (output.type == "ssbo")
+            {
+                auto dn = new SSBOGraphNode(output.name, GraphNode::BUFFER);
+                dn->set = 0;
+                dn->binding = output.binding;
+                dn->size = output.size;
+                dn->internal = output.internal;
+                dn->immutable = output.immutable;
+                outputNode = dn;
             }
 
             outputNode->passName = node->name;
@@ -163,19 +184,19 @@ IntrusivePtr<Graph> Graph::ParseRenderPassJsonRawString(std::string jsonStr)
 
         auto passNode = (RenderPassGraphNode *)node.get();
         // inputs must be descriptors
-        for (unsigned i = 0; i < passNode->inputs.size(); i++)
+        for (auto i = 0; i < passNode->inputs.size(); i++)
         {
             auto resNode = (DescriptorGraphNode *)passNode->inputs[i].get();
-            passNode->bindingSets[resNode->GlobalName()] = {resNode->set, resNode->binding, passNode->inputs[i]->type};
+            passNode->bindingSets[resNode] = {resNode->set, resNode->binding, passNode->inputs[i]->type};
         }
-        // TODO, handle outputs (BUFFER SSBO)
-        for (unsigned i = 0; i < passNode->outputs.size(); i++)
+        // handle outputs (BUFFER SSBO)
+        for (auto i = 0; i < passNode->outputs.size(); i++)
         {
             // skip attachments
             if (passNode->outputs[i]->type == GraphNode::ATTACHMENT)
                 continue;
             auto resNode = (DescriptorGraphNode *)passNode->outputs[i].get();
-            passNode->bindingSets[resNode->GlobalName()] = {resNode->set, resNode->binding, passNode->outputs[i]->type};
+            passNode->bindingSets[resNode] = {resNode->set, resNode->binding, passNode->outputs[i]->type};
         }
     }
 

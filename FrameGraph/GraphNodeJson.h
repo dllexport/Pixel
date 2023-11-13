@@ -20,7 +20,12 @@ struct RenderSubPassResourceJson
     uint8_t binding;
     uint8_t set;
 
-    JS_OBJ(name, type, format, depthStencil, swapChain, shared, clear, set, binding);
+    // for ssbo, ubo
+    bool internal;
+    bool immutable;
+    uint32_t size;
+
+    JS_OBJ(name, type, format, depthStencil, swapChain, shared, clear, set, binding, internal, immutable, size);
 };
 
 struct ShaderPaths

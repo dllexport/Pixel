@@ -42,6 +42,11 @@ public:
         return surface;
     }
 
+    VkExtent2D GetExtent()
+    {
+        return extent;
+    }
+
 private:
     friend class SwapChainBuilder;
     friend class VulkanRenderGroup;

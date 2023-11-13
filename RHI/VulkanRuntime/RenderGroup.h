@@ -44,6 +44,7 @@ public:
     IntrusivePtr<VulkanGraphicPass> GetRenderPass(std::string name);
 
     IntrusivePtr<VulkanTexture> CreateAttachmentResource(VulkanSwapChain *swapChain, IntrusivePtr<AttachmentGraphNode> attachmentNode);
+    IntrusivePtr<VulkanBuffer> CreateBufferResource(VulkanSwapChain *swapChain, IntrusivePtr<SSBOGraphNode> resourceNode);
 
     static uint32_t DeferAttachmentUsage(IntrusivePtr<AttachmentGraphNode> attachmentNode);
     static VkImageAspectFlags DeferAttachmentAspect(IntrusivePtr<AttachmentGraphNode> attachmentNode);
@@ -59,19 +60,17 @@ private:
     {
         // attachment name -> vulkan image(1 per inflight)
         std::unordered_map<std::string, std::vector<VulkanImage>> attachmentImages;
-        std::unordered_map<std::string, std::vector<IntrusivePtr<VulkanBuffer>>> buffers;
         std::vector<VkFramebuffer> frameBuffers;
         std::vector<VkCommandBuffer> commandBuffers;
     };
-    std::unordered_map<IntrusivePtr<VulkanGraphicPass>, RenderPassFrameResource> renderPassResourceMap;
+    std::unordered_map<std::string, RenderPassFrameResource> renderPassResourceMap;
 
     struct ComputePassFrameResource
     {
         // resource name -> buffer
-        std::unordered_map<std::string, std::vector<ResourceHandle>> buffers;
         std::vector<VkCommandBuffer> commandBuffers;
     };
-    std::unordered_map<IntrusivePtr<VulkanComputePass>, ComputePassFrameResource> computePassResourceMap;
+    std::unordered_map<std::string, ComputePassFrameResource> computePassResourceMap;
 
     // resources external import
     // global name -> res(per inflight)
@@ -93,12 +92,12 @@ private:
 
     // create VkCommandBuffer and VkFramebuffer
     // 1 per frame
-    void prepareCommandBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
+    void prepareCommandBuffer(std::string passScopeName, VulkanSwapChain *swapChain);
 
     // 1. layout transition from UNDEFINED to GENERAL for each attachment
     //    setting layout for shared attachment if restrained by inTransition state
     // 2. create texture and framebuffer (per frame)
-    void prepareFrameBuffer(IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
+    void prepareFrameBuffer(std::string passScopeName, IntrusivePtr<VulkanGraphicPass> &renderPass, VulkanSwapChain *swapChain);
 
     // allocate internal resources for descriptor resolving
     void prepareResources(VulkanPass *pass, VulkanSwapChain *swapChain);

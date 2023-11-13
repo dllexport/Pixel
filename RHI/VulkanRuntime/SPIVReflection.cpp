@@ -320,6 +320,8 @@ VkFlags SPIVReflection::TranslateShaderStage(SpvExecutionModel type)
         return VK_SHADER_STAGE_VERTEX_BIT;
     case SpvExecutionModelFragment:
         return VK_SHADER_STAGE_FRAGMENT_BIT;
+    case SpvExecutionModelGLCompute:
+        return VK_SHADER_STAGE_COMPUTE_BIT;
     default:
     {
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;

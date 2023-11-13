@@ -12,7 +12,7 @@
 class VulkanComputePipeline : public VulkanPipeline
 {
 public:
-    VulkanComputePipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanComputePass> computePass, std::string pipelineName, std::string groupName, ComputePipelineStates pipelineStates);
+    VulkanComputePipeline(IntrusivePtr<Context> context, IntrusivePtr<VulkanComputePass> computePass, std::string groupName, std::string pipelineName, ComputePipelineStates pipelineStates);
     virtual ~VulkanComputePipeline() override;
     virtual void Build() override;
 
@@ -26,6 +26,11 @@ public:
     IntrusivePtr<VulkanComputePass> GetComputePass()
     {
         return computePass;
+    }
+
+    virtual IntrusivePtr<RenderPassGraphNode> GetRenderPassGraphNode() override
+    {
+        return computePass->renderPassGraphNodes[0];
     }
 
 private:

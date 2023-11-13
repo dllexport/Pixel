@@ -22,6 +22,18 @@ public:
 
     IntrusivePtr<VulkanGraphicPass> GetRenderPass();
 
+    virtual IntrusivePtr<RenderPassGraphNode> GetRenderPassGraphNode() override
+    {
+        for (auto &n : renderPass->renderPassGraphNodes)
+        {
+            if (n->passName == this->pipelineName)
+            {
+                return n;
+            }
+        }
+        return nullptr;
+    }
+
 private:
     IntrusivePtr<VulkanGraphicPass> renderPass;
 

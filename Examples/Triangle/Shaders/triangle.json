@@ -13,12 +13,16 @@
                 {
                     "name": "ubo",
                     "type": "buffer",
-                    "binding": 0
+                    "binding": 0,
+                    "internal": false,
+                    "immutable": false
                 },
                 {
                     "name": "configUBO",
                     "type": "buffer",
-                    "binding": 1
+                    "binding": 1,
+                    "internal": false,
+                    "immutable": false
                 }
             ],
             "outputs": [

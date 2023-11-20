@@ -588,36 +588,32 @@ void VulkanRenderGroup::resolveDrawStatesDescriptors(VulkanSwapChain *swapChain)
                     if (!resourceHandleMap[bindingSet.set][bindingSet.binding].Empty())
                         continue;
 
-                    if (!resourceNode->internal && frameIndex == 0) {
+                    if (!resourceNode->internal && frameIndex == 0)
+                    {
                         throw std::runtime_error("external resource at frame 0 must be bound");
                     }
 
                     spdlog::info("resource: {} frame index {} set {} binding {} is empty", resourceScopeName, frameIndex, bindingSet.set, bindingSet.binding);
 
                     // default resource (immutable) bind at frameIndex == 0
-                    // per frame attachmentImages is prepared in prepareFrameBuffer
-                    // per frame buffers is prepared in prepareResources
-                    // find resource for first bind
-                    IntrusivePtr<ResourceHandle> resource;
-                    if (!resourceNode->immutable || frameIndex == 0)
+                    if (resourceNode->internal && (!resourceNode->immutable || frameIndex == 0))
                     {
-                        // attachments are graphic pass resource
+                        IntrusivePtr<ResourceHandle> resource;
                         if (bindingSet.type == GraphNode::ATTACHMENT)
                         {
                             resource = renderPassResourceMap[subPassScopeName].attachmentImages[resourceScopeName][frameIndex].sampler;
                         }
-                        // buffers are group scope resource
-                        // must be internal at frameIndex == 0
+                        // internal buffers are group scope resource
                         else if (bindingSet.type == GraphNode::BUFFER)
                         {
-                            assert(resourceNode->internal);
                             resource = groupScopeResources[resourceScopeName][frameIndex];
                         }
                         vulkanDrawState->BindInternal(frameIndex, bindingSet.set, bindingSet.binding, resource);
                     }
                     else
                     {
-                        // copy default (immutable) resource from frameIndex == 0
+                        // copy immutable resource from frameIndex == 0
+                        // or mutable resource
                         spdlog::info("copying from frame {} {} {}", frameIndex, bindingSet.set, bindingSet.binding);
                         vulkanDrawState->Copy(frameIndex, bindingSet.set, bindingSet.binding);
                     }

@@ -113,13 +113,14 @@ void VulkanRenderGroup::Prepare(VulkanSwapChain *swapChain)
 {
     for (auto &[passScopeName, renderPass] : renderPasses)
     {
-        prepareCommandBuffer(passScopeName, swapChain);
+        prepareCommandBuffer(passScopeName, swapChain, false);
         prepareFrameBuffer(passScopeName, renderPass, swapChain);
         prepareResources(renderPass.get(), swapChain);
     }
 
-    for (auto &[name, computePass] : computePasses)
+    for (auto &[passScopeName, computePass] : computePasses)
     {
+        prepareCommandBuffer(passScopeName, swapChain, true);
         prepareResources(computePass.get(), swapChain);
     }
 
@@ -325,18 +326,18 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
         vkEndCommandBuffer(commandBuffer);
     }
 
-    // for (auto &[passScopeName, cp] : computePasses)
-    // {
-    //     auto computePass = static_cast<VulkanComputePass *>(cp.get());
-    //     auto &computePassResource = computePassResourceMap[passScopeName];
-    //     auto &commandBuffer = computePassResource.commandBuffers[imageIndex];
+    for (auto &[passScopeName, cp] : computePasses)
+    {
+        auto computePass = static_cast<VulkanComputePass *>(cp.get());
+        auto &computePassResource = computePassResourceMap[passScopeName];
+        auto &commandBuffer = computePassResource.commandBuffers[imageIndex];
 
-    //     VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-    //     cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+        cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    //     vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
-    //     vkEndCommandBuffer(commandBuffer);
-    // }
+        vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
+        vkEndCommandBuffer(commandBuffer);
+    }
 }
 
 uint32_t VulkanRenderGroup::DeferAttachmentUsage(IntrusivePtr<AttachmentGraphNode> attachmentNode)
@@ -378,19 +379,26 @@ VkImageAspectFlags VulkanRenderGroup::DeferAttachmentAspect(IntrusivePtr<Attachm
     return imageAspect;
 }
 
-void VulkanRenderGroup::prepareCommandBuffer(std::string passScopeName, VulkanSwapChain *swapChain)
+void VulkanRenderGroup::prepareCommandBuffer(std::string passScopeName, VulkanSwapChain *swapChain, bool isCompute)
 {
     auto scTextureSize = swapChain->GetTextures().size();
     {
-        auto &commandBuffers = renderPassResourceMap[passScopeName].commandBuffers;
+        std::vector<VkCommandBuffer> *pCommandBuffers;
+
+        if (isCompute)
+            pCommandBuffers = &computePassResourceMap[passScopeName].commandBuffers;
+        else
+            pCommandBuffers = &renderPassResourceMap[passScopeName].commandBuffers;
+        
+        auto pool = isCompute ? computeCommandPool : graphicCommandPool;
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        commandBufferAllocateInfo.commandPool = graphicCommandPool;
+        commandBufferAllocateInfo.commandPool = pool;
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = uint32_t(scTextureSize);
-        commandBuffers.resize(scTextureSize);
-        auto result = vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, commandBuffers.data());
+        pCommandBuffers->resize(scTextureSize);
+        auto result = vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, pCommandBuffers->data());
     }
 }
 

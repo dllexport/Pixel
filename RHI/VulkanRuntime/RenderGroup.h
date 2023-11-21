@@ -92,7 +92,7 @@ private:
 
     // create VkCommandBuffer and VkFramebuffer
     // 1 per frame
-    void prepareCommandBuffer(std::string passScopeName, VulkanSwapChain *swapChain);
+    void prepareCommandBuffer(std::string passScopeName, VulkanSwapChain *swapChain, bool isCompute);
 
     // 1. layout transition from UNDEFINED to GENERAL for each attachment
     //    setting layout for shared attachment if restrained by inTransition state

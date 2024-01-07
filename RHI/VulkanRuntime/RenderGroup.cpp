@@ -334,7 +334,15 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
 
         VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        for (auto &subpass : cp->GetRenderPassGraphNode())
+        {
+            assert(pipelineMap.count(subpass->ScopeName()));
+            auto pipeline = static_cast<VulkanComputePipeline *>(pipelineMap[subpass->ScopeName()].get());
 
+            assert(this->resourceBindingStates.count(pipeline));
+
+            auto &drawStates = this->resourceBindingStates[pipeline];
+        }
         vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
         vkEndCommandBuffer(commandBuffer);
     }
@@ -389,7 +397,7 @@ void VulkanRenderGroup::prepareCommandBuffer(std::string passScopeName, VulkanSw
             pCommandBuffers = &computePassResourceMap[passScopeName].commandBuffers;
         else
             pCommandBuffers = &renderPassResourceMap[passScopeName].commandBuffers;
-        
+
         auto pool = isCompute ? computeCommandPool : graphicCommandPool;
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};

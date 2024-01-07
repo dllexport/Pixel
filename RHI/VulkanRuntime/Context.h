@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include <RHI/VulkanRuntime/Instance.h>
 #include <Core/IntrusivePtr.h>
 
 #include <vk_mem_alloc.h>

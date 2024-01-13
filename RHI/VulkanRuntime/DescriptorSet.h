@@ -47,6 +47,7 @@ public:
     struct ResourceHandleMeta
     {
         std::vector<IntrusivePtr<ResourceHandle>> resourceHandles;
+
         bool internal;
 
         bool Empty()

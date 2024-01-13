@@ -41,6 +41,7 @@ private:
 
     std::unordered_map<std::string, IntrusivePtr<VulkanRenderGroup>> renderGroups;
 
+    // share resources are shared among rendergroups
     // resource name (local) -> resource
     std::unordered_map<std::string, std::vector<IntrusivePtr<ResourceHandle>>> sharedResources;
 
@@ -52,8 +53,8 @@ private:
     void prepareSharedResources();
     void releaseSharedResources();
 
-    void prepareRenderCommandBuffers();
-    void releaseRenderCommandBuffers();
+    void prepareRenderCommandBufferPools();
+    void releaseRenderCommandBufferPools();
     std::vector<VkCommandBuffer> createCommandBuffer(uint32_t size);
 
     // resource sync between render group execution

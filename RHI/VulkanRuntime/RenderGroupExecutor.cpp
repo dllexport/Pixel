@@ -39,7 +39,7 @@ void VulkanGroupExecutor::Reset()
 {
     releaseFences();
     releaseSharedResources();
-    releaseRenderCommandBuffers();
+    releaseRenderCommandBufferPools();
 
     queueCompleteFences.clear();
 
@@ -50,6 +50,38 @@ void VulkanGroupExecutor::Reset()
     {
         rg->Reset();
     }
+}
+
+void VulkanGroupExecutor::releaseFences()
+{
+    for (auto &fence : queueCompleteFences)
+    {
+        vkDestroyFence(context->GetVkDevice(), fence, nullptr);
+    }
+}
+
+void VulkanGroupExecutor::releaseSharedResources()
+{
+    sharedResources.clear();
+}
+
+void VulkanGroupExecutor::Prepare()
+{
+    auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
+    auto swapChainImageSize = vulkanSC->GetTextures().size();
+
+    prepareFences();
+    prepareRenderCommandBufferPools();
+    prepareSharedResources();
+    prepareRenderGroupTopo();
+
+    for (auto &[name, rg] : renderGroups)
+    {
+        rg->Prepare(vulkanSC);
+    }
+
+    prepareGlobalSynchronization();
+    prepareRenderGroupSynchronization();
 }
 
 void VulkanGroupExecutor::prepareFences()
@@ -66,17 +98,30 @@ void VulkanGroupExecutor::prepareFences()
     }
 }
 
-void VulkanGroupExecutor::releaseFences()
+void VulkanGroupExecutor::prepareRenderCommandBufferPools()
 {
-    for (auto &fence : queueCompleteFences)
+    if (commandPool == VK_NULL_HANDLE)
     {
-        vkDestroyFence(context->GetVkDevice(), fence, nullptr);
+        VkCommandPoolCreateInfo cmdPoolInfo = {};
+        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmdPoolInfo.queueFamilyIndex = context->GetQueue(VK_QUEUE_GRAPHICS_BIT).familyIndex;
+        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        auto result = vkCreateCommandPool(context->GetVkDevice(), &cmdPoolInfo, nullptr, &commandPool);
+        assert(result == VK_SUCCESS);
     }
 }
 
-void VulkanGroupExecutor::releaseSharedResources()
+std::vector<VkCommandBuffer> VulkanGroupExecutor::createCommandBuffer(uint32_t size)
 {
-    sharedResources.clear();
+    std::vector<VkCommandBuffer> buffers(size);
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.commandPool = commandPool;
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandBufferCount = size;
+    auto result = vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, buffers.data());
+    assert(result == VK_SUCCESS);
+    return buffers;
 }
 
 void VulkanGroupExecutor::prepareSharedResources()
@@ -123,63 +168,20 @@ void VulkanGroupExecutor::prepareSharedResources()
     }
 }
 
-void VulkanGroupExecutor::Prepare()
+void VulkanGroupExecutor::prepareRenderGroupTopo()
 {
-    auto vulkanSC = static_cast<VulkanSwapChain *>(this->swapChain.get());
-    auto swapChainImageSize = vulkanSC->GetTextures().size();
-
-    prepareFences();
-    prepareRenderCommandBuffers();
-    prepareSharedResources();
-    prepareRenderGroupTopo();
-
-    for (auto &[name, rg] : renderGroups)
+    std::vector<IntrusivePtr<Graph>> graphs;
+    for (auto &[_, rg] : renderGroups)
     {
-        rg->Prepare(vulkanSC);
+        graphs.push_back(rg->GetGraph());
     }
 
-    prepareGlobalSynchronization();
-    prepareRenderGroupSynchronization();
+    this->globalGraph = Graph::Merge(graphs);
+    this->globalGraph->Topo();
 }
 
-std::vector<VkCommandBuffer> VulkanGroupExecutor::createCommandBuffer(uint32_t size)
+void VulkanGroupExecutor::releaseRenderCommandBufferPools()
 {
-    std::vector<VkCommandBuffer> buffers;
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
-    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    commandBufferAllocateInfo.commandPool = commandPool;
-    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    commandBufferAllocateInfo.commandBufferCount = size;
-    buffers.resize(size);
-    auto result = vkAllocateCommandBuffers(context->GetVkDevice(), &commandBufferAllocateInfo, buffers.data());
-    return buffers;
-}
-
-void VulkanGroupExecutor::prepareRenderCommandBuffers()
-{
-    if (commandPool == VK_NULL_HANDLE)
-    {
-        VkCommandPoolCreateInfo cmdPoolInfo = {};
-        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmdPoolInfo.queueFamilyIndex = context->GetQueue(VK_QUEUE_GRAPHICS_BIT).familyIndex;
-        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        auto result = vkCreateCommandPool(context->GetVkDevice(), &cmdPoolInfo, nullptr, &commandPool);
-    }
-
-    auto vulkanSC = static_cast<VulkanSwapChain *>(swapChain.get());
-    auto scTextureSize = vulkanSC->GetTextures().size();
-    auto buffers = createCommandBuffer(scTextureSize);
-    renderCommandBuffers.insert(std::end(renderCommandBuffers), std::begin(buffers), std::end(buffers));
-}
-
-void VulkanGroupExecutor::releaseRenderCommandBuffers()
-{
-    for (auto &commandBuffer : renderCommandBuffers)
-    {
-        vkResetCommandBuffer(commandBuffer, VkCommandPoolResetFlagBits::VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-    }
-    renderCommandBuffers.clear();
-
     renderGroupSyncMap.clear();
     globalSynCommands = {};
 
@@ -211,6 +213,7 @@ void VulkanGroupExecutor::prepareGlobalSynchronization()
         // for swapchain, build transit layout from present to generel before execute group
         VkCommandBufferBeginInfo cmdBufferBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 
+        // transit attachment from undef to general before any renderpass
         {
             auto &beforeGroupExecCommand = globalSynCommands.beforeGroupExec[idx];
             vkBeginCommandBuffer(beforeGroupExecCommand, &cmdBufferBeginInfo);
@@ -226,6 +229,7 @@ void VulkanGroupExecutor::prepareGlobalSynchronization()
             vkEndCommandBuffer(beforeGroupExecCommand);
         }
 
+        // transit color attachment from general to present after all renderpass complete
         {
             auto &afterGroupExecCommand = globalSynCommands.afterGroupExec[idx];
             vkBeginCommandBuffer(afterGroupExecCommand, &cmdBufferBeginInfo);
@@ -247,18 +251,8 @@ void VulkanGroupExecutor::prepareRenderGroupSynchronization()
 {
     auto swapChainSize = swapChain->ImageSize();
 
-    std::vector<std::reference_wrapper<IntrusivePtr<VulkanRenderGroup>>> groups;
-
-    // aggregate command buffers
     for (auto &[_, rg] : renderGroups)
     {
-        groups.insert(groups.begin(), rg);
-    }
-
-    for (int i = 0; i < groups.size(); i++)
-    {
-        auto &rg = groups[i].get();
-
         renderGroupSyncMap[rg->Name()].beforeGroupExec = createCommandBuffer(swapChainSize);
         renderGroupSyncMap[rg->Name()].afterGroupExec = createCommandBuffer(swapChainSize);
 
@@ -266,7 +260,6 @@ void VulkanGroupExecutor::prepareRenderGroupSynchronization()
 
         for (int idx = 0; idx < swapChainSize; idx++)
         {
-            // for swapchain, build transit layout from present to generel before execute group
             auto &commandBuffer = cbs.afterGroupExec[idx];
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
             vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
@@ -287,18 +280,6 @@ void VulkanGroupExecutor::prepareRenderGroupSynchronization()
             vkEndCommandBuffer(commandBuffer);
         }
     }
-}
-
-void VulkanGroupExecutor::prepareRenderGroupTopo()
-{
-    std::vector<IntrusivePtr<Graph>> graphs;
-    for (auto &[_, rg] : renderGroups)
-    {
-        graphs.push_back(rg->GetGraph());
-    }
-
-    this->globalGraph = Graph::Merge(graphs);
-    this->globalGraph->Topo();
 }
 
 bool VulkanGroupExecutor::Execute()

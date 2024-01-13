@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <Core/IntrusivePtr.h>
 #include <RHI/ResourceHandle.h>
-#include <RHI/Memory.h>
+#include <RHI/MemoryProperties.h>
 
 class Buffer : public ResourceHandle
 {
@@ -41,7 +41,9 @@ public:
 
     using TypeBits = uint32_t;
 
+    // only cpu local memory can be mapped
     virtual void *Map() = 0;
+
     virtual size_t Size() = 0;
 
     // clone buffer with same settings

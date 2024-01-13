@@ -2,7 +2,7 @@
 
 #include <FrameGraph/Graph.h>
 
-#include <RHI/Memory.h>
+#include <RHI/MemoryProperties.h>
 #include <RHI/RHIRuntime.h>
 #include <RHI/VulkanRuntime/Context.h>
 

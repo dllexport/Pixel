@@ -3,7 +3,7 @@
 #include <Core/IntrusivePtr.h>
 #include <RHI/ResourceHandle.h>
 #include <RHI/TextureFormat.h>
-#include <RHI/Memory.h>
+#include <RHI/MemoryProperties.h>
 
 class Texture : public ResourceHandle
 {

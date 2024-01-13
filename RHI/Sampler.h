@@ -2,7 +2,7 @@
 #include <Core/IntrusivePtr.h>
 #include <RHI/ResourceHandle.h>
 #include <RHI/Texture.h>
-#include <RHI/Memory.h>
+#include <RHI/MemoryProperties.h>
 
 class Sampler : public ResourceHandle
 {

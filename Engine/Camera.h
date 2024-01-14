@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -31,6 +32,13 @@ private:
 
 	void updateViewMatrix()
 	{
+		ubo.viewMatrix = glm::lookAtLH(position,
+									   glm::vec3(0.0f, 0.0f, 0.0f),
+									   glm::vec3(0.0f, 1.0f, 0.0f));
+		matrices.view = ubo.viewMatrix;
+
+		//spdlog::info("{}", glm::to_string(ubo.viewMatrix));
+		return;
 		glm::mat4 rotM = glm::mat4(1.0f);
 		glm::mat4 transM;
 

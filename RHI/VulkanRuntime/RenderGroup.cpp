@@ -241,7 +241,9 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
 
         VkViewport viewport = {};
         viewport.width = swapchain->extent.width;
-        viewport.height = swapchain->extent.height;
+        viewport.height = -float(swapchain->extent.height);
+        viewport.x = 0;
+        viewport.y = swapchain->extent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);

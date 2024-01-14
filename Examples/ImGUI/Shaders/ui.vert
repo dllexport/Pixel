@@ -21,5 +21,7 @@ void main()
 {
 	outUV = inUV;
 	outColor = inColor;
-	gl_Position = vec4(inPos * imguiUBO.scale + imguiUBO.translate, 0.0, 1.0);
+	vec4 position = vec4(inPos * imguiUBO.scale + imguiUBO.translate, 0.0, 1.0);
+	position.y = -position.y;
+	gl_Position = position;
 }

@@ -132,7 +132,7 @@ VkPipelineDepthStencilStateCreateInfo TranslateDepthStencilState(DepthStencilSta
     pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     pipelineDepthStencilStateCreateInfo.depthTestEnable = state.depthTestEnable;
     pipelineDepthStencilStateCreateInfo.depthWriteEnable = state.depthWriteEnable;
-    pipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    pipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     pipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
     return pipelineDepthStencilStateCreateInfo;
 }

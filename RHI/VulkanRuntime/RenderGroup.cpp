@@ -222,7 +222,8 @@ void VulkanRenderGroup::buildCommandBuffer(uint32_t imageIndex, VulkanSwapChain 
                 clearValues[i].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
             if (attachmentNode->depthStencil)
-                clearValues[i].depthStencil = {1.0f, 0};
+                // enable reverse Z, depth map n -> f to 1 -> 0
+                clearValues[i].depthStencil = {0.0f, 0};
         }
 
         VkRenderPassBeginInfo renderPassBeginInfo = {};

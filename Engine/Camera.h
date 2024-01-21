@@ -29,7 +29,7 @@ private:
 
 	float fov;
 	float aspect;
-	float znear, zfar;
+	float zNear, zFar;
 	float yaw = 90.0f;
 	float pitch = 0.0f;
 
@@ -88,29 +88,18 @@ public:
 		return keys.left || keys.right || keys.up || keys.down;
 	}
 
-	float getNearClip()
-	{
-		return znear;
-	}
-
-	float getFarClip()
-	{
-		return zfar;
-	}
-
-	void setPerspective(float fov, float aspect, float znear, float zfar)
+	void setPerspective(float fov, float aspect, float zNear, float zFar)
 	{
 		this->fov = fov;
 		this->aspect = aspect;
-		this->znear = znear;
-		this->zfar = zfar;
-		this->zfar = zfar;
-		ubo.projectionMatrix = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+		this->zNear = zNear;
+		this->zFar = zFar;
+		ubo.projectionMatrix = glm::perspective(glm::radians(fov), aspect, zFar, zNear);
 	};
 
 	void updatePerspective()
 	{
-		ubo.projectionMatrix = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+		ubo.projectionMatrix = glm::perspective(glm::radians(fov), aspect, zFar, zNear);
 	}
 
 	void setPosition(glm::vec3 position)

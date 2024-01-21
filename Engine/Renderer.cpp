@@ -157,7 +157,6 @@ IntrusivePtr<Camera> Renderer::GetCamera()
     if (!this->camera)
     {
         camera = new Camera(engine->GetRHIRuntime());
-        camera->type = Camera::CameraType::firstperson;
         camera->setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
         camera->setRotation(glm::vec3(0.0f));
         camera->setPerspective(60.0f, (float)1024 / (float)768, 0.1f, 256.0f);

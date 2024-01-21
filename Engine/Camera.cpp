@@ -2,6 +2,8 @@
 
 Camera::Camera(IntrusivePtr<RHIRuntime> rhiRuntime) : rhiRuntime(rhiRuntime)
 {
+    position = glm::vec3(0, 0, -2.5);
+    center = glm::vec3(0, 0, 0);
     this->Allocate();
 }
 
@@ -56,7 +58,7 @@ bool Camera::EventCallback(UpdateInput inputs)
             int32_t dx = (int32_t)mousePos.x - event.keyEvent.mouseX;
             int32_t dy = (int32_t)mousePos.y - event.keyEvent.mouseY;
 
-            this->rotate(glm::vec3(dy * this->rotationSpeed * deltaTime / 10.f, -dx * this->rotationSpeed * deltaTime / 10.f, 0.0f));
+            this->rotate(glm::vec3(-dx * this->rotationSpeed * deltaTime / 10.f, dy * this->rotationSpeed * deltaTime / 10.f, 0.0f));
 
             mousePos = {event.keyEvent.mouseX, event.keyEvent.mouseY};
         }
@@ -69,12 +71,17 @@ bool Camera::EventCallback(UpdateInput inputs)
 
     if (event.type == Event::MOUSE_SCROLL)
     {
-        // TODO: handle scroll
+        fov += (float)event.scrollEvent.offsetY;
+        if (fov < 1.0f)
+            fov = 1.0f;
+        if (fov > 90.0f)
+            fov = 90.0f;
+        updatePerspective();
     }
 
     this->update(deltaTime / 100.f);
 
-    auto frameUniformBuffer = static_cast<MutableBuffer*>(uniformBuffer.get());
+    auto frameUniformBuffer = static_cast<MutableBuffer *>(uniformBuffer.get());
 
     memcpy(frameUniformBuffer->GetBuffer(inputs.currentImageIndex)->Map(), &ubo, sizeof(ubo));
 
